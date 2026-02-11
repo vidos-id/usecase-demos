@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { hcWithType } from "server/dist/client";
+import { hcWithType } from "server/client";
 
 export const Route = createFileRoute("/")({
 	component: Index,
