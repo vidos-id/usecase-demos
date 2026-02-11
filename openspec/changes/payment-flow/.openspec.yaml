@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-02-11
+dependencies:
+  - core-infrastructure
+  - auth-flows
+  - dashboard-profile
