@@ -81,47 +81,88 @@ PID-based identification addresses these by:
 
 ## Architecture
 
-```
-┌─────────────┐     polls      ┌─────────────┐     polls      ┌──────────────────┐
-│   Client    │ ─────────────► │   Server    │ ─────────────► │ Vidos Authorizer │
-│  (React)    │                │   (Hono)    │                │      API         │
-└─────────────┘                └─────────────┘                └──────────────────┘
-      │                              │
-      │ session ID                   │ in-memory store
-      │ (cookie/header)              │ - users
-      ▼                              │ - sessions
-  Browser                            │ - pending auth requests
-  Storage                            │ - presentation mode preference
-                                     ▼
-                               Server Memory
+```mermaid
+graph LR
+    subgraph Browser
+        Client[Client<br/>React/Vite]
+        Storage[(Browser<br/>Storage)]
+    end
+    
+    subgraph Server["Server (Hono)"]
+        API[API Routes]
+        Memory[(In-Memory Store<br/>• users<br/>• sessions<br/>• pending requests<br/>• mode prefs)]
+    end
+    
+    Vidos[Vidos Authorizer<br/>API]
+    
+    Client -->|session ID| Storage
+    Client -->|polls| API
+    API --> Memory
+    API -->|polls| Vidos
 ```
 
 ### Data Flow: OpenID4VP Mode (direct_post)
 
-1. Client initiates action (signup/signin/payment/loan)
-2. Server creates authorization request via Vidos API with `response_mode: direct_post.jwt`
-3. Server returns `{ requestId, authorizeUrl }` to client
-4. Client displays QR code with `authorizeUrl` (desktop) or opens as deep link (mobile)
-5. User scans/clicks, wallet opens, approves
-6. Wallet submits presentation directly to Vidos Authorizer
-7. Client polls server `GET /api/{flow}/status/:requestId`
-8. Server polls Vidos for result
-9. On success: server extracts claims, creates/updates user, returns session
-10. Client proceeds to next step
+```mermaid
+sequenceDiagram
+    participant U as User/Wallet
+    participant C as Client
+    participant S as Server
+    participant V as Vidos Authorizer
+
+    C->>S: POST /api/{flow}/request
+    S->>V: Create auth request (direct_post.jwt)
+    V-->>S: { authorizationId, authorizeUrl }
+    S-->>C: { requestId, authorizeUrl }
+    
+    alt Desktop
+        C->>C: Display QR code
+        U->>U: Scan QR with wallet
+    else Mobile
+        C->>U: Open deep link
+    end
+    
+    U->>V: Submit presentation (direct_post)
+    
+    loop Poll until complete
+        C->>S: GET /api/{flow}/status/:requestId
+        S->>V: Check authorization status
+        V-->>S: Status + claims (when ready)
+    end
+    
+    S->>S: Create/update user, session
+    S-->>C: { sessionId, user }
+    C->>C: Proceed to next step
+```
 
 ### Data Flow: Digital Credentials API Mode (dc_api)
 
-1. Client initiates action (signup/signin/payment/loan)
-2. Server creates authorization request via Vidos API with `response_mode: dc_api.jwt`
-3. Server returns `{ requestId, digitalCredentialGetRequest, responseUrl }` to client
-4. Client calls browser DC API with `digitalCredentialGetRequest`
-5. Browser triggers wallet, user approves
-6. Browser DC API returns response to client
-7. Client sends response to server `POST /api/{flow}/complete/:requestId`
-8. Server forwards response to Vidos `responseUrl`
-9. Vidos validates, server extracts claims, creates/updates user
-10. Server returns session to client
-11. Client proceeds to next step
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant B as Browser DC API
+    participant C as Client
+    participant S as Server
+    participant V as Vidos Authorizer
+
+    C->>S: POST /api/{flow}/request
+    S->>V: Create auth request (dc_api.jwt)
+    V-->>S: { authorizationId, dcRequest, responseUrl }
+    S-->>C: { requestId, digitalCredentialGetRequest }
+    
+    C->>B: navigator.credentials.get(dcRequest)
+    B->>U: Prompt wallet selection
+    U->>B: Approve & select credentials
+    B-->>C: DC API response
+    
+    C->>S: POST /api/{flow}/complete/:requestId
+    S->>V: Forward to responseUrl
+    V-->>S: Validated claims
+    
+    S->>S: Create/update user, session
+    S-->>C: { sessionId, user }
+    C->>C: Proceed to next step
+```
 
 **Note:** In DC API mode there is no QR code - only the browser-native credential request flow.
 
@@ -133,17 +174,48 @@ VIDOS_AUTHORIZER_URL=https://authorizer.vidos.dev  # Vidos Authorizer base URL
 VIDOS_API_KEY=xxx                                   # API key for Vidos
 ```
 
+## User Flow Overview
+
+```mermaid
+flowchart TD
+    Landing[Landing Page] --> SignUp[Sign Up]
+    Landing --> SignIn[Sign In]
+    
+    SignUp --> |PID Verification| Dashboard
+    SignIn --> |PID Verification| Dashboard
+    
+    Dashboard --> SendMoney[Send Money]
+    Dashboard --> ApplyLoan[Apply for Loan]
+    Dashboard --> Profile[View Profile]
+    Dashboard --> SignOut[Sign Out]
+    
+    SendMoney --> |Enter Details| Confirm[Confirm Transaction]
+    Confirm --> |PID Confirmation| PaySuccess[Payment Success]
+    PaySuccess --> Dashboard
+    
+    ApplyLoan --> |Select Options| LoanConfirm[Verify Identity]
+    LoanConfirm --> |PID Confirmation| LoanSuccess[Application Submitted]
+    LoanSuccess --> Dashboard
+    
+    SignOut --> Landing
+```
+
 ## Key Use Cases
 
 ### User Journey Progress Indicator
 
 A visual progress indicator shall be displayed throughout the user journey:
 
-```
-○──────────●──────────○──────────○
-Intro    Authenticate   Action    Finish
-         (current)    (payment/
-                       loan)
+```mermaid
+graph LR
+    I((Intro)) --> A((Authenticate))
+    A --> P((Action))
+    P --> F((Finish))
+    
+    style I fill:#e0e0e0,stroke:#666
+    style A fill:#4CAF50,stroke:#2E7D32,color:#fff
+    style P fill:#fff,stroke:#999
+    style F fill:#fff,stroke:#999
 ```
 
 - Shows previous steps (completed), current step (highlighted), and upcoming steps
