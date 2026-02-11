@@ -87,3 +87,11 @@ client/src/routes/*.tsx          → `import { hcWithType } from "server/client"
 ```
 
 **Critical**: The Hono app in `server/src/index.ts` MUST use method chaining (`new Hono().get(...).post(...)`) so TypeScript infers all route types on the single `app` variable. Using `app.get(...); app.post(...)` as separate statements loses the accumulated route type — the client would see `unknown`.
+
+## Hono Notes
+
+- API-only on VPS is fine; use Bun runtime with Hono.
+- `hc` RPC client gives end-to-end types when `AppType = typeof app` is exported.
+- Always validate inputs with `zValidator()` and outputs with `schema.parse()`.
+- `hc` path params do not match `/`; encode with `encodeURIComponent`.
+- Bun request body limit defaults to 128MiB; raise `Bun.serve({ maxRequestBodySize })` if needed.

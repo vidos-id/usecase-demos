@@ -34,3 +34,8 @@ import { otherQuerySchema } from "shared/api/other";
 - Schemas: `camelCase` suffixed with `Schema` (e.g. `helloRequestSchema`).
 - Types: `export type Foo = z.infer<typeof fooSchema>` — always derive from schemas.
 - Changes available immediately to consumers — no rebuild needed.
+
+## API Design Rules
+
+- Define request/response schemas together per endpoint in `shared/src/api/*`.
+- Prefer explicit response schemas, even for simple payloads.

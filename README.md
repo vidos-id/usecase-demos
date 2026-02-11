@@ -17,6 +17,12 @@ Client: http://localhost:5173 | Server: http://localhost:3000
 client/   → React + Vite + TanStack Router
 server/   → Hono API (runs TS directly via Bun)
 shared/   → Zod schemas & shared types (JIT — no build step)
+
+## Type Safety
+
+- Zod schemas live in `shared/src/api/*` and are the source of truth.
+- Server validates inputs with `zValidator()` and outputs with `schema.parse()`.
+- Client uses `hcWithType` from `server/src/client.ts` for typed RPC calls.
 ```
 
 ## Commands

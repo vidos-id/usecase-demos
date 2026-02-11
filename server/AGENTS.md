@@ -1,26 +1,27 @@
 # server
 
-Hono API server running on Bun. JIT package — exports `.ts` source directly, no build step.
-
-## Commands
-
-```bash
-bun run dev           # bun --watch src/index.ts
-bun run check-types   # tsc --noEmit
-```
+Hono API server on Bun. JIT package, no build step.
 
 ## Structure
 
 ```
 src/index.ts    # Hono app, routes, middleware
 src/client.ts   # typed hc client export (used by client package)
+src/routes/     # route modules
+src/middleware/ # shared middleware
+src/lib/        # helpers (env, errors)
 ```
 
-## Conventions
+## Hono + Types
 
-- Validate request bodies with `zValidator("json", schema)` from `@hono/zod-validator`.
-- Validate responses with `schema.parse()` before returning.
-- Import schemas via subpath: `from "shared/api/hello"`.
-- **MUST method-chain** routes on `new Hono()` (`new Hono().get(...).post(...)`). Separate `app.get(...); app.post(...)` statements break type inference — client sees `unknown`.
-- `client.ts` captures `typeof app` and exports `hcWithType` — the client package imports it via `"server/client"` for fully typed RPC calls.
-- Deploy: run directly with `bun run src/index.ts` (no compilation needed).
+- Method-chain on `new Hono()` only; `app.get(); app.post()` loses route types → `hc` becomes `unknown`.
+- Export `AppType = typeof app` in `client.ts`, and `hcWithType` for client usage.
+- Use `zValidator("json", schema)` on every route input (body/query/param).
+- Validate outputs with `schema.parse()` before `c.json()`.
+- Schemas live in `shared/src/api/*`, import via `"shared/api/xxx"` only.
+- Avoid controller classes; prefer `app.route()` + small routers.
+
+## Pitfalls
+
+- `hc` path params do not match `/` unless encoded. Use `encodeURIComponent`.
+- Bun has a 128MiB request limit; raise `Bun.serve({ maxRequestBodySize })` if needed.
