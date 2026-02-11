@@ -25,9 +25,11 @@ Implement tasks from an OpenSpec change.
    Always announce: "Using change: <name>" and how to override (e.g., `/opsx-apply <other>`).
 
 2. **Check status to understand the schema**
+
    ```bash
    openspec status --change "<name>" --json
    ```
+
    Parse the JSON to understand:
    - `schemaName`: The workflow being used (e.g., "spec-driven")
    - Which artifact contains the tasks (typically "tasks" for spec-driven, check status for others)
@@ -66,12 +68,14 @@ Implement tasks from an OpenSpec change.
 
 6. **Implement tasks (loop until done or blocked)**
 
-   For each pending task:
-   - Show which task is being worked on
-   - Make the code changes required
+   Group tasks into batches that are small but complete slices of work (1-5 tasks) that can be finished end-to-end without leaving partial implementations. Prefer grouping by a shared file, feature area, or workflow step so the batch produces a coherent change. Avoid splitting tightly coupled changes across batches.
+
+   For each batch:
+   - Show which tasks are in the batch and why they are grouped
+   - Delegate the batch to the @general subagent with relevant context. ALWAYS delegate, never implement directly.
    - Keep changes minimal and focused
-   - Mark task complete in the tasks file: `- [ ]` → `- [x]`
-   - Continue to next task
+   - Mark all tasks in the batch complete in the tasks file: `- [ ]` → `- [x]`
+   - Continue to next batch
 
    **Pause if:**
    - Task is unclear → ask for clarification
@@ -139,6 +143,7 @@ What would you like to do?
 ```
 
 **Guardrails**
+
 - Keep going through tasks until done or blocked
 - Always read context files before starting (from the apply instructions output)
 - If task is ambiguous, pause and ask before implementing
