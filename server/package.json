@@ -7,6 +7,7 @@
 		"./client": "./src/client.ts"
 	},
 	"scripts": {
+		"generate-api": "openapi-typescript authorizer.service.yaml --output src/generated/authorizer-api.ts",
 		"dev": "bun --watch run src/index.ts",
 		"check-types": "tsc --noEmit"
 	},
@@ -14,9 +15,11 @@
 		"hono": "^4.11.9",
 		"@hono/zod-validator": "^0.7.6",
 		"zod": "^4.3.6",
-		"shared": "workspace:*"
+		"shared": "workspace:*",
+		"openapi-fetch": "^0.15.0"
 	},
 	"devDependencies": {
-		"@types/bun": "latest"
+		"@types/bun": "latest",
+		"openapi-typescript": "^7.10.1"
 	}
 }

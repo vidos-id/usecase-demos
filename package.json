@@ -10,6 +10,7 @@
 		"./shared"
 	],
 	"scripts": {
+		"generate-api": "turbo generate-api",
 		"dev": "turbo dev",
 		"build": "turbo build",
 		"dev:client": "turbo dev --filter=client",
