@@ -9,6 +9,8 @@
 	},
 	"dependencies": {
 		"hono": "^4.10.8",
+		"@hono/zod-validator": "^0.7.6",
+		"zod": "^4.3.6",
 		"shared": "workspace:*"
 	},
 	"devDependencies": {
