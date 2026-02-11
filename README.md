@@ -15,8 +15,8 @@ Client: http://localhost:5173 | Server: http://localhost:3000
 
 ```
 client/   → React + Vite + TanStack Router
-server/   → Hono API
-shared/   → Shared types & Zod schemas
+server/   → Hono API (runs TS directly via Bun)
+shared/   → Zod schemas & shared types (JIT — no build step)
 ```
 
 ## Commands
@@ -24,7 +24,7 @@ shared/   → Shared types & Zod schemas
 | Command | Description |
 |---------|-------------|
 | `bun run dev` | Run all workspaces |
-| `bun run build` | Build all workspaces |
+| `bun run build` | Build client (Vite) |
+| `bun run check-types` | Type-check all workspaces |
 | `bun run lint` | Lint with Biome |
 | `bun run format` | Format with Biome |
-| `bun run type-check` | Type-check all |

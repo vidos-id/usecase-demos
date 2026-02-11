@@ -3,7 +3,7 @@
 	"ui": "tui",
 	"tasks": {
 		"build": {
-			"dependsOn": ["^build"],
+			"dependsOn": ["^check-types"],
 			"inputs": [
 				"src/**/*.ts",
 				"src/**/*.tsx",
@@ -15,45 +15,13 @@
 				"vite.config.ts",
 				"package.json",
 				"bun.lock",
-				"eslint.config.js",
 				"index.html"
 			],
 			"outputs": ["dist/**", "build/**", ".turbo/**"],
 			"env": ["NODE_ENV", "VITE_*"]
 		},
-		"dev": {
-			"cache": false,
-			"persistent": true,
-			"inputs": [
-				"src/**/*.ts",
-				"src/**/*.tsx",
-				"src/**/*.js",
-				"src/**/*.jsx",
-				"tsconfig.json",
-				"tsconfig.*.json",
-				"vite.config.ts",
-				"package.json"
-			],
-			"env": ["NODE_ENV", "PORT", "VITE_*"]
-		},
-		"lint": {
-			"dependsOn": ["^build"],
-			"inputs": [
-				"src/**/*.ts",
-				"src/**/*.tsx",
-				"src/**/*.js",
-				"src/**/*.jsx",
-				"eslint.config.js",
-				".eslintrc*",
-				"package.json",
-				"tsconfig.json",
-				"tsconfig.*.json"
-			],
-			"outputs": [".eslintcache"],
-			"env": ["NODE_ENV"]
-		},
-		"type-check": {
-			"dependsOn": ["^build"],
+		"check-types": {
+			"dependsOn": ["^check-types"],
 			"inputs": [
 				"src/**/*.ts",
 				"src/**/*.tsx",
@@ -62,33 +30,42 @@
 				"tsconfig.*.json",
 				"package.json"
 			],
-			"outputs": ["dist/**/*.d.ts", ".tsbuildinfo"],
-			"env": ["NODE_ENV"]
+			"outputs": []
 		},
-		"test": {
-			"dependsOn": ["^build"],
+		"dev": {
+			"cache": false,
+			"persistent": true,
+			"env": ["NODE_ENV", "PORT", "VITE_*"]
+		},
+		"lint": {
 			"inputs": [
 				"src/**/*.ts",
 				"src/**/*.tsx",
 				"src/**/*.js",
 				"src/**/*.jsx",
+				"package.json",
+				"tsconfig.json",
+				"tsconfig.*.json"
+			],
+			"outputs": []
+		},
+		"test": {
+			"dependsOn": ["^check-types"],
+			"inputs": [
+				"src/**/*.ts",
+				"src/**/*.tsx",
 				"test/**/*.ts",
 				"test/**/*.tsx",
-				"test/**/*.js",
-				"test/**/*.jsx",
-				"__tests__/**/*.ts",
-				"__tests__/**/*.tsx",
 				"**/*.test.ts",
 				"**/*.test.tsx",
 				"**/*.spec.ts",
 				"**/*.spec.tsx",
-				"jest.config.*",
 				"vitest.config.*",
 				"package.json",
 				"tsconfig.json",
 				"tsconfig.*.json"
 			],
-			"outputs": ["coverage/**", ".nyc_output/**", "test-results/**"],
+			"outputs": ["coverage/**"],
 			"env": ["NODE_ENV", "CI"]
 		}
 	},
@@ -96,18 +73,10 @@
 		"**/.env",
 		"**/.env.*",
 		"**/.env.local",
-		"**/.env.*.local",
-		".gitignore",
 		"turbo.json",
 		"package.json",
 		"bun.lock",
 		"tsconfig.json"
 	],
-	"globalEnv": [
-		"NODE_ENV",
-		"CI",
-		"TURBO_TOKEN",
-		"TURBO_TEAM",
-		"TURBO_REMOTE_ONLY"
-	]
+	"globalEnv": ["NODE_ENV", "CI"]
 }

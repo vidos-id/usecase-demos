@@ -5,8 +5,9 @@ React + Vite frontend with TanStack Router & React Query, Tailwind CSS, Radix UI
 ## Commands
 
 ```bash
-bun run dev     # vite dev server (localhost:5173)
-bun run build   # tsc -b && vite build → dist/
+bun run dev           # vite dev server (localhost:5173)
+bun run build         # vite build → dist/
+bun run check-types   # tsc -b
 ```
 
 ## Structure
@@ -28,3 +29,4 @@ src/
 - Import schemas/types via subpath: `from "shared/api/hello"`.
 - Path alias: `@/*` → `./src/*`.
 - Styling: Tailwind classes + `cn()` from `lib/utils.ts`.
+- Only package that needs `build` (Vite bundles for production). Shared/server changes are available immediately.

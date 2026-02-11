@@ -1,12 +1,12 @@
 # server
 
-Hono API server running on Bun.
+Hono API server running on Bun. JIT package — exports `.ts` source directly, no build step.
 
 ## Commands
 
 ```bash
-bun run build   # clean + tsc → dist/
-bun run dev     # bun --watch + tsc --watch
+bun run dev           # bun --watch src/index.ts
+bun run check-types   # tsc --noEmit
 ```
 
 ## Structure
@@ -20,7 +20,7 @@ src/client.ts   # typed hc client export (used by client package)
 
 - Validate request bodies with `zValidator("json", schema)` from `@hono/zod-validator`.
 - Validate responses with `schema.parse()` before returning.
-- Import schemas via subpath: `from "shared/api/hello"`, `from "shared/api/other"`.
-- Export app from `index.ts`; typed client helper from `client.ts`.
-- Client package imports typed client via `"server/client"` (exports map).
-- Must rebuild server (`bun run build --filter=server`) for type changes to be available to client.
+- Import schemas via subpath: `from "shared/api/hello"`.
+- **MUST method-chain** routes on `new Hono()` (`new Hono().get(...).post(...)`). Separate `app.get(...); app.post(...)` statements break type inference — client sees `unknown`.
+- `client.ts` captures `typeof app` and exports `hcWithType` — the client package imports it via `"server/client"` for fully typed RPC calls.
+- Deploy: run directly with `bun run src/index.ts` (no compilation needed).
