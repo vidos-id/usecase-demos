@@ -74,6 +74,7 @@ Implement tasks from an OpenSpec change.
    - Show which tasks are in the batch and why they are grouped
    - Delegate the batch to the @general subagent with relevant context. ALWAYS delegate, never implement directly.
    - Keep changes minimal and focused
+   - Delegate to @general subagent the review the completed batch. Evaluate remarks and if changes are needed, repeat the batch implementation until approved.
    - Mark all tasks in the batch complete in the tasks file: `- [ ]` → `- [x]`
    - Continue to next batch
 
