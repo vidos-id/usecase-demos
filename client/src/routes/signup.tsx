@@ -9,13 +9,8 @@ import { PollingStatus } from "@/components/auth/polling-status";
 import { QRCodeDisplay } from "@/components/auth/qr-code-display";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { getStoredMode, setStoredMode } from "@/lib/auth-helpers";
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
@@ -201,91 +196,331 @@ function SignupPage() {
 	};
 
 	return (
-		<div className="flex-1 flex items-center justify-center px-4 py-12">
-			<Card className="w-full max-w-md">
-				<CardHeader className="text-center">
-					<CardTitle className="text-2xl">Create Account</CardTitle>
-					<CardDescription>
-						Sign up with your EU Digital Identity Wallet
-					</CardDescription>
-				</CardHeader>
-				<CardContent className="space-y-6">
-					{state.status === "idle" && (
-						<>
-							<ModeSelector value={mode} onChange={handleModeChange} />
-							<Button onClick={startSignup} className="w-full" size="lg">
-								Continue with Wallet
-							</Button>
-						</>
-					)}
+		<div className="min-h-screen flex items-center justify-center p-4 lg:p-8">
+			<div className="w-full max-w-6xl">
+				{state.status === "idle" && (
+					<div className="grid lg:grid-cols-2 gap-0 rounded-2xl overflow-hidden shadow-2xl bg-card border border-border">
+						{/* Traditional Method - Left Panel */}
+						<div className="relative bg-gradient-to-br from-muted/30 via-muted/10 to-background p-8 lg:p-12 animate-slide-in-left">
+							<div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-muted-foreground/20 to-transparent" />
+							<div className="relative z-10 h-full flex flex-col">
+								<div className="mb-8">
+									<div className="inline-block px-3 py-1 rounded-full bg-muted/50 border border-border mb-4">
+										<span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+											Traditional Method
+										</span>
+									</div>
+									<h2 className="text-2xl lg:text-3xl font-bold mb-3 text-foreground">
+										Manual Registration
+									</h2>
+									<p className="text-sm text-muted-foreground max-w-md">
+										Enter your details manually. This demo shows what
+										traditional sign-up looks like—fields are non-functional.
+									</p>
+								</div>
 
-					{state.status === "requesting" && (
-						<div className="flex justify-center py-8">
-							<Loader2 className="w-8 h-8 animate-spin" />
+								<div className="flex-1 space-y-3">
+									<div className="grid gap-3">
+										<div className="space-y-1.5">
+											<span className="text-xs font-medium text-muted-foreground">
+												Email Address
+											</span>
+											<Input
+												type="email"
+												placeholder="your@email.com"
+												autoComplete="email"
+												className="bg-background/50 backdrop-blur-sm opacity-60 cursor-not-allowed"
+												disabled
+											/>
+										</div>
+										<div className="space-y-1.5">
+											<span className="text-xs font-medium text-muted-foreground">
+												Password
+											</span>
+											<Input
+												type="password"
+												placeholder="••••••••"
+												autoComplete="new-password"
+												className="bg-background/50 backdrop-blur-sm opacity-60 cursor-not-allowed"
+												disabled
+											/>
+										</div>
+									</div>
+
+									<div className="pt-2 border-t border-border/50">
+										<p className="text-xs font-medium text-muted-foreground mb-3">
+											Personal Information
+										</p>
+										<div className="grid gap-2.5">
+											<Input
+												placeholder="Given name"
+												autoComplete="given-name"
+												className="bg-background/50 backdrop-blur-sm opacity-60 cursor-not-allowed text-sm"
+												disabled
+											/>
+											<Input
+												placeholder="Family name"
+												autoComplete="family-name"
+												className="bg-background/50 backdrop-blur-sm opacity-60 cursor-not-allowed text-sm"
+												disabled
+											/>
+											<Input
+												placeholder="Date of birth"
+												autoComplete="bday"
+												className="bg-background/50 backdrop-blur-sm opacity-60 cursor-not-allowed text-sm"
+												disabled
+											/>
+											<Input
+												placeholder="National ID number"
+												className="bg-background/50 backdrop-blur-sm opacity-60 cursor-not-allowed text-sm"
+												disabled
+											/>
+											<Input
+												placeholder="Nationality"
+												autoComplete="country"
+												className="bg-background/50 backdrop-blur-sm opacity-60 cursor-not-allowed text-sm"
+												disabled
+											/>
+											<Input
+												placeholder="Place of birth"
+												className="bg-background/50 backdrop-blur-sm opacity-60 cursor-not-allowed text-sm"
+												disabled
+											/>
+										</div>
+									</div>
+								</div>
+
+								<div className="mt-6 p-4 rounded-lg bg-muted/30 border border-border/50">
+									<p className="text-xs text-muted-foreground leading-relaxed">
+										<span className="font-semibold text-foreground/70">
+											Demo Notice:
+										</span>{" "}
+										These fields are disabled. They represent the traditional
+										multi-step verification process.
+									</p>
+								</div>
+							</div>
 						</div>
-					)}
 
-					{state.status === "awaiting_verification" &&
-						mode === "direct_post" &&
-						state.authorizeUrl && (
-							<>
+						{/* Divider */}
+						<div className="hidden lg:block absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
+							<div className="relative flex items-center justify-center">
+								<div className="absolute inset-0 bg-background blur-xl" />
+								<div className="relative flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-primary via-primary/90 to-primary/70 shadow-lg border-4 border-background">
+									<span className="text-sm font-bold text-primary-foreground">
+										OR
+									</span>
+								</div>
+							</div>
+						</div>
+
+						{/* Mobile Divider */}
+						<div className="lg:hidden relative py-6 flex items-center">
+							<div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+							<div className="px-4">
+								<div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-primary via-primary/90 to-primary/70 shadow-lg">
+									<span className="text-xs font-bold text-primary-foreground">
+										OR
+									</span>
+								</div>
+							</div>
+							<div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+						</div>
+
+						{/* Wallet Method - Right Panel */}
+						<div className="relative bg-gradient-to-br from-primary/5 via-accent/10 to-background p-8 lg:p-12 animate-slide-in-right">
+							<div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/50 via-primary/30 to-transparent" />
+							<div className="relative z-10 h-full flex flex-col">
+								<div className="mb-8">
+									<div className="inline-block px-3 py-1 rounded-full bg-primary/10 border border-primary/20 mb-4">
+										<span className="text-xs font-mono uppercase tracking-wider text-primary font-semibold">
+											Recommended
+										</span>
+									</div>
+									<h2 className="text-2xl lg:text-3xl font-bold mb-3 text-foreground">
+										Wallet Sign-Up
+									</h2>
+									<p className="text-sm text-muted-foreground max-w-md">
+										Verify instantly with your EU Digital Identity Wallet.
+										Secure, private, and compliant with eIDAS 2.0.
+									</p>
+								</div>
+
+								<div className="flex-1 flex flex-col justify-center space-y-6">
+									<div className="space-y-4">
+										<div className="flex items-start gap-3 p-4 rounded-lg bg-background/50 backdrop-blur-sm border border-primary/10">
+											<div className="w-2 h-2 rounded-full bg-primary mt-1.5 flex-shrink-0" />
+											<div>
+												<p className="text-sm font-medium text-foreground mb-1">
+													Instant Verification
+												</p>
+												<p className="text-xs text-muted-foreground">
+													No manual data entry. Your wallet provides verified
+													credentials automatically.
+												</p>
+											</div>
+										</div>
+										<div className="flex items-start gap-3 p-4 rounded-lg bg-background/50 backdrop-blur-sm border border-primary/10">
+											<div className="w-2 h-2 rounded-full bg-primary mt-1.5 flex-shrink-0" />
+											<div>
+												<p className="text-sm font-medium text-foreground mb-1">
+													Privacy First
+												</p>
+												<p className="text-xs text-muted-foreground">
+													Selective disclosure—share only what's needed, nothing
+													more.
+												</p>
+											</div>
+										</div>
+										<div className="flex items-start gap-3 p-4 rounded-lg bg-background/50 backdrop-blur-sm border border-primary/10">
+											<div className="w-2 h-2 rounded-full bg-primary mt-1.5 flex-shrink-0" />
+											<div>
+												<p className="text-sm font-medium text-foreground mb-1">
+													EU Compliant
+												</p>
+												<p className="text-xs text-muted-foreground">
+													Built on eIDAS 2.0 standards for cross-border
+													interoperability.
+												</p>
+											</div>
+										</div>
+									</div>
+
+									<div className="pt-6 space-y-4">
+										<ModeSelector value={mode} onChange={handleModeChange} />
+										<Button
+											onClick={startSignup}
+											className="w-full h-12 text-base font-semibold shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300"
+											size="lg"
+										>
+											Continue with Wallet →
+										</Button>
+									</div>
+								</div>
+
+								<div className="mt-6 text-center">
+									<p className="text-xs text-muted-foreground">
+										By continuing, you agree to DemoBank's{" "}
+										<span className="text-primary hover:underline cursor-pointer">
+											Terms
+										</span>{" "}
+										and{" "}
+										<span className="text-primary hover:underline cursor-pointer">
+											Privacy Policy
+										</span>
+									</p>
+								</div>
+							</div>
+						</div>
+					</div>
+				)}
+
+				{state.status === "requesting" && (
+					<Card className="w-full max-w-2xl mx-auto animate-fade-in">
+						<CardContent className="flex justify-center py-16">
+							<div className="text-center space-y-4">
+								<Loader2 className="w-12 h-12 animate-spin mx-auto text-primary" />
+								<p className="text-sm text-muted-foreground">
+									Creating authorization request...
+								</p>
+							</div>
+						</CardContent>
+					</Card>
+				)}
+
+				{state.status === "awaiting_verification" &&
+					mode === "direct_post" &&
+					state.authorizeUrl && (
+						<Card className="w-full max-w-2xl mx-auto animate-fade-in">
+							<CardContent className="p-8">
 								<QRCodeDisplay url={state.authorizeUrl} />
 								<PollingStatus
 									elapsedSeconds={elapsedSeconds}
 									onCancel={handleCancel}
 								/>
-							</>
-						)}
-
-					{state.status === "awaiting_verification" &&
-						mode === "dc_api" &&
-						state.dcApiRequest && (
-							<DCApiHandler
-								dcApiRequest={state.dcApiRequest}
-								onSuccess={handleDCApiSuccess}
-								onError={(msg) => setState({ status: "error", message: msg })}
-							/>
-						)}
-
-					{state.status === "completing" && (
-						<div className="flex justify-center py-8">
-							<Loader2 className="w-8 h-8 animate-spin" />
-						</div>
+							</CardContent>
+						</Card>
 					)}
 
-					{state.status === "success" && (
-						<div className="space-y-6 text-center">
-							<div className="flex justify-center">
-								<CheckCircle2 className="w-16 h-16 text-green-600" />
-							</div>
-							<div className="space-y-2">
-								<h3 className="text-xl font-semibold text-green-700">
-									Account Created Successfully!
-								</h3>
+				{state.status === "awaiting_verification" &&
+					mode === "dc_api" &&
+					state.dcApiRequest && (
+						<Card className="w-full max-w-2xl mx-auto animate-fade-in">
+							<CardContent className="p-8">
+								<DCApiHandler
+									dcApiRequest={state.dcApiRequest}
+									onSuccess={handleDCApiSuccess}
+									onError={(msg) => setState({ status: "error", message: msg })}
+								/>
+							</CardContent>
+						</Card>
+					)}
+
+				{state.status === "completing" && (
+					<Card className="w-full max-w-2xl mx-auto animate-fade-in">
+						<CardContent className="flex justify-center py-16">
+							<div className="text-center space-y-4">
+								<Loader2 className="w-12 h-12 animate-spin mx-auto text-primary" />
 								<p className="text-sm text-muted-foreground">
-									Your online banking account has been created. Please sign in
-									to start using your account.
+									Completing verification...
 								</p>
 							</div>
-							<Button asChild className="w-full" size="lg">
-								<a href="/signin">Sign In to Continue</a>
-							</Button>
-						</div>
-					)}
+						</CardContent>
+					</Card>
+				)}
 
-					{state.status === "error" && (
-						<>
-							<Alert variant="destructive">
+				{state.status === "success" && (
+					<Card className="w-full max-w-2xl mx-auto animate-slide-up">
+						<CardContent className="p-12">
+							<div className="space-y-6 text-center">
+								<div className="flex justify-center">
+									<div className="w-20 h-20 rounded-full bg-green-500/10 flex items-center justify-center">
+										<CheckCircle2 className="w-12 h-12 text-green-600" />
+									</div>
+								</div>
+								<div className="space-y-2">
+									<h3 className="text-2xl font-bold text-foreground">
+										Account Created Successfully!
+									</h3>
+									<p className="text-sm text-muted-foreground max-w-md mx-auto">
+										Your online banking account has been created. Please sign in
+										to start using your account.
+									</p>
+								</div>
+								<Button
+									asChild
+									className="w-full max-w-sm mx-auto h-12 text-base font-semibold"
+									size="lg"
+								>
+									<a href="/signin">Sign In to Continue →</a>
+								</Button>
+							</div>
+						</CardContent>
+					</Card>
+				)}
+
+				{state.status === "error" && (
+					<Card className="w-full max-w-2xl mx-auto animate-slide-up">
+						<CardContent className="p-8">
+							<Alert
+								variant={
+									state.message.startsWith("account_exists:")
+										? "default"
+										: "destructive"
+								}
+								className={
+									state.message.startsWith("account_exists:")
+										? "border-amber-200 bg-amber-50/60 text-amber-900"
+										: undefined
+								}
+							>
 								<AlertDescription>
 									{state.message.startsWith("account_exists:") ? (
-										<div className="space-y-2">
+										<div className="space-y-3">
 											<p>{state.message.replace("account_exists:", "")}</p>
-											<div className="flex gap-2 mt-3">
+											<div className="flex gap-2">
 												<Button asChild variant="outline" size="sm">
 													<a href="/signin">Sign In</a>
-												</Button>
-												<Button asChild variant="outline" size="sm">
-													<a href="/delete-account">Delete Account</a>
 												</Button>
 											</div>
 										</div>
@@ -294,17 +529,19 @@ function SignupPage() {
 									)}
 								</AlertDescription>
 							</Alert>
-							<Button
-								onClick={handleCancel}
-								variant="outline"
-								className="w-full"
-							>
-								Try Again
-							</Button>
-						</>
-					)}
-				</CardContent>
-			</Card>
+							<div className="mt-6">
+								<Button
+									onClick={handleCancel}
+									variant="outline"
+									className="w-full"
+								>
+									Try Again
+								</Button>
+							</div>
+						</CardContent>
+					</Card>
+				)}
+			</div>
 		</div>
 	);
 }

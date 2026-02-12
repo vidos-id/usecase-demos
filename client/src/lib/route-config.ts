@@ -10,8 +10,8 @@ export const routeStepMap: Record<string, JourneyStep> = {
 	"/send/success": "finish",
 	"/loan": "action",
 	"/loan/success": "finish",
-	"/dashboard": null, // No progress on dashboard
-	"/profile": null, // No progress on profile
+	"/dashboard": "authenticate",
+	"/profile": "authenticate",
 };
 
 // Get journey step from current path

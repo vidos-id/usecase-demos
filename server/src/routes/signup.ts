@@ -27,6 +27,7 @@ const SIGNUP_CLAIMS = [
 	"family_name",
 	"given_name",
 	"birthdate",
+	"email",
 	"place_of_birth",
 	"nationalities",
 	"personal_administrative_number",

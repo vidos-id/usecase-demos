@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { hcWithType } from "server/client";
 import { LOAN_AMOUNTS, LOAN_PURPOSES, LOAN_TERMS } from "shared/api/loan";
@@ -187,7 +187,12 @@ function LoanPage() {
 		<div className="max-w-xl mx-auto px-4 py-8">
 			<Card>
 				<CardHeader>
-					<CardTitle>Apply for a Loan</CardTitle>
+					<div className="flex items-center justify-between gap-4">
+						<CardTitle>Apply for a Loan</CardTitle>
+						<Button asChild variant="outline" size="sm">
+							<Link to="/dashboard">Back to Dashboard</Link>
+						</Button>
+					</div>
 					<CardDescription>
 						Get approved instantly with your EUDI Wallet
 					</CardDescription>

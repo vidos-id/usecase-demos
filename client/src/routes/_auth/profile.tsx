@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { hcWithType } from "server/client";
 import { getImageDataUrl } from "shared/lib/image";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getSessionId } from "@/lib/auth";
 
@@ -37,7 +38,12 @@ function ProfilePage() {
 
 	return (
 		<div className="max-w-2xl mx-auto px-4 py-8 space-y-8">
-			<h1 className="text-3xl font-bold">Your Profile</h1>
+			<div className="flex items-center justify-between">
+				<h1 className="text-3xl font-bold">Your Profile</h1>
+				<Button asChild variant="outline" size="sm">
+					<Link to="/dashboard">Back to Dashboard</Link>
+				</Button>
+			</div>
 
 			<Card>
 				<CardContent className="pt-6 space-y-6">

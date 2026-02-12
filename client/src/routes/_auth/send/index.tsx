@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -50,7 +50,12 @@ function SendMoneyPage() {
 		<div className="max-w-xl mx-auto px-4 py-8">
 			<Card>
 				<CardHeader>
-					<CardTitle>Send Money</CardTitle>
+					<div className="flex items-center justify-between gap-4">
+						<CardTitle>Send Money</CardTitle>
+						<Button asChild variant="outline" size="sm">
+							<Link to="/dashboard">Back to Dashboard</Link>
+						</Button>
+					</div>
 					<CardDescription>Transfer funds to another account</CardDescription>
 				</CardHeader>
 				<CardContent>

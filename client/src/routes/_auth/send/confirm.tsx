@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { hcWithType } from "server/client";
@@ -235,7 +235,12 @@ function PaymentConfirmPage() {
 		<div className="max-w-xl mx-auto px-4 py-8">
 			<Card>
 				<CardHeader>
-					<CardTitle>Confirm Payment</CardTitle>
+					<div className="flex items-center justify-between gap-4">
+						<CardTitle>Confirm Payment</CardTitle>
+						<Button asChild variant="outline" size="sm">
+							<Link to="/dashboard">Back to Dashboard</Link>
+						</Button>
+					</div>
 					<CardDescription>
 						Review transaction details and verify with your EUDI Wallet
 					</CardDescription>

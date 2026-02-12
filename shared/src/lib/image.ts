@@ -7,35 +7,37 @@ export function detectImageType(base64: string): string | null {
 		return null;
 	}
 
-	// Extract first few bytes for magic number detection
 	const header = base64.substring(0, 8);
 
-	// JPEG: FF D8 FF
-	if (header.startsWith("/9j/")) {
+	if (header.startsWith("/9j/") || header.startsWith("_9j_")) {
 		return "image/jpeg";
 	}
 
-	// PNG: 89 50 4E 47 0D 0A 1A 0A
-	if (header.startsWith("iVBORw")) {
+	if (header.startsWith("iVBORw0K") || header.startsWith("iVBORw")) {
 		return "image/png";
 	}
 
-	// GIF: 47 49 46 38
 	if (header.startsWith("R0lGOD")) {
 		return "image/gif";
 	}
 
-	// WebP: RIFF...WEBP
 	if (header.startsWith("UklGR")) {
 		return "image/webp";
 	}
 
-	// BMP: 42 4D
 	if (header.startsWith("Qk")) {
 		return "image/bmp";
 	}
 
 	return null;
+}
+
+function looksLikeBase64(value: string): boolean {
+	if (value.length < 100) {
+		return false;
+	}
+
+	return /^[A-Za-z0-9+/_-]+=*$/.test(value);
 }
 
 /**
@@ -47,10 +49,18 @@ export function getImageDataUrl(base64: string | undefined): string | null {
 		return null;
 	}
 
-	const mimeType = detectImageType(base64);
-	if (!mimeType) {
-		return null;
+	if (base64.startsWith("data:image/")) {
+		return base64;
 	}
 
-	return `data:${mimeType};base64,${base64}`;
+	const standardBase64 = base64.replace(/-/g, "+").replace(/_/g, "/");
+
+	const mimeType = detectImageType(standardBase64);
+	if (!mimeType) {
+		return looksLikeBase64(standardBase64)
+			? `data:image/jpeg;base64,${standardBase64}`
+			: null;
+	}
+
+	return `data:${mimeType};base64,${standardBase64}`;
 }

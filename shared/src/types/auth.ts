@@ -21,6 +21,7 @@ export const pidClaimsSchema = z.object({
 	family_name: z.string().optional(),
 	given_name: z.string().optional(),
 	birthdate: z.string().optional(),
+	email: z.string().optional(),
 	nationalities: z.array(z.string()).optional(),
 	place_of_birth: placeOfBirthSchema.optional(),
 	picture: z.string().optional(),

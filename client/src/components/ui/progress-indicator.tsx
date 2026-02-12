@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 const steps: { id: JourneyStep; label: string; shortLabel: string }[] = [
 	{ id: "intro", label: "Start", shortLabel: "Start" },
-	{ id: "authenticate", label: "Authenticate", shortLabel: "Auth" },
+	{ id: "authenticate", label: "Authenticated", shortLabel: "Auth" },
 	{ id: "action", label: "Action", shortLabel: "Act" },
 	{ id: "finish", label: "Complete", shortLabel: "Done" },
 ];
