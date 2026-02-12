@@ -11,25 +11,18 @@ import {
 } from "lucide-react";
 import { getImageDataUrl } from "shared/lib/image";
 import { Button } from "@/components/ui/button";
-import { getSessionId } from "@/lib/auth";
 
 export const Route = createFileRoute("/_auth/profile")({
 	component: ProfilePage,
 });
 
 function ProfilePage() {
-	const sessionId = getSessionId();
 	const { apiClient } = useRouteContext({ from: "__root__" });
 
 	const { data: user, isLoading } = useQuery({
 		queryKey: ["user", "me"],
 		queryFn: async () => {
-			const res = await apiClient.api.users.me.$get(
-				{},
-				{
-					headers: { Authorization: `Bearer ${sessionId}` },
-				},
-			);
+			const res = await apiClient.api.users.me.$get({});
 			if (!res.ok) throw new Error("Failed to fetch user");
 			return res.json();
 		},

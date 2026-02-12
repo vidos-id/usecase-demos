@@ -19,7 +19,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { clearSession, getSessionId } from "@/lib/auth";
+import { clearSession } from "@/lib/auth";
 
 export function AccountMenu() {
 	const navigate = useNavigate();
@@ -27,31 +27,19 @@ export function AccountMenu() {
 	const { apiClient } = useRouteContext({ from: "__root__" });
 	const [menuOpen, setMenuOpen] = useState(false);
 	const [resetDialogOpen, setResetDialogOpen] = useState(false);
-	const sessionId = getSessionId();
 
 	const { data: user } = useQuery({
 		queryKey: ["user", "me"],
 		queryFn: async () => {
-			const res = await apiClient.api.users.me.$get(
-				{},
-				{
-					headers: { Authorization: `Bearer ${sessionId}` },
-				},
-			);
+			const res = await apiClient.api.users.me.$get({});
 			if (!res.ok) throw new Error("Failed to fetch user");
 			return res.json();
 		},
-		enabled: !!sessionId,
 	});
 
 	const handleSignOut = async () => {
 		try {
-			await apiClient.api.session.$delete(
-				{},
-				{
-					headers: { Authorization: `Bearer ${sessionId}` },
-				},
-			);
+			await apiClient.api.session.$delete({});
 		} catch {
 			// Continue with local cleanup even if API fails
 		}

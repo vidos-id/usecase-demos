@@ -26,7 +26,6 @@ import { DCApiHandler } from "@/components/auth/dc-api-handler";
 import { PollingStatus } from "@/components/auth/polling-status";
 import { QRCodeDisplay } from "@/components/auth/qr-code-display";
 import { Button } from "@/components/ui/button";
-import { getSessionId } from "@/lib/auth";
 import { getStoredMode } from "@/lib/auth-helpers";
 import { cn } from "@/lib/utils";
 
@@ -82,7 +81,6 @@ function LoanPage() {
 	const [state, setState] = useState<FlowState>({ status: "form" });
 	const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
-	const sessionId = getSessionId();
 	const mode = getStoredMode();
 	const isFormValid = amount && purpose && term;
 
@@ -108,22 +106,17 @@ function LoanPage() {
 		setState({ status: "requesting" });
 
 		try {
-			const res = await apiClient.api.loan.request.$post(
-				{
-					json: {
-						amount: amount as "5000" | "10000" | "25000" | "50000",
-						purpose: purpose as
-							| "Car"
-							| "Home Improvement"
-							| "Education"
-							| "Other",
-						term: term as "12" | "24" | "36" | "48",
-					},
+			const res = await apiClient.api.loan.request.$post({
+				json: {
+					amount: amount as "5000" | "10000" | "25000" | "50000",
+					purpose: purpose as
+						| "Car"
+						| "Home Improvement"
+						| "Education"
+						| "Other",
+					term: term as "12" | "24" | "36" | "48",
 				},
-				{
-					headers: { Authorization: `Bearer ${sessionId}` },
-				},
-			);
+			});
 
 			if (!res.ok) throw new Error("Failed to create loan request");
 
@@ -157,14 +150,9 @@ function LoanPage() {
 
 		const poll = async () => {
 			try {
-				const res = await apiClient.api.loan.status[":requestId"].$get(
-					{
-						param: { requestId: state.requestId },
-					},
-					{
-						headers: { Authorization: `Bearer ${sessionId}` },
-					},
-				);
+				const res = await apiClient.api.loan.status[":requestId"].$get({
+					param: { requestId: state.requestId },
+				});
 
 				if (!res.ok) throw new Error("Polling failed");
 
@@ -203,21 +191,16 @@ function LoanPage() {
 
 		poll();
 		return () => clearTimeout(timeoutId);
-	}, [state, mode, navigate, sessionId, queryClient]);
+	}, [state, mode, navigate, queryClient, apiClient]);
 
 	const handleDCApiSuccess = async (response: Record<string, unknown>) => {
 		if (state.status !== "verifying") return;
 
 		try {
-			const res = await apiClient.api.loan.complete[":requestId"].$post(
-				{
-					param: { requestId: state.requestId },
-					json: { origin: window.location.origin, dcResponse: response },
-				},
-				{
-					headers: { Authorization: `Bearer ${sessionId}` },
-				},
-			);
+			const res = await apiClient.api.loan.complete[":requestId"].$post({
+				param: { requestId: state.requestId },
+				json: { origin: window.location.origin, dcResponse: response },
+			});
 
 			if (!res.ok) throw new Error("Completion failed");
 

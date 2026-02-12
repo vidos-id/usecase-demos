@@ -20,7 +20,6 @@ import { DCApiHandler } from "@/components/auth/dc-api-handler";
 import { PollingStatus } from "@/components/auth/polling-status";
 import { QRCodeDisplay } from "@/components/auth/qr-code-display";
 import { Button } from "@/components/ui/button";
-import { getSessionId } from "@/lib/auth";
 import { getStoredMode } from "@/lib/auth-helpers";
 import { cn } from "@/lib/utils";
 
@@ -90,13 +89,9 @@ function PaymentConfirmPage() {
 			if (!search) return;
 
 			try {
-				const sessionId = getSessionId();
-				if (!sessionId) throw new Error("Not authenticated");
-
-				const res = await apiClient.api.payment.status[":requestId"].$get(
-					{ param: { requestId: state.requestId } },
-					{ headers: { Authorization: `Bearer ${sessionId}` } },
-				);
+				const res = await apiClient.api.payment.status[":requestId"].$get({
+					param: { requestId: state.requestId },
+				});
 
 				if (!res.ok) throw new Error("Polling failed");
 
@@ -145,7 +140,7 @@ function PaymentConfirmPage() {
 
 		poll();
 		return () => clearTimeout(timeoutId);
-	}, [state, mode, navigate, search, queryClient]);
+	}, [state, mode, navigate, search, queryClient, apiClient]);
 
 	// Redirect if no search params
 	useEffect(() => {
@@ -160,19 +155,13 @@ function PaymentConfirmPage() {
 		setState({ status: "requesting" });
 
 		try {
-			const sessionId = getSessionId();
-			if (!sessionId) throw new Error("Not authenticated");
-
-			const res = await apiClient.api.payment.request.$post(
-				{
-					json: {
-						recipient: search.recipient,
-						amount: search.amount,
-						reference: search.reference,
-					},
+			const res = await apiClient.api.payment.request.$post({
+				json: {
+					recipient: search.recipient,
+					amount: search.amount,
+					reference: search.reference,
 				},
-				{ headers: { Authorization: `Bearer ${sessionId}` } },
-			);
+			});
 
 			if (!res.ok) throw new Error("Failed to create payment request");
 
@@ -199,16 +188,10 @@ function PaymentConfirmPage() {
 
 		setState({ status: "completing" });
 		try {
-			const sessionId = getSessionId();
-			if (!sessionId) throw new Error("Not authenticated");
-
-			const res = await apiClient.api.payment.complete[":requestId"].$post(
-				{
-					param: { requestId: state.requestId },
-					json: { origin: window.location.origin, dcResponse: response },
-				},
-				{ headers: { Authorization: `Bearer ${sessionId}` } },
-			);
+			const res = await apiClient.api.payment.complete[":requestId"].$post({
+				param: { requestId: state.requestId },
+				json: { origin: window.location.origin, dcResponse: response },
+			});
 
 			if (!res.ok) throw new Error("Completion failed");
 

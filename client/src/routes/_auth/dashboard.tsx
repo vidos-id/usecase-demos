@@ -13,7 +13,6 @@ import {
 import { useState } from "react";
 import type { ActivityItem } from "shared/api/users-me";
 import { Button } from "@/components/ui/button";
-import { getSessionId } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_auth/dashboard")({
@@ -23,19 +22,13 @@ export const Route = createFileRoute("/_auth/dashboard")({
 type ActivityFilter = "all" | "payment" | "loan";
 
 function DashboardPage() {
-	const sessionId = getSessionId();
 	const { apiClient } = useRouteContext({ from: "__root__" });
 	const [filter, setFilter] = useState<ActivityFilter>("all");
 
 	const { data: user } = useQuery({
 		queryKey: ["user", "me"],
 		queryFn: async () => {
-			const res = await apiClient.api.users.me.$get(
-				{},
-				{
-					headers: { Authorization: `Bearer ${sessionId}` },
-				},
-			);
+			const res = await apiClient.api.users.me.$get({});
 			if (!res.ok) throw new Error("Failed to fetch user");
 			return res.json();
 		},
