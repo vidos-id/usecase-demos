@@ -25,7 +25,7 @@ const loanRequestResponseBaseSchema = z.object({
 export const loanRequestResponseSchema = z.discriminatedUnion("mode", [
 	loanRequestResponseBaseSchema.extend({
 		mode: z.literal("direct_post"),
-		authorizeUrl: z.string().url(),
+		authorizeUrl: z.url(),
 	}),
 	loanRequestResponseBaseSchema.extend({
 		mode: z.literal("dc_api"),

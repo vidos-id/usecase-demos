@@ -13,7 +13,7 @@ const signinRequestResponseBaseSchema = z.object({
 export const signinRequestResponseSchema = z.discriminatedUnion("mode", [
 	signinRequestResponseBaseSchema.extend({
 		mode: z.literal("direct_post"),
-		authorizeUrl: z.string().url(),
+		authorizeUrl: z.url(),
 	}),
 	signinRequestResponseBaseSchema.extend({
 		mode: z.literal("dc_api"),

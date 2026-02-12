@@ -14,12 +14,12 @@ const signupRequestResponseBaseSchema = z.object({
 export const signupRequestResponseSchema = z.discriminatedUnion("mode", [
 	signupRequestResponseBaseSchema.extend({
 		mode: z.literal("direct_post"),
-		authorizeUrl: z.string().url(),
+		authorizeUrl: z.url(),
 	}),
 	signupRequestResponseBaseSchema.extend({
 		mode: z.literal("dc_api"),
 		dcApiRequest: z.record(z.string(), z.unknown()),
-		responseUrl: z.string().url(),
+		responseUrl: z.url(),
 	}),
 ]);
 export type SignupRequestResponse = z.infer<typeof signupRequestResponseSchema>;

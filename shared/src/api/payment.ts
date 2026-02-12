@@ -2,7 +2,7 @@ import { z } from "zod";
 
 // EUR amount format: digits with exactly 2 decimal places
 export const eurAmountSchema = z.string().regex(/^\d+\.\d{2}$/, {
-	message: "Amount must be in EUR format (e.g., '100.00')",
+	error: "Amount must be in EUR format (e.g., '100.00')",
 });
 
 export const paymentRequestSchema = z.object({
@@ -20,7 +20,7 @@ const paymentRequestResponseBaseSchema = z.object({
 export const paymentRequestResponseSchema = z.discriminatedUnion("mode", [
 	paymentRequestResponseBaseSchema.extend({
 		mode: z.literal("direct_post"),
-		authorizeUrl: z.string().url(),
+		authorizeUrl: z.url(),
 	}),
 	paymentRequestResponseBaseSchema.extend({
 		mode: z.literal("dc_api"),

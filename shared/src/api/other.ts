@@ -1,4 +1,4 @@
-import z from "zod";
+import { z } from "zod";
 
 export const otherQuerySchema = z.object({
 	otherField: z.string(),
