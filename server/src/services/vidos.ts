@@ -13,7 +13,9 @@ function getAuthorizerClient() {
 		authorizerClient = createClient<paths>({
 			baseUrl: env.VIDOS_AUTHORIZER_URL,
 			headers: {
-				Authorization: `Bearer ${env.VIDOS_API_KEY}`,
+				Authorization: env.VIDOS_API_KEY
+					? `Bearer ${env.VIDOS_API_KEY}`
+					: undefined,
 			},
 		});
 	}
