@@ -29,11 +29,13 @@ function SendMoneyPage() {
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
+		// Format amount as EUR string with 2 decimal places
+		const formattedAmount = Number.parseFloat(amount).toFixed(2);
 		navigate({
 			to: "/send/confirm",
 			search: {
 				recipient,
-				amount: parseFloat(amount),
+				amount: formattedAmount,
 				reference: reference || undefined,
 			},
 		});

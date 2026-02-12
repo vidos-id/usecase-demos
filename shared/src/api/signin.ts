@@ -6,11 +6,20 @@ export const signinRequestSchema = z.object({
 });
 export type SigninRequest = z.infer<typeof signinRequestSchema>;
 
-export const signinRequestResponseSchema = z.object({
+const signinRequestResponseBaseSchema = z.object({
 	requestId: z.string(),
-	authorizeUrl: z.string().url().optional(),
-	dcApiRequest: z.record(z.string(), z.unknown()).optional(),
 });
+
+export const signinRequestResponseSchema = z.discriminatedUnion("mode", [
+	signinRequestResponseBaseSchema.extend({
+		mode: z.literal("direct_post"),
+		authorizeUrl: z.string().url(),
+	}),
+	signinRequestResponseBaseSchema.extend({
+		mode: z.literal("dc_api"),
+		dcApiRequest: z.record(z.string(), z.unknown()),
+	}),
+]);
 export type SigninRequestResponse = z.infer<typeof signinRequestResponseSchema>;
 
 export const signinStatusResponseSchema = z.object({

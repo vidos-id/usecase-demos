@@ -3,7 +3,10 @@ import type { PendingAuthRequest } from "../types/pending-auth-request";
 
 const pendingAuthRequests = new Map<string, PendingAuthRequest>();
 
-const REQUEST_TTL_MS = 10 * 60 * 1000; // 10 minutes
+// Default TTL for all requests (10 minutes for signup/signin)
+const DEFAULT_REQUEST_TTL_MS = 10 * 60 * 1000;
+// Short TTL for loan/payment requests (5 minutes per spec)
+const SHORT_REQUEST_TTL_MS = 5 * 60 * 1000;
 
 export const createPendingRequest = (
 	data: Omit<PendingAuthRequest, "id" | "status" | "createdAt">,
@@ -18,6 +21,14 @@ export const createPendingRequest = (
 	return request;
 };
 
+function getRequestTtl(type: string): number {
+	// Loan and payment requests have shorter TTL per spec
+	if (type === "loan" || type === "payment") {
+		return SHORT_REQUEST_TTL_MS;
+	}
+	return DEFAULT_REQUEST_TTL_MS;
+}
+
 export const getPendingRequestById = (
 	id: string,
 ): PendingAuthRequest | undefined => {
@@ -25,8 +36,9 @@ export const getPendingRequestById = (
 	if (!request) {
 		return undefined;
 	}
-	// Check if expired
-	if (Date.now() - request.createdAt.getTime() > REQUEST_TTL_MS) {
+	// Check if expired based on request type
+	const ttl = getRequestTtl(request.type);
+	if (Date.now() - request.createdAt.getTime() > ttl) {
 		pendingAuthRequests.delete(id);
 		return undefined;
 	}
@@ -38,8 +50,9 @@ export const getPendingRequestByAuthId = (
 ): PendingAuthRequest | undefined => {
 	for (const request of pendingAuthRequests.values()) {
 		if (request.vidosAuthorizationId === vidosAuthorizationId) {
-			// Check if expired
-			if (Date.now() - request.createdAt.getTime() > REQUEST_TTL_MS) {
+			// Check if expired based on request type
+			const ttl = getRequestTtl(request.type);
+			if (Date.now() - request.createdAt.getTime() > ttl) {
 				pendingAuthRequests.delete(request.id);
 				return undefined;
 			}

@@ -1,31 +1,49 @@
 import { z } from "zod";
+import {
+	LOAN_AMOUNTS,
+	LOAN_PURPOSES,
+	LOAN_TERMS,
+	loanAmountSchema,
+	loanPurposeSchema,
+	loanTermSchema,
+} from "../types/loan";
 
-export const LOAN_AMOUNTS = [5000, 10000, 25000, 50000] as const;
-export const LOAN_PURPOSES = [
-	"Car",
-	"Home Improvement",
-	"Education",
-	"Other",
-] as const;
-export const LOAN_TERMS = [12, 24, 36, 48] as const;
+// Re-export constants for client usage
+export { LOAN_AMOUNTS, LOAN_PURPOSES, LOAN_TERMS };
 
 export const loanRequestSchema = z.object({
-	amount: z.enum(["5000", "10000", "25000", "50000"]),
-	purpose: z.enum(["Car", "Home Improvement", "Education", "Other"]),
-	term: z.enum(["12", "24", "36", "48"]),
+	amount: loanAmountSchema,
+	purpose: loanPurposeSchema,
+	term: loanTermSchema,
 });
 export type LoanRequest = z.infer<typeof loanRequestSchema>;
 
-export const loanRequestResponseSchema = z.object({
+const loanRequestResponseBaseSchema = z.object({
 	requestId: z.string(),
-	authorizeUrl: z.string().url().optional(),
-	dcApiRequest: z.record(z.string(), z.unknown()).optional(),
 });
+
+export const loanRequestResponseSchema = z.discriminatedUnion("mode", [
+	loanRequestResponseBaseSchema.extend({
+		mode: z.literal("direct_post"),
+		authorizeUrl: z.string().url(),
+	}),
+	loanRequestResponseBaseSchema.extend({
+		mode: z.literal("dc_api"),
+		dcApiRequest: z.record(z.string(), z.unknown()),
+	}),
+]);
 export type LoanRequestResponse = z.infer<typeof loanRequestResponseSchema>;
 
 export const loanStatusResponseSchema = z.object({
 	status: z.enum(["pending", "authorized", "rejected", "error", "expired"]),
 	loanRequestId: z.string().optional(),
+	claims: z
+		.object({
+			familyName: z.string(),
+			givenName: z.string(),
+			identifier: z.string(),
+		})
+		.optional(),
 });
 export type LoanStatusResponse = z.infer<typeof loanStatusResponseSchema>;
 

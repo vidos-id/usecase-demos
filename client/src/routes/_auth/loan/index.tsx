@@ -82,8 +82,9 @@ function LoanPage() {
 			setState({
 				status: "verifying",
 				requestId: data.requestId,
-				authorizeUrl: data.authorizeUrl,
-				dcApiRequest: data.dcApiRequest,
+				authorizeUrl:
+					data.mode === "direct_post" ? data.authorizeUrl : undefined,
+				dcApiRequest: data.mode === "dc_api" ? data.dcApiRequest : undefined,
 			});
 		} catch (err) {
 			setState({

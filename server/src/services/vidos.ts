@@ -1,24 +1,43 @@
+import createClient from "openapi-fetch";
 import { type ExtractedClaims, ExtractedClaimsSchema } from "shared/types/auth";
 import { env } from "../env";
+import type { paths } from "../generated/authorizer-api";
 
 export type PresentationMode = "direct_post" | "dc_api";
-export type CredentialFormat = "vc+sd-jwt" | "mso_mdoc";
+
+// Singleton client instance
+let authorizerClient: ReturnType<typeof createClient<paths>> | null = null;
+
+function getAuthorizerClient() {
+	if (!authorizerClient) {
+		authorizerClient = createClient<paths>({
+			baseUrl: env.VIDOS_AUTHORIZER_URL,
+			headers: {
+				Authorization: `Bearer ${env.VIDOS_API_KEY}`,
+			},
+		});
+	}
+	return authorizerClient;
+}
 
 export interface CreateAuthRequestParams {
 	mode: PresentationMode;
-	requestedAttributes: string[]; // e.g. ["family_name", "given_name", "birth_date"]
-	flow: "signup" | "signin" | "payment" | "loan";
+	requestedClaims: string[]; // e.g. ["family_name", "given_name", "birth_date"]
+	purpose: string;
 }
 
-export interface CreateAuthRequestResult {
-	authorizationId: string;
-	// For direct_post mode: URL for QR code / deep link
-	authorizeUrl?: string;
-	// For dc_api mode: request object for navigator.credentials.get()
-	dcApiRequest?: Record<string, unknown>;
-	// For dc_api mode: URL to forward DC API response to
-	responseUrl?: string;
-}
+export type CreateAuthRequestResult =
+	| {
+			mode: "direct_post";
+			authorizationId: string;
+			authorizeUrl: string;
+	  }
+	| {
+			mode: "dc_api";
+			authorizationId: string;
+			dcApiRequest: Record<string, unknown>;
+			responseUrl: string;
+	  };
 
 export type AuthorizationStatus =
 	| "pending"
@@ -43,27 +62,6 @@ export interface ForwardDCAPIResult {
 }
 
 /**
- * Helper to extract error message from API response
- */
-async function getErrorMessage(response: Response): Promise<string> {
-	let message = `HTTP ${response.status}`;
-	try {
-		const errorData = await response.json();
-		if (
-			errorData &&
-			typeof errorData === "object" &&
-			"message" in errorData &&
-			typeof errorData.message === "string"
-		) {
-			message = errorData.message;
-		}
-	} catch {
-		// Ignore JSON parsing errors
-	}
-	return message;
-}
-
-/**
  * Map of snake_case claim names to camelCase ExtractedClaims field names
  */
 const claimNameMap: Record<string, keyof ExtractedClaims> = {
@@ -77,222 +75,84 @@ const claimNameMap: Record<string, keyof ExtractedClaims> = {
 };
 
 /**
- * Retrieves and normalizes extracted credentials from a completed authorization.
- * Calls Vidos /credentials endpoint which returns normalized claims regardless of format (SD-JWT/mdoc).
- */
-export async function getExtractedCredentials(
-	authorizationId: string,
-): Promise<ExtractedClaims> {
-	try {
-		const response = await fetch(
-			`${env.VIDOS_AUTHORIZER_URL}/openid4/vp/v1_0/authorizations/${authorizationId}/credentials`,
-			{
-				method: "GET",
-				headers: {
-					Authorization: `Bearer ${env.VIDOS_API_KEY}`,
-				},
-			},
-		);
-
-		if (response.status === 404) {
-			throw new Error(`Vidos API error (404): Authorization not found`);
-		}
-
-		if (!response.ok) {
-			const message = await getErrorMessage(response);
-			throw new Error(`Vidos API error (${response.status}): ${message}`);
-		}
-
-		let data: unknown;
-		try {
-			data = await response.json();
-		} catch {
-			throw new Error("Vidos API returned invalid JSON");
-		}
-
-		// Type guard for response data
-		if (
-			!data ||
-			typeof data !== "object" ||
-			!("credentials" in data) ||
-			!Array.isArray(data.credentials)
-		) {
-			throw new Error("Vidos API returned unexpected response format");
-		}
-
-		const responseData = data as {
-			authorizationId: string;
-			credentials: {
-				path: (string | number)[];
-				format: string;
-				credentialType: string;
-				claims: Record<string, unknown>;
-			}[];
-		};
-
-		// Check if any credentials returned
-		if (responseData.credentials.length === 0) {
-			throw new Error("No credentials found in authorization");
-		}
-
-		// Extract first credential's claims
-		const credential = responseData.credentials[0];
-		if (!credential) {
-			throw new Error("No credentials found in authorization");
-		}
-		const rawClaims = credential.claims;
-
-		// Normalize field names from snake_case to camelCase
-		const normalizedClaims: Partial<ExtractedClaims> = {};
-
-		// Map known fields
-		for (const [snakeCase, camelCase] of Object.entries(claimNameMap)) {
-			if (snakeCase in rawClaims) {
-				const value = rawClaims[snakeCase];
-				if (typeof value === "string") {
-					normalizedClaims[camelCase] = value;
-				}
-			}
-		}
-
-		// Handle identifier field - check both possible sources
-		if ("personal_administrative_number" in rawClaims) {
-			const value = rawClaims.personal_administrative_number;
-			if (typeof value === "string") {
-				normalizedClaims.identifier = value;
-			}
-		} else if ("document_number" in rawClaims) {
-			const value = rawClaims.document_number;
-			if (typeof value === "string") {
-				normalizedClaims.identifier = value;
-			}
-		}
-
-		// Validate with Zod schema - will throw if required fields missing
-		try {
-			return ExtractedClaimsSchema.parse(normalizedClaims);
-		} catch (error) {
-			if (error instanceof Error) {
-				throw new Error(
-					`Missing required claims or validation failed: ${error.message}. Received claims: ${JSON.stringify(normalizedClaims)}`,
-				);
-			}
-			throw new Error(
-				`Missing required claims or validation failed. Received claims: ${JSON.stringify(normalizedClaims)}`,
-			);
-		}
-	} catch (error) {
-		if (error instanceof Error) {
-			// Re-throw our own errors
-			if (
-				error.message.startsWith("Vidos API") ||
-				error.message.includes("Missing required claims") ||
-				error.message.includes("No credentials found")
-			) {
-				throw error;
-			}
-			// Network or other errors
-			throw new Error(`Vidos API network error: ${error.message}`);
-		}
-		throw new Error("Vidos API network error: Unknown error");
-	}
-}
-
-/**
- * Creates an authorization request with the Vidos Authorizer API.
+ * Creates an authorization request with the Vidos Authorizer API using DCQL.
  * Supports both direct_post (QR code) and dc_api (browser Digital Credentials API) modes.
  */
 export async function createAuthorizationRequest(
 	params: CreateAuthRequestParams,
 ): Promise<CreateAuthRequestResult> {
-	const { mode, requestedAttributes, flow } = params;
+	const { mode, requestedClaims, purpose } = params;
+	const client = getAuthorizerClient();
 
-	// Build presentation definition with requested attributes
-	const presentationDefinition = {
-		id: crypto.randomUUID(),
-		input_descriptors: [
+	// Build DCQL query with requested claims
+	const dcqlQuery = {
+		purpose,
+		credentials: [
 			{
 				id: "pid",
-				name: "Person Identification Data",
-				purpose: `Verify your identity for ${flow}`,
-				constraints: {
-					fields: requestedAttributes.map((attr) => ({
-						path: [`$.${attr}`, `$.vc.credentialSubject.${attr}`],
-						filter: { type: "string" },
-					})),
-				},
+				format: "dc+sd-jwt",
+				claims: requestedClaims.map((claim) => ({
+					path: [claim],
+				})),
 			},
 		],
 	};
 
-	const requestBody = {
-		query: {
-			type: "DIF.PresentationExchange",
-			presentationDefinition,
-		},
-		responseMode: mode === "direct_post" ? "direct_post.jwt" : "dc_api.jwt",
-	};
-
-	try {
-		const response = await fetch(
-			`${env.VIDOS_AUTHORIZER_URL}/openid4/vp/v1_0/authorizations`,
+	if (mode === "direct_post") {
+		const { data, error } = await client.POST(
+			"/openid4/vp/v1_0/authorizations",
 			{
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					Authorization: `Bearer ${env.VIDOS_API_KEY}`,
+				body: {
+					query: {
+						type: "DCQL",
+						dcql: dcqlQuery,
+					},
+					responseMode: "direct_post.jwt",
 				},
-				body: JSON.stringify(requestBody),
 			},
 		);
 
-		if (!response.ok) {
-			const message = await getErrorMessage(response);
-			throw new Error(`Vidos API error (${response.status}): ${message}`);
+		if (error) {
+			throw new Error(`Vidos API error: ${error.message}`);
 		}
 
-		let data: unknown;
-		try {
-			data = await response.json();
-		} catch {
-			throw new Error("Vidos API returned invalid JSON");
-		}
-
-		// Type guard for response data
-		if (!data || typeof data !== "object" || !("authorizationId" in data)) {
+		if (!data || !("authorizeUrl" in data)) {
 			throw new Error("Vidos API returned unexpected response format");
 		}
 
-		const responseData = data as {
-			authorizationId: string;
-			authorizeUrl?: string;
-			digitalCredentialGetRequest?: Record<string, unknown>;
-		};
-
-		if (mode === "direct_post") {
-			return {
-				authorizationId: responseData.authorizationId,
-				authorizeUrl: responseData.authorizeUrl,
-			};
-		}
-
-		// dc_api mode
 		return {
-			authorizationId: responseData.authorizationId,
-			dcApiRequest: responseData.digitalCredentialGetRequest,
-			responseUrl: `${env.VIDOS_AUTHORIZER_URL}/openid4/vp/v1_0/${responseData.authorizationId}/dc_api.jwt`,
+			mode: "direct_post",
+			authorizationId: data.authorizationId,
+			authorizeUrl: data.authorizeUrl,
 		};
-	} catch (error) {
-		if (error instanceof Error) {
-			// Re-throw our own errors
-			if (error.message.startsWith("Vidos API")) {
-				throw error;
-			}
-			// Network or other errors
-			throw new Error(`Vidos API network error: ${error.message}`);
-		}
-		throw new Error("Vidos API network error: Unknown error");
 	}
+
+	// dc_api mode
+	const { data, error } = await client.POST("/openid4/vp/v1_0/authorizations", {
+		body: {
+			query: {
+				type: "DCQL",
+				dcql: dcqlQuery,
+			},
+			responseMode: "dc_api.jwt",
+			protocol: "openid4vp-v1-unsigned",
+		},
+	});
+
+	if (error) {
+		throw new Error(`Vidos API error: ${error.message}`);
+	}
+
+	if (!data || !("digitalCredentialGetRequest" in data)) {
+		throw new Error("Vidos API returned unexpected response format");
+	}
+
+	return {
+		mode: "dc_api",
+		authorizationId: data.authorizationId,
+		dcApiRequest: data.digitalCredentialGetRequest as Record<string, unknown>,
+		responseUrl: data.responseUrl,
+	};
 }
 
 /**
@@ -302,78 +162,36 @@ export async function createAuthorizationRequest(
 export async function pollAuthorizationStatus(
 	authorizationId: string,
 ): Promise<PollStatusResult> {
-	try {
-		const response = await fetch(
-			`${env.VIDOS_AUTHORIZER_URL}/openid4/vp/v1_0/authorizations/${authorizationId}/status`,
-			{
-				method: "GET",
-				headers: {
-					Authorization: `Bearer ${env.VIDOS_API_KEY}`,
-				},
-			},
-		);
+	const client = getAuthorizerClient();
 
-		if (response.status === 404) {
-			throw new Error(`Vidos API error (404): Authorization not found`);
+	const { data, error } = await client.GET(
+		"/openid4/vp/v1_0/authorizations/{authorizationId}/status",
+		{
+			params: { path: { authorizationId } },
+		},
+	);
+
+	if (error) {
+		if ("message" in error && error.message.includes("404")) {
+			throw new Error("Authorization not found");
 		}
-
-		if (!response.ok) {
-			const message = await getErrorMessage(response);
-			throw new Error(`Vidos API error (${response.status}): ${message}`);
-		}
-
-		let data: unknown;
-		try {
-			data = await response.json();
-		} catch {
-			throw new Error("Vidos API returned invalid JSON");
-		}
-
-		// Type guard for response data
-		if (!data || typeof data !== "object" || !("status" in data)) {
-			throw new Error("Vidos API returned unexpected response format");
-		}
-
-		const responseData = data as {
-			status: string;
-			error?: string;
-		};
-
-		// Map Vidos status to our status enum
-		// API returns: "created" | "pending" | "authorized" | "rejected" | "error" | "expired"
-		// We map "created" to "pending" for simplicity
-		const mappedStatus =
-			responseData.status === "created" ? "pending" : responseData.status;
-
-		// Validate status is one of our expected values
-		const validStatuses: AuthorizationStatus[] = [
-			"pending",
-			"authorized",
-			"rejected",
-			"error",
-			"expired",
-		];
-		if (!validStatuses.includes(mappedStatus as AuthorizationStatus)) {
-			throw new Error(
-				`Vidos API returned unexpected status: ${responseData.status}`,
-			);
-		}
-
-		return {
-			status: mappedStatus as AuthorizationStatus,
-			error: responseData.error,
-		};
-	} catch (error) {
-		if (error instanceof Error) {
-			// Re-throw our own errors
-			if (error.message.startsWith("Vidos API")) {
-				throw error;
-			}
-			// Network or other errors
-			throw new Error(`Vidos API network error: ${error.message}`);
-		}
-		throw new Error("Vidos API network error: Unknown error");
+		throw new Error(`Vidos API error: ${error.message}`);
 	}
+
+	if (!data) {
+		throw new Error("Vidos API returned empty response");
+	}
+
+	// Map Vidos status to our status enum
+	// API returns: "created" | "pending" | "authorized" | "rejected" | "error" | "expired"
+	const mappedStatus =
+		data.status === "created"
+			? "pending"
+			: (data.status as AuthorizationStatus);
+
+	return {
+		status: mappedStatus,
+	};
 }
 
 /**
@@ -384,72 +202,139 @@ export async function forwardDCAPIResponse(
 	params: ForwardDCAPIParams,
 ): Promise<ForwardDCAPIResult> {
 	const { authorizationId, origin, dcResponse } = params;
+	const client = getAuthorizerClient();
 
-	const requestBody = {
-		origin,
-		digitalCredentialGetResponse: dcResponse,
-	};
-
-	try {
-		const response = await fetch(
-			`${env.VIDOS_AUTHORIZER_URL}/openid4/vp/v1_0/${authorizationId}/dc_api.jwt`,
+	// Determine which endpoint to use based on response format
+	if ("response" in dcResponse) {
+		// JWT response format
+		const { data, error } = await client.POST(
+			"/openid4/vp/v1_0/{authorizationId}/dc_api.jwt",
 			{
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					Authorization: `Bearer ${env.VIDOS_API_KEY}`,
+				params: { path: { authorizationId } },
+				body: {
+					origin,
+					digitalCredentialGetResponse: dcResponse,
 				},
-				body: JSON.stringify(requestBody),
 			},
 		);
 
-		if (!response.ok) {
-			const message = await getErrorMessage(response);
-			throw new Error(`Vidos API error (${response.status}): ${message}`);
+		if (error) {
+			throw new Error(`Vidos API error: ${error.message}`);
 		}
 
-		let data: unknown;
-		try {
-			data = await response.json();
-		} catch {
-			throw new Error("Vidos API returned invalid JSON");
+		if (!data) {
+			throw new Error("Vidos API returned empty response");
 		}
 
-		// Type guard for response data
-		if (!data || typeof data !== "object" || !("status" in data)) {
-			throw new Error("Vidos API returned unexpected response format");
+		return { status: data.status };
+	}
+
+	// vp_token response format - cast to expected type
+	const { data, error } = await client.POST(
+		"/openid4/vp/v1_0/{authorizationId}/dc_api",
+		{
+			params: { path: { authorizationId } },
+			body: {
+				origin,
+				digitalCredentialGetResponse: dcResponse as {
+					vp_token: {
+						[key: string]:
+							| string
+							| (string | { [key: string]: unknown })[]
+							| { [key: string]: unknown };
+					};
+				},
+			},
+		},
+	);
+
+	if (error) {
+		throw new Error(`Vidos API error: ${error.message}`);
+	}
+
+	if (!data) {
+		throw new Error("Vidos API returned empty response");
+	}
+
+	return { status: data.status };
+}
+
+/**
+ * Retrieves and normalizes extracted credentials from a completed authorization.
+ * Calls Vidos /credentials endpoint which returns normalized claims regardless of format (SD-JWT/mdoc).
+ */
+export async function getExtractedCredentials(
+	authorizationId: string,
+): Promise<ExtractedClaims> {
+	const client = getAuthorizerClient();
+
+	const { data, error } = await client.GET(
+		"/openid4/vp/v1_0/authorizations/{authorizationId}/credentials",
+		{
+			params: { path: { authorizationId } },
+		},
+	);
+
+	if (error) {
+		if ("message" in error && error.message.includes("404")) {
+			throw new Error("Authorization not found");
 		}
+		throw new Error(`Vidos API error: ${error.message}`);
+	}
 
-		const responseData = data as {
-			status: string;
-		};
+	if (!data) {
+		throw new Error("Vidos API returned empty response");
+	}
 
-		// Validate status is one of our expected values
-		// API returns: "authorized" | "rejected" | "error" | "expired"
-		const validStatuses: AuthorizationStatus[] = [
-			"authorized",
-			"rejected",
-			"error",
-			"expired",
-		];
-		if (!validStatuses.includes(responseData.status as AuthorizationStatus)) {
+	// Check if any credentials returned
+	if (!data.credentials || data.credentials.length === 0) {
+		throw new Error("No credentials found in authorization");
+	}
+
+	// Extract first credential's claims
+	const credential = data.credentials[0];
+	if (!credential) {
+		throw new Error("No credentials found in authorization");
+	}
+	const rawClaims = credential.claims as Record<string, unknown>;
+
+	// Normalize field names from snake_case to camelCase
+	const normalizedClaims: Partial<ExtractedClaims> = {};
+
+	// Map known fields
+	for (const [snakeCase, camelCase] of Object.entries(claimNameMap)) {
+		if (snakeCase in rawClaims) {
+			const value = rawClaims[snakeCase];
+			if (typeof value === "string") {
+				normalizedClaims[camelCase] = value;
+			}
+		}
+	}
+
+	// Handle identifier field - check both possible sources
+	if ("personal_administrative_number" in rawClaims) {
+		const value = rawClaims.personal_administrative_number;
+		if (typeof value === "string") {
+			normalizedClaims.identifier = value;
+		}
+	} else if ("document_number" in rawClaims) {
+		const value = rawClaims.document_number;
+		if (typeof value === "string") {
+			normalizedClaims.identifier = value;
+		}
+	}
+
+	// Validate with Zod schema - will throw if required fields missing
+	try {
+		return ExtractedClaimsSchema.parse(normalizedClaims);
+	} catch (parseError) {
+		if (parseError instanceof Error) {
 			throw new Error(
-				`Vidos API returned unexpected status: ${responseData.status}`,
+				`Missing required claims or validation failed: ${parseError.message}. Received claims: ${JSON.stringify(normalizedClaims)}`,
 			);
 		}
-
-		return {
-			status: responseData.status as AuthorizationStatus,
-		};
-	} catch (error) {
-		if (error instanceof Error) {
-			// Re-throw our own errors
-			if (error.message.startsWith("Vidos API")) {
-				throw error;
-			}
-			// Network or other errors
-			throw new Error(`Vidos API network error: ${error.message}`);
-		}
-		throw new Error("Vidos API network error: Unknown error");
+		throw new Error(
+			`Missing required claims or validation failed. Received claims: ${JSON.stringify(normalizedClaims)}`,
+		);
 	}
 }

@@ -15,7 +15,9 @@ The system SHALL provide an endpoint GET /api/loan/status/:requestId that return
 - **WHEN** client sends GET /api/loan/status/req_123
 - **WHEN** Vidos authorization has been completed and authorized
 - **THEN** system returns 200 with status "authorized"
-- **THEN** response includes claims with familyName, givenName, personalAdministrativeNumber or documentNumber
+- **THEN** response includes loanRequestId
+- **THEN** response includes claims with familyName, givenName, identifier
+- **THEN** system deletes pending request from map
 
 #### Scenario: Poll status for rejected request
 - **WHEN** client sends GET /api/loan/status/req_123
@@ -25,9 +27,8 @@ The system SHALL provide an endpoint GET /api/loan/status/:requestId that return
 
 #### Scenario: Poll status for expired request
 - **WHEN** client sends GET /api/loan/status/req_123
-- **WHEN** Vidos authorization has expired (timeout after 5 minutes)
-- **THEN** system returns 200 with status "expired"
-- **THEN** response does not include claims
+- **WHEN** pending request has exceeded 5 minute TTL
+- **THEN** system returns 404 Not Found (request removed from map)
 
 ### Requirement: Status endpoint retrieves from Vidos API
 The system SHALL poll the Vidos API to get the current authorization status using the stored authId.
@@ -35,11 +36,11 @@ The system SHALL poll the Vidos API to get the current authorization status usin
 #### Scenario: Retrieve status from Vidos
 - **WHEN** client polls GET /api/loan/status/req_123
 - **WHEN** pendingRequests map contains authId "auth_xyz" for requestId "req_123"
-- **THEN** system calls Vidos API pollAuthorizationStatus with authId "auth_xyz"
+- **THEN** system calls Vidos API GET /authorizations/{authId}/status
 - **THEN** system returns Vidos status to client
 
 ### Requirement: Status endpoint handles unknown requestId
-The system SHALL return error when requestId is not found in pending requests.
+The system SHALL return 404 error when requestId is not found in pending requests.
 
 #### Scenario: Unknown requestId returns error
 - **WHEN** client sends GET /api/loan/status/unknown_id
@@ -47,60 +48,41 @@ The system SHALL return error when requestId is not found in pending requests.
 - **THEN** system returns 404 Not Found
 - **THEN** response includes error message "Request not found"
 
-### Requirement: Status endpoint is idempotent and stateless
-The system SHALL allow repeated polling of the same requestId without side effects.
+### Requirement: Identity verification on authorization
+The system SHALL verify that the presented credential matches the session user.
 
-#### Scenario: Multiple polls return consistent status
-- **WHEN** client sends GET /api/loan/status/req_123 multiple times
-- **WHEN** authorization status remains "pending"
-- **THEN** each request returns 200 with status "pending"
-- **THEN** pendingRequests state is not modified by polling
+#### Scenario: Identity matches session user
+- **WHEN** authorization is completed
+- **THEN** system fetches credentials from Vidos API /credentials endpoint
+- **THEN** system compares credential identifier with session user identifier
+- **THEN** system allows completion if identifiers match
+
+#### Scenario: Identity mismatch
+- **WHEN** credential identifier does not match session user identifier
+- **THEN** system returns 403 Forbidden with error "Identity mismatch"
 
 ### Requirement: POST /api/loan/complete/:requestId finalizes authorization
-The system SHALL provide an endpoint POST /api/loan/complete/:requestId that processes the completed authorization and logs the loan application.
-
-#### Scenario: Complete loan authorization in direct_post mode
-- **WHEN** client sends POST /api/loan/complete/req_123
-- **WHEN** authorization status is "authorized"
-- **WHEN** mode is direct_post
-- **THEN** system fetches verified credentials from Vidos API
-- **THEN** system logs loan application with extracted claims and loan details
-- **THEN** system returns 200 with loanRequestId and message "Application submitted successfully"
-- **THEN** system removes requestId from pendingRequests map
+The system SHALL provide an endpoint POST /api/loan/complete/:requestId that processes the completed authorization.
 
 #### Scenario: Complete loan authorization in dc_api mode
-- **WHEN** client sends POST /api/loan/complete/req_123 with dcResponse
-- **WHEN** authorization status is "authorized"
-- **WHEN** mode is dc_api
-- **THEN** system processes dcResponse to extract claims
-- **THEN** system logs loan application with extracted claims and loan details
-- **THEN** system returns 200 with loanRequestId and message "Application submitted successfully"
-- **THEN** system removes requestId from pendingRequests map
-
-#### Scenario: Complete before authorization fails
-- **WHEN** client sends POST /api/loan/complete/req_123
-- **WHEN** authorization status is "pending" (not yet authorized)
-- **THEN** system returns 400 Bad Request
-- **THEN** response includes error "Authorization not yet completed"
+- **WHEN** client sends POST /api/loan/complete/req_123 with `{ origin, dcResponse }`
+- **THEN** system forwards dcResponse to Vidos API dc_api.jwt endpoint
+- **THEN** system fetches credentials from Vidos API /credentials endpoint
+- **THEN** system verifies identity matches session user
+- **THEN** system generates loanRequestId
+- **THEN** system deletes pending request from map
+- **THEN** system returns 200 with loanRequestId and message
 
 #### Scenario: Complete unknown requestId fails
 - **WHEN** client sends POST /api/loan/complete/unknown_id
 - **THEN** system returns 404 Not Found
-- **THEN** response includes error "Request not found"
-
-### Requirement: Completion endpoint cleans up pending request
-The system SHALL remove the requestId from pendingRequests map after successful completion.
-
-#### Scenario: Cleanup after successful completion
-- **WHEN** POST /api/loan/complete/req_123 succeeds
-- **THEN** system deletes "req_123" from pendingRequests map
-- **THEN** subsequent GET /api/loan/status/req_123 returns 404
+- **THEN** response includes error "Request not found or expired"
 
 ### Requirement: Completion endpoint requires authenticated session
 The system SHALL require an authenticated session to complete a loan authorization.
 
 #### Scenario: Authenticated user completes request
-- **WHEN** authenticated user sends POST /api/loan/complete/req_123
+- **WHEN** authenticated user sends POST /api/loan/complete/req_123 with Authorization header
 - **THEN** system processes the completion
 - **THEN** system returns 200 with loanRequestId
 
@@ -108,3 +90,11 @@ The system SHALL require an authenticated session to complete a loan authorizati
 - **WHEN** unauthenticated client sends POST /api/loan/complete/req_123
 - **THEN** system returns 401 Unauthorized
 - **THEN** system does not complete the authorization
+
+### Requirement: Loan request TTL is 5 minutes
+The system SHALL expire pending loan requests after 5 minutes (shorter than signup/signin).
+
+#### Scenario: Request expires after 5 minutes
+- **WHEN** pending loan request exceeds 5 minute TTL
+- **THEN** system removes requestId from pendingRequests map
+- **THEN** subsequent status polls return 404 Not Found

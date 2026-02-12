@@ -15,13 +15,13 @@ import {
 } from "../services/vidos";
 import {
 	createPendingRequest,
+	deletePendingRequest,
 	getPendingRequestById,
-	updateRequestToCompleted,
 } from "../stores/pending-auth-requests";
 import { getSessionById } from "../stores/sessions";
 import { getUserById } from "../stores/users";
 
-const LOAN_ATTRIBUTES = [
+const LOAN_CLAIMS = [
 	"family_name",
 	"given_name",
 	"personal_administrative_number",
@@ -45,23 +45,31 @@ export const loanRouter = new Hono()
 
 		const result = await createAuthorizationRequest({
 			mode: session.mode,
-			requestedAttributes: LOAN_ATTRIBUTES,
-			flow: "loan",
+			requestedClaims: LOAN_CLAIMS,
+			purpose: "Verify your identity for loan application",
 		});
 
 		const pendingRequest = createPendingRequest({
 			vidosAuthorizationId: result.authorizationId,
 			type: "loan",
 			mode: session.mode,
-			responseUrl: result.responseUrl,
+			responseUrl: result.mode === "dc_api" ? result.responseUrl : undefined,
 			metadata: { amount, purpose, term },
 		});
 
-		const response = loanRequestResponseSchema.parse({
-			requestId: pendingRequest.id,
-			authorizeUrl: result.authorizeUrl,
-			dcApiRequest: result.dcApiRequest,
-		});
+		const response = loanRequestResponseSchema.parse(
+			result.mode === "direct_post"
+				? {
+						mode: "direct_post",
+						requestId: pendingRequest.id,
+						authorizeUrl: result.authorizeUrl,
+					}
+				: {
+						mode: "dc_api",
+						requestId: pendingRequest.id,
+						dcApiRequest: result.dcApiRequest,
+					},
+		);
 
 		return c.json(response);
 	})
@@ -73,10 +81,7 @@ export const loanRouter = new Hono()
 		const pendingRequest = getPendingRequestById(requestId);
 
 		if (!pendingRequest) {
-			const response = loanStatusResponseSchema.parse({
-				status: "expired" as const,
-			});
-			return c.json(response);
+			return c.json({ error: "Request not found" }, 404);
 		}
 
 		const statusResult = await pollAuthorizationStatus(
@@ -94,11 +99,16 @@ export const loanRouter = new Hono()
 			}
 
 			const loanRequestId = `loan-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-			updateRequestToCompleted(pendingRequest.id, claims, loanRequestId);
+			deletePendingRequest(pendingRequest.id);
 
 			const response = loanStatusResponseSchema.parse({
 				status: "authorized" as const,
 				loanRequestId,
+				claims: {
+					familyName: claims.familyName,
+					givenName: claims.givenName,
+					identifier: claims.identifier,
+				},
 			});
 
 			return c.json(response);
@@ -147,7 +157,7 @@ export const loanRouter = new Hono()
 			}
 
 			const loanRequestId = `loan-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-			updateRequestToCompleted(pendingRequest.id, claims, loanRequestId);
+			deletePendingRequest(pendingRequest.id);
 
 			const response = loanCompleteResponseSchema.parse({
 				loanRequestId,

@@ -15,14 +15,14 @@ import {
 } from "../services/vidos";
 import {
 	createPendingRequest,
+	deletePendingRequest,
 	getPendingRequestById,
-	updateRequestToCompleted,
 } from "../stores/pending-auth-requests";
 import { createSession } from "../stores/sessions";
 import { getUserByIdentifier } from "../stores/users";
 
-// Signin attributes - minimal for identification
-const SIGNIN_ATTRIBUTES = [
+// Signin claims - minimal for identification
+const SIGNIN_CLAIMS = [
 	"personal_administrative_number",
 	"document_number",
 	"family_name",
@@ -35,22 +35,30 @@ export const signinRouter = new Hono()
 
 		const result = await createAuthorizationRequest({
 			mode,
-			requestedAttributes: SIGNIN_ATTRIBUTES,
-			flow: "signin",
+			requestedClaims: SIGNIN_CLAIMS,
+			purpose: "Verify your identity for signin",
 		});
 
 		const pendingRequest = createPendingRequest({
 			vidosAuthorizationId: result.authorizationId,
 			type: "signin",
 			mode,
-			responseUrl: result.responseUrl,
+			responseUrl: result.mode === "dc_api" ? result.responseUrl : undefined,
 		});
 
-		const response = signinRequestResponseSchema.parse({
-			requestId: pendingRequest.id,
-			authorizeUrl: result.authorizeUrl,
-			dcApiRequest: result.dcApiRequest,
-		});
+		const response = signinRequestResponseSchema.parse(
+			result.mode === "direct_post"
+				? {
+						mode: "direct_post",
+						requestId: pendingRequest.id,
+						authorizeUrl: result.authorizeUrl,
+					}
+				: {
+						mode: "dc_api",
+						requestId: pendingRequest.id,
+						dcApiRequest: result.dcApiRequest,
+					},
+		);
 
 		return c.json(response);
 	})
@@ -59,10 +67,7 @@ export const signinRouter = new Hono()
 		const pendingRequest = getPendingRequestById(requestId);
 
 		if (!pendingRequest) {
-			const response = signinStatusResponseSchema.parse({
-				status: "expired" as const,
-			});
-			return c.json(response);
+			return c.json({ error: "Request not found" }, 404);
 		}
 
 		// Poll Vidos for status
@@ -92,7 +97,7 @@ export const signinRouter = new Hono()
 				mode: pendingRequest.mode,
 			});
 
-			updateRequestToCompleted(pendingRequest.id, claims, session.id);
+			deletePendingRequest(pendingRequest.id);
 
 			const response = signinStatusResponseSchema.parse({
 				status: "authorized" as const,
@@ -161,7 +166,7 @@ export const signinRouter = new Hono()
 				mode: pendingRequest.mode,
 			});
 
-			updateRequestToCompleted(pendingRequest.id, claims, session.id);
+			deletePendingRequest(pendingRequest.id);
 
 			const response = signinCompleteResponseSchema.parse({
 				sessionId: session.id,

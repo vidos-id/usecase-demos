@@ -61,8 +61,9 @@ function SignupPage() {
 			setState({
 				status: "awaiting_verification",
 				requestId: data.requestId,
-				authorizeUrl: data.authorizeUrl,
-				dcApiRequest: data.dcApiRequest,
+				authorizeUrl:
+					data.mode === "direct_post" ? data.authorizeUrl : undefined,
+				dcApiRequest: data.mode === "dc_api" ? data.dcApiRequest : undefined,
 			});
 		} catch (err) {
 			setState({
@@ -97,7 +98,7 @@ function SignupPage() {
 					setSessionId(data.sessionId);
 					setStoredMode(data.mode || mode);
 					setState({ status: "success" });
-					navigate({ to: "/dashboard" });
+					navigate({ to: "/profile" });
 					return;
 				}
 
@@ -148,7 +149,7 @@ function SignupPage() {
 			setSessionId(data.sessionId);
 			setStoredMode(data.mode);
 			setState({ status: "success" });
-			navigate({ to: "/dashboard" });
+			navigate({ to: "/profile" });
 		} catch (err) {
 			setState({
 				status: "error",

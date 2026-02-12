@@ -23,7 +23,7 @@ const client = hcWithType(SERVER_URL);
 
 interface ConfirmSearchParams {
 	recipient: string;
-	amount: number;
+	amount: string; // EUR format string "123.45"
 	reference?: string;
 }
 
@@ -33,7 +33,7 @@ export const Route = createFileRoute("/_auth/send/confirm")({
 	): ConfirmSearchParams | undefined => {
 		if (
 			typeof search.recipient === "string" &&
-			typeof search.amount === "number"
+			typeof search.amount === "string"
 		) {
 			return {
 				recipient: search.recipient,
@@ -172,8 +172,9 @@ function PaymentConfirmPage() {
 			setState({
 				status: "awaiting_verification",
 				requestId: data.requestId,
-				authorizeUrl: data.authorizeUrl,
-				dcApiRequest: data.dcApiRequest,
+				authorizeUrl:
+					data.mode === "direct_post" ? data.authorizeUrl : undefined,
+				dcApiRequest: data.mode === "dc_api" ? data.dcApiRequest : undefined,
 			});
 		} catch (err) {
 			setState({
@@ -247,7 +248,7 @@ function PaymentConfirmPage() {
 							<div className="text-muted-foreground">Recipient:</div>
 							<div className="font-medium">{search.recipient}</div>
 							<div className="text-muted-foreground">Amount:</div>
-							<div className="font-medium">EUR {search.amount.toFixed(2)}</div>
+							<div className="font-medium">EUR {search.amount}</div>
 							{search.reference && (
 								<>
 									<div className="text-muted-foreground">Reference:</div>

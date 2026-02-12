@@ -15,14 +15,14 @@ import {
 } from "../services/vidos";
 import {
 	createPendingRequest,
+	deletePendingRequest,
 	getPendingRequestById,
-	updateRequestToCompleted,
 } from "../stores/pending-auth-requests";
 import { getSessionById } from "../stores/sessions";
 import { getUserById } from "../stores/users";
 
-// Minimal attributes for payment confirmation
-const PAYMENT_ATTRIBUTES = [
+// Minimal claims for payment confirmation
+const PAYMENT_CLAIMS = [
 	"family_name",
 	"given_name",
 	"personal_administrative_number",
@@ -45,25 +45,38 @@ export const paymentRouter = new Hono()
 
 		const { recipient, amount, reference } = c.req.valid("json");
 
+		// Generate transactionId immediately per spec
+		const transactionId = `txn-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
 		const result = await createAuthorizationRequest({
 			mode: session.mode,
-			requestedAttributes: PAYMENT_ATTRIBUTES,
-			flow: "payment",
+			requestedClaims: PAYMENT_CLAIMS,
+			purpose: "Verify your identity for payment confirmation",
 		});
 
 		const pendingRequest = createPendingRequest({
 			vidosAuthorizationId: result.authorizationId,
 			type: "payment",
 			mode: session.mode,
-			responseUrl: result.responseUrl,
-			metadata: { recipient, amount, reference },
+			responseUrl: result.mode === "dc_api" ? result.responseUrl : undefined,
+			metadata: { transactionId, recipient, amount, reference },
 		});
 
-		const response = paymentRequestResponseSchema.parse({
-			requestId: pendingRequest.id,
-			authorizeUrl: result.authorizeUrl,
-			dcApiRequest: result.dcApiRequest,
-		});
+		const response = paymentRequestResponseSchema.parse(
+			result.mode === "direct_post"
+				? {
+						mode: "direct_post",
+						requestId: pendingRequest.id,
+						transactionId,
+						authorizeUrl: result.authorizeUrl,
+					}
+				: {
+						mode: "dc_api",
+						requestId: pendingRequest.id,
+						transactionId,
+						dcApiRequest: result.dcApiRequest,
+					},
+		);
 
 		return c.json(response);
 	})
@@ -75,10 +88,7 @@ export const paymentRouter = new Hono()
 		const pendingRequest = getPendingRequestById(requestId);
 
 		if (!pendingRequest) {
-			const response = paymentStatusResponseSchema.parse({
-				status: "expired" as const,
-			});
-			return c.json(response);
+			return c.json({ error: "Request not found" }, 404);
 		}
 
 		const statusResult = await pollAuthorizationStatus(
@@ -96,12 +106,23 @@ export const paymentRouter = new Hono()
 				return c.json({ error: "Identity mismatch" }, 403);
 			}
 
-			const transactionId = `txn-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-			updateRequestToCompleted(pendingRequest.id, claims, transactionId);
+			// Use transactionId from stored metadata
+			const metadata = pendingRequest.metadata as {
+				transactionId: string;
+				recipient: string;
+				amount: string;
+				reference?: string;
+			};
+			deletePendingRequest(pendingRequest.id);
 
 			const response = paymentStatusResponseSchema.parse({
 				status: "authorized" as const,
-				transactionId,
+				transactionId: metadata.transactionId,
+				claims: {
+					familyName: claims.familyName,
+					givenName: claims.givenName,
+					identifier: claims.identifier,
+				},
 			});
 
 			return c.json(response);
@@ -149,21 +170,35 @@ export const paymentRouter = new Hono()
 				return c.json({ error: "Identity mismatch" }, 403);
 			}
 
-			const transactionId = `txn-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+			// Use transactionId from stored metadata
 			const metadata = pendingRequest.metadata as {
+				transactionId: string;
 				recipient: string;
-				amount: number;
+				amount: string;
 				reference?: string;
 			};
+			const confirmedAt = new Date().toISOString();
 
-			updateRequestToCompleted(pendingRequest.id, claims, transactionId);
+			deletePendingRequest(pendingRequest.id);
 
 			const response = paymentCompleteResponseSchema.parse({
-				transactionId,
-				confirmedAt: new Date().toISOString(),
+				transactionId: metadata.transactionId,
+				confirmedAt,
 				recipient: metadata.recipient,
 				amount: metadata.amount,
 				reference: metadata.reference,
+				verifiedIdentity: {
+					familyName: claims.familyName,
+					givenName: claims.givenName,
+					identifier: claims.identifier,
+				},
+				transaction: {
+					id: metadata.transactionId,
+					recipient: metadata.recipient,
+					amount: metadata.amount,
+					reference: metadata.reference,
+					confirmedAt,
+				},
 			});
 
 			return c.json(response);

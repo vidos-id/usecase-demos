@@ -14,7 +14,7 @@ import {
 interface SuccessSearchParams {
 	transactionId: string;
 	recipient: string;
-	amount: number;
+	amount: string; // EUR format string "123.45"
 	reference?: string;
 	confirmedAt: string;
 }
@@ -26,7 +26,7 @@ export const Route = createFileRoute("/_auth/send/success")({
 		if (
 			typeof search.transactionId === "string" &&
 			typeof search.recipient === "string" &&
-			typeof search.amount === "number" &&
+			typeof search.amount === "string" &&
 			typeof search.confirmedAt === "string"
 		) {
 			return {
@@ -91,7 +91,7 @@ function PaymentSuccessPage() {
 							<div className="text-muted-foreground">Recipient:</div>
 							<div className="font-medium">{search.recipient}</div>
 							<div className="text-muted-foreground">Amount:</div>
-							<div className="font-medium">EUR {search.amount.toFixed(2)}</div>
+							<div className="font-medium">EUR {search.amount}</div>
 							{search.reference && (
 								<>
 									<div className="text-muted-foreground">Reference:</div>
