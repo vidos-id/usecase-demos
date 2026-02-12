@@ -9,38 +9,181 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as SigninRouteImport } from './routes/signin'
+import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthProfileRouteImport } from './routes/_auth/profile'
+import { Route as AuthDashboardRouteImport } from './routes/_auth/dashboard'
+import { Route as AuthSendIndexRouteImport } from './routes/_auth/send/index'
+import { Route as AuthLoanIndexRouteImport } from './routes/_auth/loan/index'
+import { Route as AuthSendSuccessRouteImport } from './routes/_auth/send/success'
+import { Route as AuthSendConfirmRouteImport } from './routes/_auth/send/confirm'
+import { Route as AuthLoanSuccessRouteImport } from './routes/_auth/loan/success'
 
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SigninRoute = SigninRouteImport.update({
+  id: '/signin',
+  path: '/signin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/_auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthProfileRoute = AuthProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthDashboardRoute = AuthDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthSendIndexRoute = AuthSendIndexRouteImport.update({
+  id: '/send/',
+  path: '/send/',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthLoanIndexRoute = AuthLoanIndexRouteImport.update({
+  id: '/loan/',
+  path: '/loan/',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthSendSuccessRoute = AuthSendSuccessRouteImport.update({
+  id: '/send/success',
+  path: '/send/success',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthSendConfirmRoute = AuthSendConfirmRouteImport.update({
+  id: '/send/confirm',
+  path: '/send/confirm',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthLoanSuccessRoute = AuthLoanSuccessRouteImport.update({
+  id: '/loan/success',
+  path: '/loan/success',
+  getParentRoute: () => AuthRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/signin': typeof SigninRoute
+  '/signup': typeof SignupRoute
+  '/dashboard': typeof AuthDashboardRoute
+  '/profile': typeof AuthProfileRoute
+  '/loan/success': typeof AuthLoanSuccessRoute
+  '/send/confirm': typeof AuthSendConfirmRoute
+  '/send/success': typeof AuthSendSuccessRoute
+  '/loan/': typeof AuthLoanIndexRoute
+  '/send/': typeof AuthSendIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/signin': typeof SigninRoute
+  '/signup': typeof SignupRoute
+  '/dashboard': typeof AuthDashboardRoute
+  '/profile': typeof AuthProfileRoute
+  '/loan/success': typeof AuthLoanSuccessRoute
+  '/send/confirm': typeof AuthSendConfirmRoute
+  '/send/success': typeof AuthSendSuccessRoute
+  '/loan': typeof AuthLoanIndexRoute
+  '/send': typeof AuthSendIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_auth': typeof AuthRouteWithChildren
+  '/signin': typeof SigninRoute
+  '/signup': typeof SignupRoute
+  '/_auth/dashboard': typeof AuthDashboardRoute
+  '/_auth/profile': typeof AuthProfileRoute
+  '/_auth/loan/success': typeof AuthLoanSuccessRoute
+  '/_auth/send/confirm': typeof AuthSendConfirmRoute
+  '/_auth/send/success': typeof AuthSendSuccessRoute
+  '/_auth/loan/': typeof AuthLoanIndexRoute
+  '/_auth/send/': typeof AuthSendIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/signin'
+    | '/signup'
+    | '/dashboard'
+    | '/profile'
+    | '/loan/success'
+    | '/send/confirm'
+    | '/send/success'
+    | '/loan/'
+    | '/send/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/signin'
+    | '/signup'
+    | '/dashboard'
+    | '/profile'
+    | '/loan/success'
+    | '/send/confirm'
+    | '/send/success'
+    | '/loan'
+    | '/send'
+  id:
+    | '__root__'
+    | '/'
+    | '/_auth'
+    | '/signin'
+    | '/signup'
+    | '/_auth/dashboard'
+    | '/_auth/profile'
+    | '/_auth/loan/success'
+    | '/_auth/send/confirm'
+    | '/_auth/send/success'
+    | '/_auth/loan/'
+    | '/_auth/send/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRouteWithChildren
+  SigninRoute: typeof SigninRoute
+  SignupRoute: typeof SignupRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signin': {
+      id: '/signin'
+      path: '/signin'
+      fullPath: '/signin'
+      preLoaderRoute: typeof SigninRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_auth': {
+      id: '/_auth'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +191,85 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_auth/profile': {
+      id: '/_auth/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AuthProfileRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/dashboard': {
+      id: '/_auth/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthDashboardRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/send/': {
+      id: '/_auth/send/'
+      path: '/send'
+      fullPath: '/send/'
+      preLoaderRoute: typeof AuthSendIndexRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/loan/': {
+      id: '/_auth/loan/'
+      path: '/loan'
+      fullPath: '/loan/'
+      preLoaderRoute: typeof AuthLoanIndexRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/send/success': {
+      id: '/_auth/send/success'
+      path: '/send/success'
+      fullPath: '/send/success'
+      preLoaderRoute: typeof AuthSendSuccessRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/send/confirm': {
+      id: '/_auth/send/confirm'
+      path: '/send/confirm'
+      fullPath: '/send/confirm'
+      preLoaderRoute: typeof AuthSendConfirmRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/loan/success': {
+      id: '/_auth/loan/success'
+      path: '/loan/success'
+      fullPath: '/loan/success'
+      preLoaderRoute: typeof AuthLoanSuccessRouteImport
+      parentRoute: typeof AuthRoute
+    }
   }
 }
 
+interface AuthRouteChildren {
+  AuthDashboardRoute: typeof AuthDashboardRoute
+  AuthProfileRoute: typeof AuthProfileRoute
+  AuthLoanSuccessRoute: typeof AuthLoanSuccessRoute
+  AuthSendConfirmRoute: typeof AuthSendConfirmRoute
+  AuthSendSuccessRoute: typeof AuthSendSuccessRoute
+  AuthLoanIndexRoute: typeof AuthLoanIndexRoute
+  AuthSendIndexRoute: typeof AuthSendIndexRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthDashboardRoute: AuthDashboardRoute,
+  AuthProfileRoute: AuthProfileRoute,
+  AuthLoanSuccessRoute: AuthLoanSuccessRoute,
+  AuthSendConfirmRoute: AuthSendConfirmRoute,
+  AuthSendSuccessRoute: AuthSendSuccessRoute,
+  AuthLoanIndexRoute: AuthLoanIndexRoute,
+  AuthSendIndexRoute: AuthSendIndexRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRouteWithChildren,
+  SigninRoute: SigninRoute,
+  SignupRoute: SignupRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

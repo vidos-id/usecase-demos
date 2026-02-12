@@ -2,169 +2,123 @@
 
 ## ADDED Requirements
 
-### Requirement: Create Authorization Request for Direct Post Mode
-The system SHALL create authorization requests via Vidos API for direct_post presentation mode.
+### Requirement: Use Generated OpenAPI Client
+The system SHALL use the openapi-fetch library with generated types from `@server/src/generated/authorizer-api.ts` for all Vidos API communication.
 
-#### Scenario: Create direct_post request with SD-JWT VC format
-- **WHEN** caller invokes createAuthorizationRequest with mode "direct_post" and format "vc+sd-jwt"
-- **THEN** system sends POST to Vidos API with presentation_definition, response_mode "direct_post", and format "vc+sd-jwt", returns authorization ID and request URL
+#### Scenario: Create singleton client instance
+- **WHEN** vidos service is initialized
+- **THEN** system creates a singleton openapi-fetch client with baseUrl from VIDOS_AUTHORIZER_URL
+- **THEN** client includes Authorization header with Bearer token from VIDOS_API_KEY
 
-#### Scenario: Create direct_post request with mdoc format
-- **WHEN** caller invokes createAuthorizationRequest with mode "direct_post" and format "mso_mdoc"
-- **THEN** system sends POST to Vidos API with presentation_definition, response_mode "direct_post", and format "mso_mdoc", returns authorization ID and request URL
+#### Scenario: Reuse client across requests
+- **WHEN** multiple authorization requests are made
+- **THEN** system reuses the same client instance for all requests
 
-#### Scenario: Include API key in request
-- **WHEN** creating authorization request
-- **THEN** system includes VIDOS_API_KEY in Authorization header as Bearer token
+### Requirement: Create Authorization Request using DCQL
+The system SHALL create authorization requests via Vidos API using DCQL (DIF Credential Query Language) instead of Presentation Exchange.
+
+#### Scenario: Create direct_post request with DCQL
+- **WHEN** caller invokes createAuthorizationRequest with mode "direct_post" and requestedClaims
+- **THEN** system sends POST to `/openid4/vp/v1_0/authorizations` with DCQL query
+- **THEN** request body contains `{ query: { type: "DCQL", dcql: { purpose, credentials: [{ id: "pid", format: "dc+sd-jwt", claims: [...] }] } }, responseMode: "direct_post.jwt" }`
+- **THEN** system returns discriminated union `{ mode: "direct_post", authorizationId, authorizeUrl }`
+
+#### Scenario: Create dc_api request with DCQL
+- **WHEN** caller invokes createAuthorizationRequest with mode "dc_api" and requestedClaims
+- **THEN** system sends POST to `/openid4/vp/v1_0/authorizations` with DCQL query
+- **THEN** request body contains `{ query: { type: "DCQL", dcql: { purpose, credentials: [...] } }, responseMode: "dc_api.jwt", protocol: "openid4vp-v1-unsigned" }`
+- **THEN** system returns discriminated union `{ mode: "dc_api", authorizationId, dcApiRequest, responseUrl }`
+
+#### Scenario: Build DCQL claims array
+- **WHEN** requestedClaims is ["family_name", "given_name", "birth_date"]
+- **THEN** DCQL query credentials[0].claims contains `[{ path: ["family_name"] }, { path: ["given_name"] }, { path: ["birth_date"] }]`
+
+#### Scenario: Include purpose in DCQL query
+- **WHEN** purpose is "Verify your identity for signup"
+- **THEN** DCQL query contains `purpose: "Verify your identity for signup"`
 
 #### Scenario: Vidos API returns error
 - **WHEN** Vidos API responds with non-2xx status
-- **THEN** system throws error with descriptive message including status code
-
-### Requirement: Create Authorization Request for DC API Mode
-The system SHALL create authorization requests via Vidos API for dc_api presentation mode.
-
-#### Scenario: Create dc_api request with SD-JWT VC format
-- **WHEN** caller invokes createAuthorizationRequest with mode "dc_api" and format "vc+sd-jwt"
-- **THEN** system sends POST to Vidos API with presentation_definition, response_mode "dc_api", and format "vc+sd-jwt", returns authorization ID and request object
-
-#### Scenario: Create dc_api request with mdoc format
-- **WHEN** caller invokes createAuthorizationRequest with mode "dc_api" and format "mso_mdoc"
-- **THEN** system sends POST to Vidos API with presentation_definition, response_mode "dc_api", and format "mso_mdoc", returns authorization ID and request object
-
-#### Scenario: DC API request includes credential request
-- **WHEN** mode is "dc_api"
-- **THEN** Vidos API response includes request object suitable for Digital Credentials API
+- **THEN** system throws error with descriptive message from error response
 
 ### Requirement: Poll Authorization Status
-The system SHALL poll Vidos API to retrieve authorization status and results.
+The system SHALL poll Vidos API to retrieve authorization status.
 
 #### Scenario: Poll pending authorization
-- **WHEN** caller invokes pollAuthorizationStatus with authorization ID for pending request
-- **THEN** system sends GET to Vidos API and returns status "pending"
+- **WHEN** caller invokes pollAuthorizationStatus with authorization ID
+- **THEN** system sends GET to `/openid4/vp/v1_0/authorizations/{authorizationId}/status`
+- **THEN** system returns mapped status ("created" maps to "pending")
 
-#### Scenario: Poll completed authorization
-- **WHEN** caller invokes pollAuthorizationStatus with authorization ID for completed request
-- **THEN** system sends GET to Vidos API and returns status "completed" with VP token
+#### Scenario: Poll authorized request
+- **WHEN** Vidos returns status "authorized"
+- **THEN** system returns status "authorized"
 
-#### Scenario: Poll failed authorization
-- **WHEN** caller invokes pollAuthorizationStatus with authorization ID for failed request
-- **THEN** system sends GET to Vidos API and returns status "failed" with error message
+#### Scenario: Poll rejected authorization
+- **WHEN** Vidos returns status "rejected"
+- **THEN** system returns status "rejected"
 
 #### Scenario: Poll expired authorization
-- **WHEN** caller invokes pollAuthorizationStatus with authorization ID for expired request
-- **THEN** system sends GET to Vidos API and returns status "expired"
+- **WHEN** Vidos returns status "expired"
+- **THEN** system returns status "expired"
 
-#### Scenario: Include API key in poll request
-- **WHEN** polling authorization status
-- **THEN** system includes VIDOS_API_KEY in Authorization header as Bearer token
-
-#### Scenario: Vidos API returns 404
-- **WHEN** authorization ID not found
-- **THEN** system throws error indicating authorization not found
+#### Scenario: Authorization not found
+- **WHEN** Vidos returns 404
+- **THEN** system throws error "Authorization not found"
 
 ### Requirement: Forward DC API Response
 The system SHALL forward VP token responses from Digital Credentials API to Vidos API.
 
-#### Scenario: Forward successful DC API response
-- **WHEN** caller invokes forwardDCAPIResponse with authorization ID and VP token
-- **THEN** system sends POST to Vidos API with VP token and returns verification result
+#### Scenario: Forward JWT response format
+- **WHEN** caller invokes forwardDCAPIResponse with dcResponse containing `{ response: string }`
+- **THEN** system sends POST to `/openid4/vp/v1_0/{authorizationId}/dc_api.jwt`
+- **THEN** request body contains `{ origin, digitalCredentialGetResponse: { response } }`
+- **THEN** system returns status from response
 
-#### Scenario: Forward failed DC API response
-- **WHEN** caller invokes forwardDCAPIResponse with authorization ID and error
-- **THEN** system sends POST to Vidos API with error details and returns failure status
+#### Scenario: Forward vp_token response format
+- **WHEN** caller invokes forwardDCAPIResponse with dcResponse containing `{ vp_token: object }`
+- **THEN** system sends POST to `/openid4/vp/v1_0/{authorizationId}/dc_api`
+- **THEN** request body contains `{ origin, digitalCredentialGetResponse: { vp_token } }`
+- **THEN** system returns status from response
 
-#### Scenario: Include API key in forward request
-- **WHEN** forwarding DC API response
-- **THEN** system includes VIDOS_API_KEY in Authorization header as Bearer token
+### Requirement: Retrieve Extracted Credentials
+The system SHALL retrieve and validate claims from completed authorizations via Vidos credentials endpoint using a generic schema parameter.
 
-#### Scenario: Vidos API validates VP token
-- **WHEN** forwarding VP token
-- **THEN** Vidos API verifies credential signature and responds with extracted claims or error
+#### Scenario: Get credentials with flow-specific schema
+- **WHEN** caller invokes getExtractedCredentials with authorization ID and Zod schema
+- **THEN** system sends GET to `/openid4/vp/v1_0/authorizations/{authorizationId}/credentials`
+- **THEN** system extracts claims from first credential in response
+- **THEN** system validates claims against provided schema
+- **THEN** system returns typed claims matching schema
 
-### Requirement: Extract Claims from SD-JWT VC
-The system SHALL extract normalized claims from SD-JWT VC format credentials.
+#### Scenario: Keep SD-JWT claim names
+- **WHEN** credential contains family_name, given_name, birthdate, nationalities, place_of_birth
+- **THEN** system returns claims with original SD-JWT names (no camelCase conversion)
+- **THEN** nationalities is array of strings
+- **THEN** place_of_birth is object with optional locality and country fields
 
-#### Scenario: Extract claims from valid SD-JWT VC
-- **WHEN** caller invokes extractClaimsFromResponse with SD-JWT VC response
-- **THEN** system decodes JWT, expands selective disclosures, and returns normalized claims object
+#### Scenario: Flow-specific schemas
+- **WHEN** signup flow requests credentials
+- **THEN** schema requires personal_administrative_number, family_name, given_name
+- **WHEN** signin flow requests credentials
+- **THEN** schema requires only personal_administrative_number
+- **WHEN** loan/payment flow requests credentials
+- **THEN** schema requires personal_administrative_number, family_name, given_name
 
-#### Scenario: Normalize SD-JWT VC field names
-- **WHEN** SD-JWT VC contains family_name, given_name, birth_date
-- **THEN** system returns claims with familyName, givenName, birthDate (camelCase)
+#### Scenario: Schema validation failure
+- **WHEN** claims do not match provided schema requirements
+- **THEN** system throws Zod validation error with details
 
-#### Scenario: Extract optional portrait from SD-JWT VC
-- **WHEN** SD-JWT VC contains portrait field
-- **THEN** system includes portrait in claims object
-
-#### Scenario: SD-JWT VC missing required field
-- **WHEN** SD-JWT VC missing family_name, given_name, or birth_date
-- **THEN** system throws error indicating missing required claim
-
-### Requirement: Extract Claims from mdoc
-The system SHALL extract normalized claims from ISO/IEC 18013-5 mdoc format credentials.
-
-#### Scenario: Extract claims from valid mdoc
-- **WHEN** caller invokes extractClaimsFromResponse with mdoc response
-- **THEN** system decodes CBOR, validates signature, and returns normalized claims object
-
-#### Scenario: Normalize mdoc field names
-- **WHEN** mdoc contains family_name, given_name, birth_date
-- **THEN** system returns claims with familyName, givenName, birthDate (camelCase)
-
-#### Scenario: Extract optional portrait from mdoc
-- **WHEN** mdoc contains portrait field
-- **THEN** system includes portrait in claims object
-
-#### Scenario: mdoc missing required field
-- **WHEN** mdoc missing family_name, given_name, or birth_date
-- **THEN** system throws error indicating missing required claim
-
-### Requirement: Unified Claim Extraction Interface
-The system SHALL provide single extraction function supporting both credential formats.
-
-#### Scenario: Detect credential format
-- **WHEN** Vidos response includes format field "vc+sd-jwt"
-- **THEN** system uses SD-JWT VC extraction logic
-
-#### Scenario: Detect mdoc format
-- **WHEN** Vidos response includes format field "mso_mdoc"
-- **THEN** system uses mdoc extraction logic
-
-#### Scenario: Unknown credential format
-- **WHEN** Vidos response includes unsupported format
-- **THEN** system throws error indicating format not supported
-
-#### Scenario: Return consistent claim structure
-- **WHEN** extracting claims from either format
-- **THEN** system returns object conforming to ExtractedClaims interface with familyName, givenName, birthDate, optional portrait
-
-### Requirement: Error Propagation
-The system SHALL propagate Vidos API errors as exceptions for route handler processing.
-
-#### Scenario: Network error during API call
-- **WHEN** fetch to Vidos API fails with network error
-- **THEN** system throws error with descriptive message
-
-#### Scenario: Invalid JSON response
-- **WHEN** Vidos API returns non-JSON response
-- **THEN** system throws error indicating parse failure
-
-#### Scenario: Route handler catches service error
-- **WHEN** service throws error
-- **THEN** route handler can catch and map to appropriate HTTP status code
+#### Scenario: No credentials found
+- **WHEN** credentials array is empty
+- **THEN** system throws error "No credentials found in authorization"
 
 ### Requirement: Use Environment Configuration
-The system SHALL read Vidos API base URL and API key from validated environment config.
+The system SHALL read Vidos API configuration from validated environment.
 
 #### Scenario: Construct API endpoint URL
 - **WHEN** making Vidos API call
-- **THEN** system uses VIDOS_AUTHORIZER_URL from env to build full endpoint URL
+- **THEN** system uses VIDOS_AUTHORIZER_URL from env as client baseUrl
 
 #### Scenario: Include authorization header
 - **WHEN** making Vidos API call
-- **THEN** system includes "Authorization: Bearer {VIDOS_API_KEY}" header using key from env
-
-#### Scenario: Environment not validated
-- **WHEN** env module not imported before service use
-- **THEN** service access to env properties causes runtime error
+- **THEN** client includes "Authorization: Bearer {VIDOS_API_KEY}" header

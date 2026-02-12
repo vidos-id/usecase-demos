@@ -1,0 +1,74 @@
+import { z } from "zod";
+
+export const presentationModeSchema = z.enum(["direct_post", "dc_api"]);
+export type PresentationMode = z.infer<typeof presentationModeSchema>;
+
+/**
+ * Place of birth as per EUDI PID Rulebook - object with locality and/or country
+ */
+export const placeOfBirthSchema = z.object({
+	locality: z.string().optional(),
+	country: z.string().optional(),
+});
+export type PlaceOfBirth = z.infer<typeof placeOfBirthSchema>;
+
+/**
+ * Base PID claims schema - all optional since presentation may include subset.
+ * Claims are only "required" at issuance, not presentation.
+ */
+export const pidClaimsSchema = z.object({
+	// Identity
+	family_name: z.string().optional(),
+	given_name: z.string().optional(),
+	birthdate: z.string().optional(),
+	email: z.string().optional(),
+	nationalities: z.array(z.string()).optional(),
+	place_of_birth: placeOfBirthSchema.optional(),
+	picture: z.string().optional(),
+	// Identifiers
+	personal_administrative_number: z.string().optional(),
+	document_number: z.string().optional(),
+});
+export type PidClaims = z.infer<typeof pidClaimsSchema>;
+
+// ============================================================================
+// Per-flow schemas - define what each flow requires from the presentation
+// ============================================================================
+
+/**
+ * Sign-up flow: Need identity + identifier for account creation
+ */
+export const signupClaimsSchema = pidClaimsSchema.required({
+	personal_administrative_number: true,
+	family_name: true,
+	given_name: true,
+});
+export type SignupClaims = z.infer<typeof signupClaimsSchema>;
+
+/**
+ * Sign-in flow: Only need identifier to match existing user
+ */
+export const signinClaimsSchema = pidClaimsSchema.required({
+	personal_administrative_number: true,
+});
+export type SigninClaims = z.infer<typeof signinClaimsSchema>;
+
+/**
+ * Loan flow: Need identifier + name for verification
+ */
+export const loanClaimsSchema = pidClaimsSchema.required({
+	personal_administrative_number: true,
+	family_name: true,
+	given_name: true,
+});
+export type LoanClaims = z.infer<typeof loanClaimsSchema>;
+
+/**
+ * Payment flow: Need identifier + name for verification
+ */
+export const paymentClaimsSchema = pidClaimsSchema.required({
+	personal_administrative_number: true,
+	family_name: true,
+	given_name: true,
+});
+export type PaymentClaims = z.infer<typeof paymentClaimsSchema>;

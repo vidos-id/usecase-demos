@@ -80,7 +80,8 @@ The system SHALL define a User type with required and optional fields.
 
 #### Scenario: User type structure
 - **WHEN** user object is created
-- **THEN** it MUST contain id (string), identifier (string), familyName (string), givenName (string), birthDate (string), createdAt (Date), and MAY contain portrait (string)
+- **THEN** it MUST contain id (string), identifier (string - personal_administrative_number), familyName (string), givenName (string), birthDate (string), nationality (string), createdAt (Date)
+- **THEN** it MAY contain documentNumber (string), address (string), portrait (string)
 
 ### Requirement: Session Data Model
 The system SHALL define a Session type with required fields.
