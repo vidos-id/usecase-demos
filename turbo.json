@@ -3,22 +3,12 @@
 	"ui": "tui",
 	"tasks": {
 		"generate-api": {
-			"dependsOn": [
-				"^generate-api"
-			],
-			"inputs": [
-				"**/*.yaml",
-				"**/*.yml",
-				"package.json"
-			],
-			"outputs": [
-				"src/generated/**"
-			]
+			"dependsOn": ["^generate-api"],
+			"inputs": ["**/*.yaml", "**/*.yml", "package.json"],
+			"outputs": ["src/generated/**"]
 		},
 		"build": {
-			"dependsOn": [
-				"^check-types"
-			],
+			"dependsOn": ["^check-types"],
 			"inputs": [
 				"src/**/*.ts",
 				"src/**/*.tsx",
@@ -32,20 +22,11 @@
 				"bun.lock",
 				"index.html"
 			],
-			"outputs": [
-				"dist/**",
-				"build/**",
-				".turbo/**"
-			],
-			"env": [
-				"NODE_ENV",
-				"VITE_*"
-			]
+			"outputs": ["dist/**", "build/**", ".turbo/**"],
+			"env": ["NODE_ENV", "VITE_*"]
 		},
 		"check-types": {
-			"dependsOn": [
-				"^check-types"
-			],
+			"dependsOn": ["^check-types"],
 			"inputs": [
 				"src/**/*.ts",
 				"src/**/*.tsx",
@@ -59,11 +40,7 @@
 		"dev": {
 			"cache": false,
 			"persistent": true,
-			"env": [
-				"NODE_ENV",
-				"PORT",
-				"VITE_*"
-			]
+			"env": ["NODE_ENV", "PORT", "VITE_*"]
 		},
 		"lint": {
 			"inputs": [
@@ -78,9 +55,7 @@
 			"outputs": []
 		},
 		"test": {
-			"dependsOn": [
-				"^check-types"
-			],
+			"dependsOn": ["^check-types"],
 			"inputs": [
 				"src/**/*.ts",
 				"src/**/*.tsx",
@@ -95,13 +70,8 @@
 				"tsconfig.json",
 				"tsconfig.*.json"
 			],
-			"outputs": [
-				"coverage/**"
-			],
-			"env": [
-				"NODE_ENV",
-				"CI"
-			]
+			"outputs": ["coverage/**"],
+			"env": ["NODE_ENV", "CI"]
 		}
 	},
 	"globalDependencies": [
@@ -113,8 +83,5 @@
 		"bun.lock",
 		"tsconfig.json"
 	],
-	"globalEnv": [
-		"NODE_ENV",
-		"CI"
-	]
+	"globalEnv": ["NODE_ENV", "CI"]
 }

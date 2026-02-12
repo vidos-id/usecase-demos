@@ -4,6 +4,7 @@ import { cors } from "hono/cors";
 import { sessionResponseSchema } from "shared/api/session";
 import { userProfileResponseSchema } from "shared/api/users-me";
 import { helloRouter } from "./routes/hello";
+import { loanRouter } from "./routes/loan";
 import { otherRouter } from "./routes/other";
 import { paymentRouter } from "./routes/payment";
 import { signinRouter } from "./routes/signin";
@@ -22,6 +23,7 @@ export const app = new Hono()
 	.route("/api/signup", signupRouter)
 	.route("/api/signin", signinRouter)
 	.route("/api/payment", paymentRouter)
+	.route("/api/loan", loanRouter)
 	.get("/api/session", (c) => {
 		const authHeader = c.req.header("Authorization");
 		if (!authHeader?.startsWith("Bearer ")) {
