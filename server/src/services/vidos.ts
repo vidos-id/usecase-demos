@@ -105,6 +105,8 @@ export async function createAuthorizationRequest(
 	const { mode, requestedClaims, purpose } = params;
 	const client = getAuthorizerClient();
 
+	console.log("[Vidos] createAuthorizationRequest", { mode, requestedClaims });
+
 	// Build DCQL query with proper SD-JWT paths and meta
 	const dcqlQuery = buildPIDDCQLQuery(requestedClaims, purpose);
 
@@ -123,6 +125,7 @@ export async function createAuthorizationRequest(
 		);
 
 		if (error) {
+			console.error("[Vidos] createAuthorizationRequest error:", error);
 			throw new Error(`Vidos API error: ${error.message}`);
 		}
 
@@ -130,6 +133,10 @@ export async function createAuthorizationRequest(
 			throw new Error("Vidos API returned unexpected response format");
 		}
 
+		console.log(
+			"[Vidos] createAuthorizationRequest success:",
+			data.authorizationId,
+		);
 		return {
 			mode: "direct_post",
 			authorizationId: data.authorizationId,
@@ -150,13 +157,19 @@ export async function createAuthorizationRequest(
 	});
 
 	if (error) {
+		console.error("[Vidos] createAuthorizationRequest error:", error);
 		throw new Error(`Vidos API error: ${error.message}`);
 	}
 
 	if (!data || !("digitalCredentialGetRequest" in data)) {
+		console.error("[Vidos] unexpected response format:", data);
 		throw new Error("Vidos API returned unexpected response format");
 	}
 
+	console.log(
+		"[Vidos] createAuthorizationRequest success:",
+		data.authorizationId,
+	);
 	return {
 		mode: "dc_api",
 		authorizationId: data.authorizationId,
@@ -182,6 +195,7 @@ export async function pollAuthorizationStatus(
 	);
 
 	if (error) {
+		console.error("[Vidos] pollAuthorizationStatus error:", error);
 		if ("message" in error && error.message.includes("404")) {
 			throw new Error("Authorization not found");
 		}
@@ -199,6 +213,12 @@ export async function pollAuthorizationStatus(
 			? "pending"
 			: (data.status as AuthorizationStatus);
 
+	console.log(
+		"[Vidos] pollAuthorizationStatus:",
+		authorizationId,
+		"->",
+		mappedStatus,
+	);
 	return {
 		status: mappedStatus,
 	};
@@ -213,6 +233,8 @@ export async function forwardDCAPIResponse(
 ): Promise<ForwardDCAPIResult> {
 	const { authorizationId, origin, dcResponse } = params;
 	const client = getAuthorizerClient();
+
+	console.log("[Vidos] forwardDCAPIResponse:", authorizationId);
 
 	// Determine which endpoint to use based on response format
 	if ("response" in dcResponse) {
@@ -229,6 +251,7 @@ export async function forwardDCAPIResponse(
 		);
 
 		if (error) {
+			console.error("[Vidos] forwardDCAPIResponse error:", error);
 			throw new Error(`Vidos API error: ${error.message}`);
 		}
 
@@ -236,6 +259,7 @@ export async function forwardDCAPIResponse(
 			throw new Error("Vidos API returned empty response");
 		}
 
+		console.log("[Vidos] forwardDCAPIResponse result:", data.status);
 		return { status: data.status };
 	}
 
@@ -259,6 +283,7 @@ export async function forwardDCAPIResponse(
 	);
 
 	if (error) {
+		console.error("[Vidos] forwardDCAPIResponse error:", error);
 		throw new Error(`Vidos API error: ${error.message}`);
 	}
 
@@ -266,6 +291,7 @@ export async function forwardDCAPIResponse(
 		throw new Error("Vidos API returned empty response");
 	}
 
+	console.log("[Vidos] forwardDCAPIResponse result:", data.status);
 	return { status: data.status };
 }
 
@@ -279,6 +305,8 @@ export async function getExtractedCredentials<T extends z.ZodTypeAny>(
 ): Promise<z.infer<T>> {
 	const client = getAuthorizerClient();
 
+	console.log("[Vidos] getExtractedCredentials:", authorizationId);
+
 	const { data, error } = await client.GET(
 		"/openid4/vp/v1_0/authorizations/{authorizationId}/credentials",
 		{
@@ -287,6 +315,7 @@ export async function getExtractedCredentials<T extends z.ZodTypeAny>(
 	);
 
 	if (error) {
+		console.error("[Vidos] getExtractedCredentials error:", error);
 		if ("message" in error && error.message.includes("404")) {
 			throw new Error("Authorization not found");
 		}
@@ -298,6 +327,7 @@ export async function getExtractedCredentials<T extends z.ZodTypeAny>(
 	}
 
 	if (!data.credentials || data.credentials.length === 0) {
+		console.error("[Vidos] no credentials in response:", data);
 		throw new Error("No credentials found in authorization");
 	}
 
@@ -307,6 +337,7 @@ export async function getExtractedCredentials<T extends z.ZodTypeAny>(
 	}
 
 	const claims = credential.claims as Record<string, unknown>;
+	console.log("[Vidos] extracted claims:", Object.keys(claims));
 
 	return schema.parse(claims);
 }

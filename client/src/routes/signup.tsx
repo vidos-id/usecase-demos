@@ -52,12 +52,17 @@ function SignupPage() {
 
 	const startSignup = async () => {
 		setState({ status: "requesting" });
+		console.log("[Signup] starting request, mode:", mode);
 
 		try {
 			const res = await client.api.signup.request.$post({ json: { mode } });
-			if (!res.ok) throw new Error("Failed to create signup request");
+			if (!res.ok) {
+				console.error("[Signup] request failed:", res.status, await res.text());
+				throw new Error("Failed to create signup request");
+			}
 
 			const data = await res.json();
+			console.log("[Signup] request created:", data.requestId);
 			setState({
 				status: "awaiting_verification",
 				requestId: data.requestId,
@@ -66,6 +71,7 @@ function SignupPage() {
 				dcApiRequest: data.mode === "dc_api" ? data.dcApiRequest : undefined,
 			});
 		} catch (err) {
+			console.error("[Signup] error:", err);
 			setState({
 				status: "error",
 				message: err instanceof Error ? err.message : "Unknown error",
@@ -90,11 +96,16 @@ function SignupPage() {
 					param: { requestId: state.requestId },
 				});
 
-				if (!res.ok) throw new Error("Polling failed");
+				if (!res.ok) {
+					console.error("[Signup] poll failed:", res.status, await res.text());
+					throw new Error("Polling failed");
+				}
 
 				const data = await res.json();
+				console.log("[Signup] poll status:", data.status);
 
 				if (data.status === "authorized" && data.sessionId) {
+					console.log("[Signup] authorized!");
 					setSessionId(data.sessionId);
 					setStoredMode(data.mode || mode);
 					setState({ status: "success" });
@@ -107,12 +118,14 @@ function SignupPage() {
 					data.status === "error" ||
 					data.status === "expired"
 				) {
+					console.error("[Signup] verification failed:", data.status);
 					setState({ status: "error", message: `Verification ${data.status}` });
 					return;
 				}
 
 				// Check timeout
 				if (Date.now() - startTime > timeout) {
+					console.error("[Signup] timed out");
 					setState({ status: "error", message: "Verification timed out" });
 					return;
 				}
@@ -121,6 +134,7 @@ function SignupPage() {
 				interval = Math.min(interval * 1.5, maxInterval);
 				timeoutId = setTimeout(poll, interval);
 			} catch (err) {
+				console.error("[Signup] poll error:", err);
 				setState({
 					status: "error",
 					message: err instanceof Error ? err.message : "Polling failed",
@@ -137,20 +151,30 @@ function SignupPage() {
 		if (state.status !== "awaiting_verification") return;
 
 		setState({ status: "completing" });
+		console.log("[Signup] completing DC API flow");
 		try {
 			const res = await client.api.signup.complete[":requestId"].$post({
 				param: { requestId: state.requestId },
 				json: { origin: window.location.origin, dcResponse: response },
 			});
 
-			if (!res.ok) throw new Error("Completion failed");
+			if (!res.ok) {
+				console.error(
+					"[Signup] complete failed:",
+					res.status,
+					await res.text(),
+				);
+				throw new Error("Completion failed");
+			}
 
 			const data = await res.json();
+			console.log("[Signup] DC API complete success!");
 			setSessionId(data.sessionId);
 			setStoredMode(data.mode);
 			setState({ status: "success" });
 			navigate({ to: "/profile" });
 		} catch (err) {
+			console.error("[Signup] complete error:", err);
 			setState({
 				status: "error",
 				message: err instanceof Error ? err.message : "Completion failed",

@@ -52,11 +52,13 @@ function SigninPage() {
 
 	const startSignin = async () => {
 		setState({ status: "requesting" });
+		console.log("[Signin] starting request, mode:", mode);
 
 		try {
 			const res = await client.api.signin.request.$post({ json: { mode } });
 
 			if (res.status === 404) {
+				console.log("[Signin] no account found");
 				setState({
 					status: "error",
 					message: "No account found with this identity.",
@@ -65,9 +67,13 @@ function SigninPage() {
 				return;
 			}
 
-			if (!res.ok) throw new Error("Failed to create signin request");
+			if (!res.ok) {
+				console.error("[Signin] request failed:", res.status, await res.text());
+				throw new Error("Failed to create signin request");
+			}
 
 			const data = await res.json();
+			console.log("[Signin] request created:", data.requestId);
 			setState({
 				status: "awaiting_verification",
 				requestId: data.requestId,
@@ -76,6 +82,7 @@ function SigninPage() {
 				dcApiRequest: data.mode === "dc_api" ? data.dcApiRequest : undefined,
 			});
 		} catch (err) {
+			console.error("[Signin] error:", err);
 			setState({
 				status: "error",
 				message: err instanceof Error ? err.message : "Unknown error",
@@ -100,11 +107,16 @@ function SigninPage() {
 					param: { requestId: state.requestId },
 				});
 
-				if (!res.ok) throw new Error("Polling failed");
+				if (!res.ok) {
+					console.error("[Signin] poll failed:", res.status, await res.text());
+					throw new Error("Polling failed");
+				}
 
 				const data = await res.json();
+				console.log("[Signin] poll status:", data.status);
 
 				if (data.status === "authorized" && data.sessionId) {
+					console.log("[Signin] authorized!");
 					setSessionId(data.sessionId);
 					setStoredMode(data.mode || mode);
 					setState({ status: "success" });
@@ -117,12 +129,14 @@ function SigninPage() {
 					data.status === "error" ||
 					data.status === "expired"
 				) {
+					console.error("[Signin] verification failed:", data.status);
 					setState({ status: "error", message: `Verification ${data.status}` });
 					return;
 				}
 
 				// Check timeout
 				if (Date.now() - startTime > timeout) {
+					console.error("[Signin] timed out");
 					setState({ status: "error", message: "Verification timed out" });
 					return;
 				}
@@ -131,6 +145,7 @@ function SigninPage() {
 				interval = Math.min(interval * 1.5, maxInterval);
 				timeoutId = setTimeout(poll, interval);
 			} catch (err) {
+				console.error("[Signin] poll error:", err);
 				setState({
 					status: "error",
 					message: err instanceof Error ? err.message : "Polling failed",
@@ -147,6 +162,7 @@ function SigninPage() {
 		if (state.status !== "awaiting_verification") return;
 
 		setState({ status: "completing" });
+		console.log("[Signin] completing DC API flow");
 		try {
 			const res = await client.api.signin.complete[":requestId"].$post({
 				param: { requestId: state.requestId },
@@ -154,6 +170,7 @@ function SigninPage() {
 			});
 
 			if (res.status === 404) {
+				console.log("[Signin] no account found on complete");
 				setState({
 					status: "error",
 					message: "No account found with this identity.",
@@ -162,14 +179,23 @@ function SigninPage() {
 				return;
 			}
 
-			if (!res.ok) throw new Error("Completion failed");
+			if (!res.ok) {
+				console.error(
+					"[Signin] complete failed:",
+					res.status,
+					await res.text(),
+				);
+				throw new Error("Completion failed");
+			}
 
 			const data = await res.json();
+			console.log("[Signin] DC API complete success!");
 			setSessionId(data.sessionId);
 			setStoredMode(data.mode);
 			setState({ status: "success" });
 			navigate({ to: "/dashboard" });
 		} catch (err) {
+			console.error("[Signin] complete error:", err);
 			setState({
 				status: "error",
 				message: err instanceof Error ? err.message : "Completion failed",
