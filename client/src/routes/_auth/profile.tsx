@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouteContext } from "@tanstack/react-router";
 import {
 	ArrowLeft,
 	Calendar,
@@ -9,13 +9,9 @@ import {
 	ShieldCheck,
 	User,
 } from "lucide-react";
-import { hcWithType } from "server/client";
 import { getImageDataUrl } from "shared/lib/image";
 import { Button } from "@/components/ui/button";
 import { getSessionId } from "@/lib/auth";
-
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
-const client = hcWithType(SERVER_URL);
 
 export const Route = createFileRoute("/_auth/profile")({
 	component: ProfilePage,
@@ -23,11 +19,12 @@ export const Route = createFileRoute("/_auth/profile")({
 
 function ProfilePage() {
 	const sessionId = getSessionId();
+	const { apiClient } = useRouteContext({ from: "__root__" });
 
 	const { data: user, isLoading } = useQuery({
 		queryKey: ["user", "me"],
 		queryFn: async () => {
-			const res = await client.api.users.me.$get(
+			const res = await apiClient.api.users.me.$get(
 				{},
 				{
 					headers: { Authorization: `Bearer ${sessionId}` },

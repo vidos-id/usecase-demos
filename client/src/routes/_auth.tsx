@@ -1,18 +1,15 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { hcWithType } from "server/client";
 import { getSessionId } from "@/lib/auth";
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
-const client = hcWithType(SERVER_URL);
-
 export const Route = createFileRoute("/_auth")({
-	beforeLoad: async () => {
+	beforeLoad: async ({ context }) => {
+		const { apiClient } = context;
 		const sessionId = getSessionId();
 		if (!sessionId) {
 			throw redirect({ to: "/" });
 		}
 
-		const res = await client.api.session.$get(
+		const res = await apiClient.api.session.$get(
 			{},
 			{
 				headers: { Authorization: `Bearer ${sessionId}` },

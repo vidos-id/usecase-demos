@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouteContext } from "@tanstack/react-router";
 import {
 	ChevronDown,
 	LogOut,
@@ -8,7 +8,6 @@ import {
 	User,
 } from "lucide-react";
 import { useState } from "react";
-import { hcWithType } from "server/client";
 import { getImageDataUrl } from "shared/lib/image";
 import { toast } from "sonner";
 import { ResetConfirmation } from "@/components/dialogs/reset-confirmation";
@@ -22,12 +21,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { clearSession, getSessionId } from "@/lib/auth";
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
-const client = hcWithType(SERVER_URL);
-
 export function AccountMenu() {
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
+	const { apiClient } = useRouteContext({ from: "__root__" });
 	const [menuOpen, setMenuOpen] = useState(false);
 	const [resetDialogOpen, setResetDialogOpen] = useState(false);
 	const sessionId = getSessionId();
@@ -35,7 +32,7 @@ export function AccountMenu() {
 	const { data: user } = useQuery({
 		queryKey: ["user", "me"],
 		queryFn: async () => {
-			const res = await client.api.users.me.$get(
+			const res = await apiClient.api.users.me.$get(
 				{},
 				{
 					headers: { Authorization: `Bearer ${sessionId}` },
@@ -49,7 +46,7 @@ export function AccountMenu() {
 
 	const handleSignOut = async () => {
 		try {
-			await client.api.session.$delete(
+			await apiClient.api.session.$delete(
 				{},
 				{
 					headers: { Authorization: `Bearer ${sessionId}` },
@@ -70,7 +67,7 @@ export function AccountMenu() {
 
 	const handleResetConfirm = async () => {
 		try {
-			const res = await client.api.admin.reset.$delete({});
+			const res = await apiClient.api.admin.reset.$delete({});
 			if (res.ok) {
 				const data = await res.json();
 				toast.success(data.message);

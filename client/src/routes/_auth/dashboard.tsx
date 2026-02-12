@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouteContext } from "@tanstack/react-router";
 import {
 	ArrowDownLeft,
 	ArrowUpRight,
@@ -11,14 +11,10 @@ import {
 	User,
 } from "lucide-react";
 import { useState } from "react";
-import { hcWithType } from "server/client";
 import type { ActivityItem } from "shared/api/users-me";
 import { Button } from "@/components/ui/button";
 import { getSessionId } from "@/lib/auth";
 import { cn } from "@/lib/utils";
-
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
-const client = hcWithType(SERVER_URL);
 
 export const Route = createFileRoute("/_auth/dashboard")({
 	component: DashboardPage,
@@ -28,12 +24,13 @@ type ActivityFilter = "all" | "payment" | "loan";
 
 function DashboardPage() {
 	const sessionId = getSessionId();
+	const { apiClient } = useRouteContext({ from: "__root__" });
 	const [filter, setFilter] = useState<ActivityFilter>("all");
 
 	const { data: user } = useQuery({
 		queryKey: ["user", "me"],
 		queryFn: async () => {
-			const res = await client.api.users.me.$get(
+			const res = await apiClient.api.users.me.$get(
 				{},
 				{
 					headers: { Authorization: `Bearer ${sessionId}` },

@@ -15,6 +15,7 @@
 		"build": "turbo build",
 		"dev:client": "turbo dev --filter=client",
 		"dev:server": "turbo dev --filter=server",
+		"build:client": "turbo build --filter=client",
 		"lint": "biome lint .",
 		"format": "biome format . --write",
 		"check-types": "turbo check-types",

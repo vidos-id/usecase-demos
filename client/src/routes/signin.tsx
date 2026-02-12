@@ -1,7 +1,11 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	Link,
+	useNavigate,
+	useRouteContext,
+} from "@tanstack/react-router";
 import { AlertCircle, Loader2, UserSearch } from "lucide-react";
 import { useEffect, useState } from "react";
-import { hcWithType } from "server/client";
 import type { PresentationMode } from "shared/types/auth";
 import { CredentialDisclosure } from "@/components/auth/credential-disclosure";
 import { DCApiHandler } from "@/components/auth/dc-api-handler";
@@ -13,9 +17,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { setSessionId } from "@/lib/auth";
 import { getStoredMode, setStoredMode } from "@/lib/auth-helpers";
-
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
-const client = hcWithType(SERVER_URL);
 
 export const Route = createFileRoute("/signin")({
 	component: SigninPage,
@@ -38,6 +39,7 @@ type AuthState =
 
 function SigninPage() {
 	const navigate = useNavigate();
+	const { apiClient } = useRouteContext({ from: "__root__" });
 	const [mode, setMode] = useState<PresentationMode>(getStoredMode);
 	const [state, setState] = useState<AuthState>({ status: "idle" });
 	const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -52,7 +54,7 @@ function SigninPage() {
 		console.log("[Signin] starting request, mode:", mode);
 
 		try {
-			const res = await client.api.signin.request.$post({ json: { mode } });
+			const res = await apiClient.api.signin.request.$post({ json: { mode } });
 
 			if (res.status === 404) {
 				console.log("[Signin] no account found");
@@ -102,7 +104,7 @@ function SigninPage() {
 
 		const poll = async () => {
 			try {
-				const res = await client.api.signin.status[":requestId"].$get({
+				const res = await apiClient.api.signin.status[":requestId"].$get({
 					param: { requestId: state.requestId },
 				});
 
@@ -178,7 +180,7 @@ function SigninPage() {
 		setState({ status: "completing" });
 		console.log("[Signin] completing DC API flow");
 		try {
-			const res = await client.api.signin.complete[":requestId"].$post({
+			const res = await apiClient.api.signin.complete[":requestId"].$post({
 				param: { requestId: state.requestId },
 				json: { origin: window.location.origin, dcResponse: response },
 			});

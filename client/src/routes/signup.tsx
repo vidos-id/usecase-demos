@@ -1,7 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouteContext } from "@tanstack/react-router";
 import { AlertCircle, CheckCircle2, Loader2, UserX } from "lucide-react";
 import { useEffect, useState } from "react";
-import { hcWithType } from "server/client";
 import type { PresentationMode } from "shared/types/auth";
 import { CredentialDisclosure } from "@/components/auth/credential-disclosure";
 import { DCApiHandler } from "@/components/auth/dc-api-handler";
@@ -12,9 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { getStoredMode, setStoredMode } from "@/lib/auth-helpers";
-
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
-const client = hcWithType(SERVER_URL);
 
 export const Route = createFileRoute("/signup")({
 	component: SignupPage,
@@ -36,6 +32,7 @@ type AuthState =
 	| { status: "error"; message: string };
 
 function SignupPage() {
+	const { apiClient } = useRouteContext({ from: "__root__" });
 	const [mode, setMode] = useState<PresentationMode>(getStoredMode);
 	const [state, setState] = useState<AuthState>({ status: "idle" });
 	const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -50,7 +47,7 @@ function SignupPage() {
 		console.log("[Signup] starting request, mode:", mode);
 
 		try {
-			const res = await client.api.signup.request.$post({ json: { mode } });
+			const res = await apiClient.api.signup.request.$post({ json: { mode } });
 			if (!res.ok) {
 				console.error("[Signup] request failed:", res.status, await res.text());
 				throw new Error("Failed to create signup request");
@@ -89,7 +86,7 @@ function SignupPage() {
 
 		const poll = async () => {
 			try {
-				const res = await client.api.signup.status[":requestId"].$get({
+				const res = await apiClient.api.signup.status[":requestId"].$get({
 					param: { requestId: state.requestId },
 				});
 
@@ -158,7 +155,7 @@ function SignupPage() {
 		setState({ status: "completing" });
 		console.log("[Signup] completing DC API flow");
 		try {
-			const res = await client.api.signup.complete[":requestId"].$post({
+			const res = await apiClient.api.signup.complete[":requestId"].$post({
 				param: { requestId: state.requestId },
 				json: { origin: window.location.origin, dcResponse: response },
 			});

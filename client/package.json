@@ -27,7 +27,8 @@
 		"shared": "workspace:*",
 		"sonner": "^2.0.7",
 		"tailwind-merge": "^3.4.0",
-		"tailwindcss": "^4.1.18"
+		"tailwindcss": "^4.1.18",
+		"zod": "^4.3.6"
 	},
 	"devDependencies": {
 		"@tanstack/router-plugin": "^1.159.5",

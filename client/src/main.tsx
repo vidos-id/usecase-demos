@@ -3,6 +3,7 @@ import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
 import { Toaster } from "@/components/ui/sonner";
+import { apiClient } from "@/lib/api-client";
 import "./index.css";
 
 const queryClient = new QueryClient();
@@ -11,7 +12,12 @@ const queryClient = new QueryClient();
 import { routeTree } from "./routeTree.gen";
 
 // Create a new router instance
-const router = createRouter({ routeTree });
+const router = createRouter({
+	routeTree,
+	context: {
+		apiClient,
+	},
+});
 
 // Register the router instance for type safety
 declare module "@tanstack/react-router" {

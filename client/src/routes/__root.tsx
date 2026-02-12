@@ -1,6 +1,7 @@
-import { createRootRoute, Outlet } from "@tanstack/react-router";
+import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { createContext, useContext, useState } from "react";
+import type { Client } from "server/client";
 import { Header } from "@/components/layout/header";
 import { ProgressIndicator } from "@/components/ui/progress-indicator";
 
@@ -19,7 +20,11 @@ export const useProgress = () => {
 	return context;
 };
 
-export const Route = createRootRoute({
+export interface RouterContext {
+	apiClient: Client;
+}
+
+export const Route = createRootRouteWithContext<RouterContext>()({
 	component: RootLayout,
 });
 

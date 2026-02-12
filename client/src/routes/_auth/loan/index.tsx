@@ -1,5 +1,10 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	Link,
+	useNavigate,
+	useRouteContext,
+} from "@tanstack/react-router";
 import {
 	AlertCircle,
 	ArrowLeft,
@@ -15,7 +20,6 @@ import {
 	ShieldCheck,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { hcWithType } from "server/client";
 import { LOAN_AMOUNTS, LOAN_PURPOSES, LOAN_TERMS } from "shared/api/loan";
 import { CredentialDisclosure } from "@/components/auth/credential-disclosure";
 import { DCApiHandler } from "@/components/auth/dc-api-handler";
@@ -33,9 +37,6 @@ const PURPOSE_ICONS: Record<string, React.ElementType> = {
 	Education: GraduationCap,
 	Other: Briefcase,
 };
-
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
-const client = hcWithType(SERVER_URL);
 
 export const Route = createFileRoute("/_auth/loan/")({
 	component: LoanPage,
@@ -74,6 +75,7 @@ function calculateMonthlyPayment(
 function LoanPage() {
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
+	const { apiClient } = useRouteContext({ from: "__root__" });
 	const [amount, setAmount] = useState<string>("");
 	const [purpose, setPurpose] = useState<string>("");
 	const [term, setTerm] = useState<string>("");
@@ -106,7 +108,7 @@ function LoanPage() {
 		setState({ status: "requesting" });
 
 		try {
-			const res = await client.api.loan.request.$post(
+			const res = await apiClient.api.loan.request.$post(
 				{
 					json: {
 						amount: amount as "5000" | "10000" | "25000" | "50000",
@@ -155,7 +157,7 @@ function LoanPage() {
 
 		const poll = async () => {
 			try {
-				const res = await client.api.loan.status[":requestId"].$get(
+				const res = await apiClient.api.loan.status[":requestId"].$get(
 					{
 						param: { requestId: state.requestId },
 					},
@@ -207,7 +209,7 @@ function LoanPage() {
 		if (state.status !== "verifying") return;
 
 		try {
-			const res = await client.api.loan.complete[":requestId"].$post(
+			const res = await apiClient.api.loan.complete[":requestId"].$post(
 				{
 					param: { requestId: state.requestId },
 					json: { origin: window.location.origin, dcResponse: response },

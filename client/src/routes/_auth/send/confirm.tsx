@@ -1,5 +1,10 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	Link,
+	useNavigate,
+	useRouteContext,
+} from "@tanstack/react-router";
 import {
 	AlertCircle,
 	ArrowLeft,
@@ -9,7 +14,6 @@ import {
 	ShieldCheck,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { hcWithType } from "server/client";
 
 import { CredentialDisclosure } from "@/components/auth/credential-disclosure";
 import { DCApiHandler } from "@/components/auth/dc-api-handler";
@@ -19,9 +23,6 @@ import { Button } from "@/components/ui/button";
 import { getSessionId } from "@/lib/auth";
 import { getStoredMode } from "@/lib/auth-helpers";
 import { cn } from "@/lib/utils";
-
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
-const client = hcWithType(SERVER_URL);
 
 interface ConfirmSearchParams {
 	recipient: string;
@@ -67,6 +68,7 @@ type PaymentState =
 function PaymentConfirmPage() {
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
+	const { apiClient } = useRouteContext({ from: "__root__" });
 	const search = Route.useSearch();
 	const [state, setState] = useState<PaymentState>({ status: "idle" });
 	const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -91,7 +93,7 @@ function PaymentConfirmPage() {
 				const sessionId = getSessionId();
 				if (!sessionId) throw new Error("Not authenticated");
 
-				const res = await client.api.payment.status[":requestId"].$get(
+				const res = await apiClient.api.payment.status[":requestId"].$get(
 					{ param: { requestId: state.requestId } },
 					{ headers: { Authorization: `Bearer ${sessionId}` } },
 				);
@@ -161,7 +163,7 @@ function PaymentConfirmPage() {
 			const sessionId = getSessionId();
 			if (!sessionId) throw new Error("Not authenticated");
 
-			const res = await client.api.payment.request.$post(
+			const res = await apiClient.api.payment.request.$post(
 				{
 					json: {
 						recipient: search.recipient,
@@ -200,7 +202,7 @@ function PaymentConfirmPage() {
 			const sessionId = getSessionId();
 			if (!sessionId) throw new Error("Not authenticated");
 
-			const res = await client.api.payment.complete[":requestId"].$post(
+			const res = await apiClient.api.payment.complete[":requestId"].$post(
 				{
 					param: { requestId: state.requestId },
 					json: { origin: window.location.origin, dcResponse: response },
