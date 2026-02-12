@@ -74,10 +74,15 @@ export function ProgressIndicator() {
 					<ol className="relative flex flex-col gap-8">
 						{steps.map((step) => {
 							const stepIndex = getStepIndex(step.id);
-							const isCompleted = stepIndex < currentStepIndex;
-							const isCurrent = step.id === currentStep;
+							// Auth step shows as completed when authenticated
+							const isAuthStepCompleted =
+								step.id === "authenticate" && isAuthenticated;
+							const isCompleted =
+								stepIndex < currentStepIndex || isAuthStepCompleted;
+							const isCurrent = step.id === currentStep && !isAuthStepCompleted;
 							const isUpcoming =
-								stepIndex > currentStepIndex || currentStep === null;
+								(stepIndex > currentStepIndex || currentStep === null) &&
+								!isAuthStepCompleted;
 
 							return (
 								<li key={step.id} className="flex items-center gap-3">
@@ -86,7 +91,7 @@ export function ProgressIndicator() {
 										className={cn(
 											"relative z-10 flex h-6 w-6 items-center justify-center rounded-full border-2 transition-all duration-300",
 											isCompleted &&
-												"border-primary/70 bg-primary/70 text-primary-foreground",
+												"border-primary bg-primary text-primary-foreground",
 											isCurrent &&
 												"border-primary bg-background ring-4 ring-primary/20",
 											isUpcoming && "border-muted-foreground/30 bg-background",
@@ -112,7 +117,7 @@ export function ProgressIndicator() {
 											className={cn(
 												"text-xs font-semibold tracking-wide uppercase",
 												isCurrent && "text-primary",
-												isCompleted && "text-primary/70",
+												isCompleted && "text-primary",
 												isUpcoming && "text-muted-foreground",
 											)}
 										>
@@ -141,10 +146,16 @@ export function ProgressIndicator() {
 						<ol className="flex items-center justify-between">
 							{steps.map((step, index) => {
 								const stepIndex = getStepIndex(step.id);
-								const isCompleted = stepIndex < currentStepIndex;
-								const isCurrent = step.id === currentStep;
+								// Auth step shows as completed when authenticated
+								const isAuthStepCompleted =
+									step.id === "authenticate" && isAuthenticated;
+								const isCompleted =
+									stepIndex < currentStepIndex || isAuthStepCompleted;
+								const isCurrent =
+									step.id === currentStep && !isAuthStepCompleted;
 								const isUpcoming =
-									stepIndex > currentStepIndex || currentStep === null;
+									(stepIndex > currentStepIndex || currentStep === null) &&
+									!isAuthStepCompleted;
 
 								return (
 									<li key={step.id} className="flex items-center flex-1">
@@ -153,7 +164,7 @@ export function ProgressIndicator() {
 											<div
 												className={cn(
 													"h-2 w-2 rounded-full transition-all duration-300",
-													isCompleted && "bg-primary/70",
+													isCompleted && "bg-primary",
 													isCurrent && "bg-primary ring-2 ring-primary/30",
 													isUpcoming && "bg-muted-foreground/30",
 												)}
@@ -163,7 +174,7 @@ export function ProgressIndicator() {
 												className={cn(
 													"text-[9px] font-medium uppercase tracking-wider",
 													isCurrent && "text-primary",
-													isCompleted && "text-primary/70",
+													isCompleted && "text-primary",
 													isUpcoming && "text-muted-foreground/50",
 												)}
 											>
