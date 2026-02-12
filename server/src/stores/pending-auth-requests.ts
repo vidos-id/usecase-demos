@@ -3,6 +3,8 @@ import type { PendingAuthRequest } from "../types/pending-auth-request";
 
 const pendingAuthRequests = new Map<string, PendingAuthRequest>();
 
+const REQUEST_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
 export const createPendingRequest = (
 	data: Omit<PendingAuthRequest, "id" | "status" | "createdAt">,
 ): PendingAuthRequest => {
@@ -19,7 +21,16 @@ export const createPendingRequest = (
 export const getPendingRequestById = (
 	id: string,
 ): PendingAuthRequest | undefined => {
-	return pendingAuthRequests.get(id);
+	const request = pendingAuthRequests.get(id);
+	if (!request) {
+		return undefined;
+	}
+	// Check if expired
+	if (Date.now() - request.createdAt.getTime() > REQUEST_TTL_MS) {
+		pendingAuthRequests.delete(id);
+		return undefined;
+	}
+	return request;
 };
 
 export const getPendingRequestByAuthId = (
@@ -27,6 +38,11 @@ export const getPendingRequestByAuthId = (
 ): PendingAuthRequest | undefined => {
 	for (const request of pendingAuthRequests.values()) {
 		if (request.vidosAuthorizationId === vidosAuthorizationId) {
+			// Check if expired
+			if (Date.now() - request.createdAt.getTime() > REQUEST_TTL_MS) {
+				pendingAuthRequests.delete(request.id);
+				return undefined;
+			}
 			return request;
 		}
 	}

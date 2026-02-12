@@ -3,6 +3,8 @@ import { compress } from "hono/compress";
 import { cors } from "hono/cors";
 import { helloRouter } from "./routes/hello";
 import { otherRouter } from "./routes/other";
+import { signinRouter } from "./routes/signin";
+import { signupRouter } from "./routes/signup";
 
 export const app = new Hono()
 	.use(cors())
@@ -11,6 +13,8 @@ export const app = new Hono()
 		return c.text("Hello Hono!");
 	})
 	.route("/hello", helloRouter)
-	.route("/other", otherRouter);
+	.route("/other", otherRouter)
+	.route("/api/signup", signupRouter)
+	.route("/api/signin", signinRouter);
 
 export default app;

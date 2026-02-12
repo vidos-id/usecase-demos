@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+export const presentationModeSchema = z.enum(["direct_post", "dc_api"]);
+export type PresentationMode = z.infer<typeof presentationModeSchema>;
+
 export const ExtractedClaimsSchema = z.object({
 	familyName: z.string(),
 	givenName: z.string(),
