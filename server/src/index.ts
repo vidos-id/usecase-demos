@@ -83,6 +83,7 @@ export const app = new Hono()
 			givenName: user.givenName,
 			birthDate: user.birthDate,
 			nationality: user.nationality,
+			email: user.email,
 			address: user.address,
 			portrait: user.portrait,
 		});

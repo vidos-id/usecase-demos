@@ -30,10 +30,12 @@ function RootLayout() {
 		<ProgressContext.Provider value={{ currentStep, setCurrentStep }}>
 			<div className="min-h-screen flex flex-col bg-background">
 				<Header />
-				<main className="flex-1">
+				{/* Progress rail - always visible */}
+				<ProgressIndicator />
+				{/* Main content - offset for mobile progress bar, left margin for desktop rail */}
+				<main className="flex-1 pt-12 lg:pt-0 lg:pl-44">
 					<Outlet />
 				</main>
-				<ProgressIndicator />
 			</div>
 			<TanStackRouterDevtools />
 		</ProgressContext.Provider>

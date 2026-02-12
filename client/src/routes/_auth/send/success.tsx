@@ -1,20 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { CheckCircle2 } from "lucide-react";
-import { useEffect } from "react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ArrowLeft, CheckCircle2, Copy, ExternalLink } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 interface SuccessSearchParams {
 	transactionId: string;
 	recipient: string;
-	amount: string; // EUR format string "123.45"
+	amount: string;
 	reference?: string;
 	confirmedAt: string;
 }
@@ -46,6 +39,7 @@ export const Route = createFileRoute("/_auth/send/success")({
 function PaymentSuccessPage() {
 	const navigate = useNavigate();
 	const search = Route.useSearch();
+	const [copied, setCopied] = useState(false);
 
 	// Redirect if no search params
 	useEffect(() => {
@@ -58,78 +52,145 @@ function PaymentSuccessPage() {
 
 	const confirmedDate = new Date(search.confirmedAt);
 
-	return (
-		<div className="max-w-xl mx-auto px-4 py-8">
-			<Card>
-				<CardHeader>
-					<div className="flex items-center gap-3">
-						<CheckCircle2 className="h-8 w-8 text-green-600" />
-						<div>
-							<CardTitle>Payment Confirmed</CardTitle>
-							<CardDescription>
-								Your payment has been verified and processed
-							</CardDescription>
-						</div>
-					</div>
-				</CardHeader>
-				<CardContent className="space-y-6">
-					{/* Demo Mode Notice */}
-					<Alert>
-						<AlertDescription>
-							<strong>Demo mode:</strong> Your balance has not been updated. In
-							a production environment, this payment would be processed
-							immediately.
-						</AlertDescription>
-					</Alert>
+	const copyTransactionId = () => {
+		navigator.clipboard.writeText(search.transactionId);
+		setCopied(true);
+		setTimeout(() => setCopied(false), 2000);
+	};
 
-					{/* Transaction Details */}
-					<div className="bg-muted p-4 rounded-lg space-y-3">
-						<h3 className="font-semibold">Transaction Details</h3>
-						<div className="grid grid-cols-2 gap-2 text-sm">
-							<div className="text-muted-foreground">Transaction ID:</div>
-							<div className="font-mono text-xs">{search.transactionId}</div>
-							<div className="text-muted-foreground">Recipient:</div>
-							<div className="font-medium">{search.recipient}</div>
-							<div className="text-muted-foreground">Amount:</div>
-							<div className="font-medium">EUR {search.amount}</div>
+	return (
+		<div className="min-h-[calc(100vh-4rem)] py-8 px-4 sm:px-6 lg:px-8">
+			<div className="max-w-lg mx-auto space-y-8">
+				{/* Success animation */}
+				<div className="text-center space-y-4 pt-8 animate-slide-up">
+					<div className="inline-flex items-center justify-center h-20 w-20 rounded-full bg-green-500/10 mb-2">
+						<CheckCircle2 className="h-10 w-10 text-green-500" />
+					</div>
+					<div>
+						<h1 className="text-2xl font-bold tracking-tight">
+							Payment Confirmed
+						</h1>
+						<p className="text-muted-foreground mt-1">
+							Your transaction has been verified and processed
+						</p>
+					</div>
+				</div>
+
+				{/* Amount display */}
+				<div className="text-center py-4">
+					<p className="text-5xl font-bold font-mono tracking-tight">
+						€{search.amount}
+					</p>
+					<p className="text-muted-foreground mt-2">
+						sent to {search.recipient}
+					</p>
+				</div>
+
+				{/* Transaction details */}
+				<div className="rounded-2xl border border-border/60 bg-background overflow-hidden">
+					<div className="p-6 space-y-4">
+						<h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+							Transaction Details
+						</h2>
+
+						<div className="space-y-3">
+							<DetailRow label="Recipient" value={search.recipient} />
+							<DetailRow label="Amount" value={`€${search.amount}`} mono />
 							{search.reference && (
-								<>
-									<div className="text-muted-foreground">Reference:</div>
-									<div className="font-medium">{search.reference}</div>
-								</>
+								<DetailRow label="Reference" value={search.reference} />
 							)}
-							<div className="text-muted-foreground">Confirmed:</div>
-							<div>
-								{confirmedDate.toLocaleDateString("en-GB", {
-									year: "numeric",
-									month: "short",
+							<DetailRow
+								label="Confirmed"
+								value={confirmedDate.toLocaleDateString("en-GB", {
 									day: "numeric",
+									month: "short",
+									year: "numeric",
 									hour: "2-digit",
 									minute: "2-digit",
 								})}
+							/>
+
+							{/* Transaction ID */}
+							<div className="flex justify-between items-start pt-2 border-t border-border/40">
+								<span className="text-sm text-muted-foreground">
+									Transaction ID
+								</span>
+								<div className="flex items-center gap-2">
+									<span className="text-xs font-mono text-muted-foreground max-w-[140px] truncate">
+										{search.transactionId}
+									</span>
+									<button
+										type="button"
+										onClick={copyTransactionId}
+										className="p-1 rounded hover:bg-muted transition-colors"
+										title="Copy ID"
+									>
+										{copied ? (
+											<CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+										) : (
+											<Copy className="h-3.5 w-3.5 text-muted-foreground" />
+										)}
+									</button>
+								</div>
 							</div>
 						</div>
 					</div>
 
-					{/* Verification Notice */}
-					<div className="text-sm text-muted-foreground bg-blue-50 dark:bg-blue-950 p-4 rounded-lg border border-blue-200 dark:border-blue-900">
-						<p className="font-medium text-blue-900 dark:text-blue-100 mb-1">
-							Verified Identity
-						</p>
-						<p className="text-blue-700 dark:text-blue-200">
-							This payment was confirmed using your EUDI Wallet credentials,
-							ensuring secure identity verification.
+					{/* Demo notice */}
+					<div className="px-6 py-4 bg-amber-500/5 border-t border-amber-500/20">
+						<p className="text-sm text-amber-700 dark:text-amber-400">
+							<span className="font-medium">Demo Mode:</span> Your balance has
+							not been updated. In production, this payment would be processed
+							immediately.
 						</p>
 					</div>
+				</div>
 
-					{/* Action Button */}
-					<Link to="/dashboard">
-						<Button className="w-full" size="lg">
-							Back to Dashboard
-						</Button>
-					</Link>
-				</CardContent>
-			</Card>
+				{/* Verification badge */}
+				<div className="rounded-xl bg-primary/5 border border-primary/20 p-4">
+					<div className="flex items-center gap-3">
+						<div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+							<ExternalLink className="h-5 w-5 text-primary" />
+						</div>
+						<div>
+							<p className="text-sm font-medium">Verified Identity</p>
+							<p className="text-xs text-muted-foreground">
+								This payment was confirmed using your EUDI Wallet credentials
+							</p>
+						</div>
+					</div>
+				</div>
+
+				{/* Actions */}
+				<div className="flex gap-3">
+					<Button asChild variant="outline" className="flex-1">
+						<Link to="/send">
+							<ArrowLeft className="mr-2 h-4 w-4" />
+							Send Another
+						</Link>
+					</Button>
+					<Button asChild className="flex-1">
+						<Link to="/dashboard">Back to Dashboard</Link>
+					</Button>
+				</div>
+			</div>
+		</div>
+	);
+}
+
+function DetailRow({
+	label,
+	value,
+	mono = false,
+}: {
+	label: string;
+	value: string;
+	mono?: boolean;
+}) {
+	return (
+		<div className="flex justify-between items-center">
+			<span className="text-sm text-muted-foreground">{label}</span>
+			<span className={cn("font-medium", mono && "font-mono")}>{value}</span>
 		</div>
 	);
 }

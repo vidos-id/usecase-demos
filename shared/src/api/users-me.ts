@@ -6,6 +6,7 @@ export const userProfileResponseSchema = z.object({
 	givenName: z.string(),
 	birthDate: z.string(),
 	nationality: z.string(),
+	email: z.string().optional(),
 	address: z.string().optional(),
 	portrait: z.string().optional(),
 });

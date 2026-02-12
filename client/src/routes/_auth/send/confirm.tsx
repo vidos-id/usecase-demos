@@ -1,29 +1,29 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Loader2 } from "lucide-react";
+import {
+	AlertCircle,
+	ArrowLeft,
+	CheckCircle2,
+	Fingerprint,
+	Loader2,
+	ShieldCheck,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { hcWithType } from "server/client";
 
 import { DCApiHandler } from "@/components/auth/dc-api-handler";
 import { PollingStatus } from "@/components/auth/polling-status";
 import { QRCodeDisplay } from "@/components/auth/qr-code-display";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
 import { getSessionId } from "@/lib/auth";
 import { getStoredMode } from "@/lib/auth-helpers";
+import { cn } from "@/lib/utils";
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
 const client = hcWithType(SERVER_URL);
 
 interface ConfirmSearchParams {
 	recipient: string;
-	amount: string; // EUR format string "123.45"
+	amount: string;
 	reference?: string;
 }
 
@@ -184,7 +184,6 @@ function PaymentConfirmPage() {
 		}
 	};
 
-	// DC API completion handler
 	const handleDCApiSuccess = async (response: Record<string, unknown>) => {
 		if (state.status !== "awaiting_verification") return;
 
@@ -232,105 +231,159 @@ function PaymentConfirmPage() {
 	};
 
 	return (
-		<div className="max-w-xl mx-auto px-4 py-8">
-			<Card>
-				<CardHeader>
-					<div className="flex items-center justify-between gap-4">
-						<CardTitle>Confirm Payment</CardTitle>
-						<Button asChild variant="outline" size="sm">
-							<Link to="/dashboard">Back to Dashboard</Link>
-						</Button>
+		<div className="min-h-[calc(100vh-4rem)] py-8 px-4 sm:px-6 lg:px-8">
+			<div className="max-w-lg mx-auto space-y-8">
+				{/* Header */}
+				<div className="flex items-center justify-between">
+					<Button asChild variant="ghost" size="sm" className="gap-2">
+						<Link to="/send">
+							<ArrowLeft className="h-4 w-4" />
+							Back
+						</Link>
+					</Button>
+					<div className="flex items-center gap-2 text-xs text-muted-foreground">
+						<ShieldCheck className="h-4 w-4 text-primary" />
+						<span className="font-mono uppercase tracking-wider">
+							Secure Payment
+						</span>
 					</div>
-					<CardDescription>
-						Review transaction details and verify with your EUDI Wallet
-					</CardDescription>
-				</CardHeader>
-				<CardContent className="space-y-6">
-					{/* Transaction Summary */}
-					<div className="bg-muted p-4 rounded-lg space-y-2">
-						<h3 className="font-semibold">Transaction Details</h3>
-						<div className="grid grid-cols-2 gap-2 text-sm">
-							<div className="text-muted-foreground">Recipient:</div>
-							<div className="font-medium">{search.recipient}</div>
-							<div className="text-muted-foreground">Amount:</div>
-							<div className="font-medium">EUR {search.amount}</div>
+				</div>
+
+				{/* Transaction summary card */}
+				<div className="rounded-2xl border border-border/60 bg-background overflow-hidden">
+					<div className="p-6 space-y-4">
+						<h2 className="text-lg font-semibold">Payment Summary</h2>
+
+						{/* Amount - large display */}
+						<div className="py-4 text-center">
+							<p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
+								Amount
+							</p>
+							<p className="text-4xl font-bold font-mono tracking-tight">
+								€{search.amount}
+							</p>
+						</div>
+
+						{/* Details */}
+						<div className="space-y-3 pt-4 border-t border-border/40">
+							<div className="flex justify-between items-center">
+								<span className="text-sm text-muted-foreground">Recipient</span>
+								<span className="font-medium">{search.recipient}</span>
+							</div>
 							{search.reference && (
-								<>
-									<div className="text-muted-foreground">Reference:</div>
-									<div className="font-medium">{search.reference}</div>
-								</>
+								<div className="flex justify-between items-center">
+									<span className="text-sm text-muted-foreground">
+										Reference
+									</span>
+									<span className="font-medium">{search.reference}</span>
+								</div>
 							)}
 						</div>
 					</div>
 
-					{/* Idle State */}
-					{state.status === "idle" && (
-						<Button onClick={startPaymentVerification} className="w-full">
-							Confirm with EUDI Wallet
-						</Button>
-					)}
+					{/* Action area */}
+					<div className="p-6 bg-muted/30 border-t border-border/40">
+						{/* Idle State */}
+						{state.status === "idle" && (
+							<Button
+								onClick={startPaymentVerification}
+								className="w-full h-12 text-base group"
+							>
+								<Fingerprint className="mr-2 h-5 w-5" />
+								Verify with Wallet
+							</Button>
+						)}
 
-					{/* Requesting State */}
-					{state.status === "requesting" && (
-						<div className="flex items-center justify-center gap-2 py-8">
-							<Loader2 className="h-6 w-6 animate-spin" />
-							<p className="text-muted-foreground">
-								Creating payment request...
-							</p>
-						</div>
-					)}
+						{/* Requesting State */}
+						{state.status === "requesting" && (
+							<div className="flex items-center justify-center gap-3 py-4">
+								<Loader2 className="h-5 w-5 animate-spin text-primary" />
+								<p className="text-muted-foreground">
+									Creating payment request...
+								</p>
+							</div>
+						)}
 
-					{/* Awaiting Verification - Direct Post Mode */}
-					{state.status === "awaiting_verification" &&
-						mode === "direct_post" &&
-						state.authorizeUrl && (
-							<div className="space-y-4">
-								<QRCodeDisplay url={state.authorizeUrl} />
-								<PollingStatus
-									elapsedSeconds={elapsedSeconds}
-									onCancel={handleCancel}
+						{/* Awaiting Verification - Direct Post Mode */}
+						{state.status === "awaiting_verification" &&
+							mode === "direct_post" &&
+							state.authorizeUrl && (
+								<div className="space-y-4">
+									<QRCodeDisplay url={state.authorizeUrl} />
+									<PollingStatus
+										elapsedSeconds={elapsedSeconds}
+										onCancel={handleCancel}
+									/>
+								</div>
+							)}
+
+						{/* Awaiting Verification - DC API Mode */}
+						{state.status === "awaiting_verification" &&
+							mode === "dc_api" &&
+							state.dcApiRequest && (
+								<DCApiHandler
+									dcApiRequest={state.dcApiRequest}
+									onSuccess={handleDCApiSuccess}
+									onError={handleDCApiError}
 								/>
+							)}
+
+						{/* Completing State */}
+						{state.status === "completing" && (
+							<div className="flex items-center justify-center gap-3 py-4">
+								<Loader2 className="h-5 w-5 animate-spin text-primary" />
+								<p className="text-muted-foreground">Processing payment...</p>
 							</div>
 						)}
 
-					{/* Awaiting Verification - DC API Mode */}
-					{state.status === "awaiting_verification" &&
-						mode === "dc_api" &&
-						state.dcApiRequest && (
-							<DCApiHandler
-								dcApiRequest={state.dcApiRequest}
-								onSuccess={handleDCApiSuccess}
-								onError={handleDCApiError}
-							/>
-						)}
-
-					{/* Completing State */}
-					{state.status === "completing" && (
-						<div className="flex items-center justify-center gap-2 py-8">
-							<Loader2 className="h-6 w-6 animate-spin" />
-							<p className="text-muted-foreground">Processing payment...</p>
-						</div>
-					)}
-
-					{/* Error State */}
-					{state.status === "error" && (
-						<div className="space-y-4">
-							<Alert variant="destructive">
-								<AlertDescription>{state.message}</AlertDescription>
-							</Alert>
-							<div className="flex gap-2">
-								<Button
-									onClick={() => navigate({ to: "/send" })}
-									variant="outline"
+						{/* Error State */}
+						{state.status === "error" && (
+							<div className="space-y-4">
+								<div
+									className={cn(
+										"flex items-start gap-3 p-4 rounded-xl",
+										"bg-destructive/10 border border-destructive/20 text-destructive",
+									)}
 								>
-									Start Over
-								</Button>
-								<Button onClick={startPaymentVerification}>Retry</Button>
+									<AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+									<div className="space-y-1">
+										<p className="font-medium">Payment Failed</p>
+										<p className="text-sm opacity-80">{state.message}</p>
+									</div>
+								</div>
+								<div className="flex gap-2">
+									<Button
+										onClick={() => navigate({ to: "/send" })}
+										variant="outline"
+										className="flex-1"
+									>
+										Start Over
+									</Button>
+									<Button onClick={startPaymentVerification} className="flex-1">
+										Retry
+									</Button>
+								</div>
 							</div>
-						</div>
-					)}
-				</CardContent>
-			</Card>
+						)}
+
+						{/* Success State */}
+						{state.status === "success" && (
+							<div className="flex items-center justify-center gap-3 py-4 text-green-600">
+								<CheckCircle2 className="h-6 w-6" />
+								<p className="font-medium">Payment Verified</p>
+							</div>
+						)}
+					</div>
+				</div>
+
+				{/* Security info */}
+				{state.status === "idle" && (
+					<p className="text-xs text-center text-muted-foreground">
+						Your identity will be verified using your EUDI Wallet credentials.
+						No passwords are transmitted.
+					</p>
+				)}
+			</div>
 		</div>
 	);
 }

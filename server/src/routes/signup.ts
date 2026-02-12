@@ -109,6 +109,7 @@ export const signupRouter = new Hono()
 				givenName: claims.given_name,
 				birthDate: claims.birthdate ?? "",
 				nationality: claims.nationalities?.join(", ") ?? "",
+				email: claims.email,
 				address: claims.place_of_birth
 					? [claims.place_of_birth.locality, claims.place_of_birth.country]
 							.filter(Boolean)
@@ -191,6 +192,7 @@ export const signupRouter = new Hono()
 				givenName: claims.given_name,
 				birthDate: claims.birthdate ?? "",
 				nationality: claims.nationalities?.join(", ") ?? "",
+				email: claims.email,
 				address: claims.place_of_birth
 					? [claims.place_of_birth.locality, claims.place_of_birth.country]
 							.filter(Boolean)

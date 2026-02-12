@@ -6,6 +6,7 @@ export interface User {
 	givenName: string;
 	birthDate: string;
 	nationality: string;
+	email?: string;
 	address?: string;
 	portrait?: string;
 	createdAt: Date;
