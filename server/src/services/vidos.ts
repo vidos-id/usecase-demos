@@ -63,18 +63,37 @@ export interface ForwardDCAPIResult {
 	status: AuthorizationStatus;
 }
 
+export async function vidosAuthorizerHealthCheck(): Promise<boolean> {
+	const client = getAuthorizerClient();
+	const { error, response } = await client.GET("/health", {});
+
+	if (error) {
+		console.error("Health check failed:", error);
+		return false;
+	}
+
+	return response.status === 204;
+}
+
+const PID_VCT = "urn:eudi:pid:1";
+
 /**
- * Map of snake_case claim names to camelCase ExtractedClaims field names
+ * Builds a DCQL query for SD-JWT PID credentials.
+ * Claims should use actual SD-JWT names (e.g. "birthdate", "nationalities", "picture").
  */
-const claimNameMap: Record<string, keyof ExtractedClaims> = {
-	family_name: "familyName",
-	given_name: "givenName",
-	birth_date: "birthDate",
-	birthdate: "birthDate", // Some credentials use this variant
-	nationality: "nationality",
-	resident_address: "address",
-	portrait: "portrait",
-};
+function buildPIDDCQLQuery(requestedClaims: string[], purpose?: string) {
+	return {
+		purpose,
+		credentials: [
+			{
+				id: "pid",
+				format: "dc+sd-jwt",
+				meta: { vct_values: [PID_VCT] },
+				claims: requestedClaims.map((claim) => ({ path: [claim] })),
+			},
+		],
+	};
+}
 
 /**
  * Creates an authorization request with the Vidos Authorizer API using DCQL.
@@ -86,19 +105,8 @@ export async function createAuthorizationRequest(
 	const { mode, requestedClaims, purpose } = params;
 	const client = getAuthorizerClient();
 
-	// Build DCQL query with requested claims
-	const dcqlQuery = {
-		purpose,
-		credentials: [
-			{
-				id: "pid",
-				format: "dc+sd-jwt",
-				claims: requestedClaims.map((claim) => ({
-					path: [claim],
-				})),
-			},
-		],
-	};
+	// Build DCQL query with proper SD-JWT paths and meta
+	const dcqlQuery = buildPIDDCQLQuery(requestedClaims, purpose);
 
 	if (mode === "direct_post") {
 		const { data, error } = await client.POST(
@@ -262,8 +270,8 @@ export async function forwardDCAPIResponse(
 }
 
 /**
- * Retrieves and normalizes extracted credentials from a completed authorization.
- * Calls Vidos /credentials endpoint which returns normalized claims regardless of format (SD-JWT/mdoc).
+ * Retrieves extracted credentials from a completed authorization.
+ * Returns claims using SD-JWT names directly.
  */
 export async function getExtractedCredentials(
 	authorizationId: string,
@@ -288,55 +296,28 @@ export async function getExtractedCredentials(
 		throw new Error("Vidos API returned empty response");
 	}
 
-	// Check if any credentials returned
 	if (!data.credentials || data.credentials.length === 0) {
 		throw new Error("No credentials found in authorization");
 	}
 
-	// Extract first credential's claims
 	const credential = data.credentials[0];
 	if (!credential) {
 		throw new Error("No credentials found in authorization");
 	}
-	const rawClaims = credential.claims as Record<string, unknown>;
 
-	// Normalize field names from snake_case to camelCase
-	const normalizedClaims: Partial<ExtractedClaims> = {};
+	const claims = credential.claims as Record<string, unknown>;
 
-	// Map known fields
-	for (const [snakeCase, camelCase] of Object.entries(claimNameMap)) {
-		if (snakeCase in rawClaims) {
-			const value = rawClaims[snakeCase];
-			if (typeof value === "string") {
-				normalizedClaims[camelCase] = value;
-			}
-		}
-	}
-
-	// Handle identifier field - check both possible sources
-	if ("personal_administrative_number" in rawClaims) {
-		const value = rawClaims.personal_administrative_number;
-		if (typeof value === "string") {
-			normalizedClaims.identifier = value;
-		}
-	} else if ("document_number" in rawClaims) {
-		const value = rawClaims.document_number;
-		if (typeof value === "string") {
-			normalizedClaims.identifier = value;
-		}
-	}
-
-	// Validate with Zod schema - will throw if required fields missing
+	// Validate with Zod schema - claims should already use SD-JWT names
 	try {
-		return ExtractedClaimsSchema.parse(normalizedClaims);
+		return ExtractedClaimsSchema.parse(claims);
 	} catch (parseError) {
 		if (parseError instanceof Error) {
 			throw new Error(
-				`Missing required claims or validation failed: ${parseError.message}. Received claims: ${JSON.stringify(normalizedClaims)}`,
+				`Missing required claims or validation failed: ${parseError.message}. Received: ${JSON.stringify(claims)}`,
 			);
 		}
 		throw new Error(
-			`Missing required claims or validation failed. Received claims: ${JSON.stringify(normalizedClaims)}`,
+			`Missing required claims or validation failed. Received: ${JSON.stringify(claims)}`,
 		);
 	}
 }

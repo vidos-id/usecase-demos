@@ -7,6 +7,7 @@ import {
 	paymentRequestSchema,
 	paymentStatusResponseSchema,
 } from "shared/api/payment";
+import { getIdentifier } from "shared/types/auth";
 import {
 	createAuthorizationRequest,
 	forwardDCAPIResponse,
@@ -21,7 +22,7 @@ import {
 import { getSessionById } from "../stores/sessions";
 import { getUserById } from "../stores/users";
 
-// Minimal claims for payment confirmation
+// Payment claims for PID SD-JWT - minimal for confirmation
 const PAYMENT_CLAIMS = [
 	"family_name",
 	"given_name",
@@ -101,8 +102,9 @@ export const paymentRouter = new Hono()
 				pendingRequest.vidosAuthorizationId,
 			);
 			const user = getUserById(session.userId);
+			const identifier = getIdentifier(claims);
 
-			if (!user || user.identifier !== claims.identifier) {
+			if (!user || user.identifier !== identifier) {
 				return c.json({ error: "Identity mismatch" }, 403);
 			}
 
@@ -119,9 +121,9 @@ export const paymentRouter = new Hono()
 				status: "authorized" as const,
 				transactionId: metadata.transactionId,
 				claims: {
-					familyName: claims.familyName,
-					givenName: claims.givenName,
-					identifier: claims.identifier,
+					familyName: claims.family_name,
+					givenName: claims.given_name,
+					identifier,
 				},
 			});
 
@@ -165,8 +167,9 @@ export const paymentRouter = new Hono()
 				pendingRequest.vidosAuthorizationId,
 			);
 			const user = getUserById(session.userId);
+			const identifier = getIdentifier(claims);
 
-			if (!user || user.identifier !== claims.identifier) {
+			if (!user || user.identifier !== identifier) {
 				return c.json({ error: "Identity mismatch" }, 403);
 			}
 
@@ -188,9 +191,9 @@ export const paymentRouter = new Hono()
 				amount: metadata.amount,
 				reference: metadata.reference,
 				verifiedIdentity: {
-					familyName: claims.familyName,
-					givenName: claims.givenName,
-					identifier: claims.identifier,
+					familyName: claims.family_name,
+					givenName: claims.given_name,
+					identifier,
 				},
 				transaction: {
 					id: metadata.transactionId,

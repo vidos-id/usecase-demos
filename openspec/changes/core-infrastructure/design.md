@@ -84,7 +84,7 @@ import { z } from "zod";
 
 const envSchema = z.object({
   VIDOS_AUTHORIZER_URL: z.string().url(),
-  VIDOS_API_KEY: z.string().min(1),
+  VIDOS_API_KEY: z.string().optional(),
   // ... other vars
 });
 

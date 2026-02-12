@@ -13,6 +13,7 @@ import { otherRouter } from "./routes/other";
 import { paymentRouter } from "./routes/payment";
 import { signinRouter } from "./routes/signin";
 import { signupRouter } from "./routes/signup";
+import { vidosAuthorizerHealthCheck } from "./services/vidos";
 import {
 	clearAllSessions,
 	deleteSession,
@@ -109,5 +110,18 @@ export const app = new Hono()
 		});
 		return c.json(response);
 	});
+
+Promise.resolve()
+	.then(vidosAuthorizerHealthCheck)
+	.then(
+		(healthy) => {
+			console.log(
+				`Vidos Authorizer Health Check: ${healthy ? "Healthy" : "Unhealthy"}`,
+			);
+		},
+		(error) => {
+			console.error("Error during Vidos Authorizer Health Check:", error);
+		},
+	);
 
 export default app;

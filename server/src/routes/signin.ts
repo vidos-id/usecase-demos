@@ -7,6 +7,7 @@ import {
 	signinRequestSchema,
 	signinStatusResponseSchema,
 } from "shared/api/signin";
+import { getIdentifier } from "shared/types/auth";
 import {
 	createAuthorizationRequest,
 	forwardDCAPIResponse,
@@ -21,7 +22,7 @@ import {
 import { createSession } from "../stores/sessions";
 import { getUserByIdentifier } from "../stores/users";
 
-// Signin claims - minimal for identification
+// Signin claims for PID SD-JWT - minimal for identification
 const SIGNIN_CLAIMS = [
 	"personal_administrative_number",
 	"document_number",
@@ -81,7 +82,7 @@ export const signinRouter = new Hono()
 				pendingRequest.vidosAuthorizationId,
 			);
 
-			const user = getUserByIdentifier(claims.identifier);
+			const user = getUserByIdentifier(getIdentifier(claims));
 
 			if (!user) {
 				const response = signinStatusResponseSchema.parse({
@@ -149,7 +150,7 @@ export const signinRouter = new Hono()
 				pendingRequest.vidosAuthorizationId,
 			);
 
-			const user = getUserByIdentifier(claims.identifier);
+			const user = getUserByIdentifier(getIdentifier(claims));
 
 			if (!user) {
 				return c.json(

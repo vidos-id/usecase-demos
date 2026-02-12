@@ -4,6 +4,22 @@
  */
 
 export interface paths {
+    "/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getHealth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/instances/oid4vp-trust-anchor": {
         parameters: {
             query?: never;
@@ -295,6 +311,88 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    getHealth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 204 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad request error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error type identifier */
+                        type?: string;
+                        /** @description User-facing error message */
+                        message: string;
+                        /** @description Suggested action to resolve the error */
+                        action?: string;
+                    };
+                };
+            };
+            /** @description Unauthorized - authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error type identifier */
+                        type?: string;
+                        /** @description User-facing error message */
+                        message: string;
+                        /** @description Suggested action to resolve the error */
+                        action?: string;
+                    };
+                };
+            };
+            /** @description Resource not found error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error type identifier */
+                        type?: string;
+                        /** @description User-facing error message */
+                        message: string;
+                        /** @description Suggested action to resolve the error */
+                        action?: string;
+                    };
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error type identifier */
+                        type?: string;
+                        /** @description User-facing error message */
+                        message: string;
+                        /** @description Suggested action to resolve the error */
+                        action?: string;
+                    };
+                };
+            };
+        };
+    };
     getTrustAnchorCertificate: {
         parameters: {
             query?: never;

@@ -7,6 +7,7 @@ import {
 	signupRequestSchema,
 	signupStatusResponseSchema,
 } from "shared/api/signup";
+import { getIdentifier } from "shared/types/auth";
 import {
 	createAuthorizationRequest,
 	forwardDCAPIResponse,
@@ -21,17 +22,16 @@ import {
 import { createSession } from "../stores/sessions";
 import { createUser } from "../stores/users";
 
-// Signup claims for PID - full set per spec
+// Signup claims for PID SD-JWT - using actual SD-JWT claim names
 const SIGNUP_CLAIMS = [
 	"family_name",
 	"given_name",
-	"birth_date",
-	"birth_place",
-	"nationality",
-	"resident_address",
+	"birthdate",
+	"place_of_birth",
+	"nationalities",
 	"personal_administrative_number",
 	"document_number",
-	"portrait",
+	"picture",
 ];
 
 export const signupRouter = new Hono()
@@ -90,13 +90,13 @@ export const signupRouter = new Hono()
 			);
 
 			const user = createUser({
-				identifier: claims.identifier,
-				familyName: claims.familyName,
-				givenName: claims.givenName,
-				birthDate: claims.birthDate,
-				nationality: claims.nationality,
-				address: claims.address,
-				portrait: claims.portrait,
+				identifier: getIdentifier(claims),
+				familyName: claims.family_name,
+				givenName: claims.given_name,
+				birthDate: claims.birthdate,
+				nationality: claims.nationalities,
+				address: claims.place_of_birth,
+				portrait: claims.picture,
 			});
 
 			const session = createSession({
@@ -157,13 +157,13 @@ export const signupRouter = new Hono()
 			);
 
 			const user = createUser({
-				identifier: claims.identifier,
-				familyName: claims.familyName,
-				givenName: claims.givenName,
-				birthDate: claims.birthDate,
-				nationality: claims.nationality,
-				address: claims.address,
-				portrait: claims.portrait,
+				identifier: getIdentifier(claims),
+				familyName: claims.family_name,
+				givenName: claims.given_name,
+				birthDate: claims.birthdate,
+				nationality: claims.nationalities,
+				address: claims.place_of_birth,
+				portrait: claims.picture,
 			});
 
 			const session = createSession({
