@@ -23,7 +23,14 @@ export const signinRequestResponseSchema = z.discriminatedUnion("mode", [
 export type SigninRequestResponse = z.infer<typeof signinRequestResponseSchema>;
 
 export const signinStatusResponseSchema = z.object({
-	status: z.enum(["pending", "authorized", "rejected", "error", "expired"]),
+	status: z.enum([
+		"pending",
+		"authorized",
+		"rejected",
+		"error",
+		"expired",
+		"not_found",
+	]),
 	sessionId: z.string().optional(),
 	user: z
 		.object({

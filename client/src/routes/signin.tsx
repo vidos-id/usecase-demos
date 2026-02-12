@@ -124,13 +124,28 @@ function SigninPage() {
 					return;
 				}
 
+				if (data.status === "not_found") {
+					console.error("[Signin] no account found");
+					setState({
+						status: "error",
+						message:
+							data.error ||
+							"No account found with this identity. Please sign up.",
+						showSignupLink: true,
+					});
+					return;
+				}
+
 				if (
 					data.status === "rejected" ||
 					data.status === "error" ||
 					data.status === "expired"
 				) {
 					console.error("[Signin] verification failed:", data.status);
-					setState({ status: "error", message: `Verification ${data.status}` });
+					setState({
+						status: "error",
+						message: data.error || `Verification ${data.status}`,
+					});
 					return;
 				}
 

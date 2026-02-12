@@ -81,10 +81,10 @@ export const signinRouter = new Hono()
 			const user = getUserByIdentifier(claims.personal_administrative_number);
 
 			if (!user) {
+				deletePendingRequest(pendingRequest.id);
 				const response = signinStatusResponseSchema.parse({
-					status: "error" as const,
-					error:
-						"No account found. Please sign up first or use a different credential.",
+					status: "not_found" as const,
+					error: "No account found with this credential.",
 				});
 				return c.json(response);
 			}
