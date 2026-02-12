@@ -28,18 +28,18 @@ export function Header() {
 					>
 						{/* Logo mark */}
 						<div className="relative">
-							<div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow duration-300">
-								<span className="text-primary-foreground font-bold text-sm tracking-tight font-mono">
-									DB
-								</span>
-							</div>
+							<img
+								src="/logo.svg"
+								alt="VidosDemoBank"
+								className="w-10 h-10 drop-shadow-sm group-hover:drop-shadow-md transition-all duration-300"
+							/>
 							{/* Subtle glow on hover */}
 							<div className="absolute inset-0 rounded-xl bg-primary/20 blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 						</div>
 						{/* Wordmark */}
 						<div className="flex flex-col">
 							<span className="text-lg font-semibold tracking-tight leading-none">
-								DemoBank
+								VidosDemoBank
 							</span>
 							<span className="text-[10px] text-muted-foreground/70 font-mono uppercase tracking-widest">
 								EUDI Demo
