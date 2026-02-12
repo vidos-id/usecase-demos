@@ -7,7 +7,7 @@ import {
 	signinRequestSchema,
 	signinStatusResponseSchema,
 } from "shared/api/signin";
-import { getIdentifier } from "shared/types/auth";
+import { signinClaimsSchema } from "shared/types/auth";
 import {
 	createAuthorizationRequest,
 	forwardDCAPIResponse,
@@ -22,13 +22,8 @@ import {
 import { createSession } from "../stores/sessions";
 import { getUserByIdentifier } from "../stores/users";
 
-// Signin claims for PID SD-JWT - minimal for identification
-const SIGNIN_CLAIMS = [
-	"personal_administrative_number",
-	"document_number",
-	"family_name",
-	"given_name",
-];
+// Signin claims for PID SD-JWT - only identifier needed
+const SIGNIN_CLAIMS = ["personal_administrative_number"];
 
 export const signinRouter = new Hono()
 	.post("/request", zValidator("json", signinRequestSchema), async (c) => {
@@ -77,12 +72,13 @@ export const signinRouter = new Hono()
 		);
 
 		if (statusResult.status === "authorized") {
-			// Get credentials and match user
+			// Get credentials validated for signin flow
 			const claims = await getExtractedCredentials(
 				pendingRequest.vidosAuthorizationId,
+				signinClaimsSchema,
 			);
 
-			const user = getUserByIdentifier(getIdentifier(claims));
+			const user = getUserByIdentifier(claims.personal_administrative_number);
 
 			if (!user) {
 				const response = signinStatusResponseSchema.parse({
@@ -145,12 +141,13 @@ export const signinRouter = new Hono()
 				return c.json({ error: "Verification failed" }, 400);
 			}
 
-			// Get credentials and match user
+			// Get credentials validated for signin flow
 			const claims = await getExtractedCredentials(
 				pendingRequest.vidosAuthorizationId,
+				signinClaimsSchema,
 			);
 
-			const user = getUserByIdentifier(getIdentifier(claims));
+			const user = getUserByIdentifier(claims.personal_administrative_number);
 
 			if (!user) {
 				return c.json(

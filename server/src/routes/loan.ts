@@ -7,7 +7,7 @@ import {
 	loanRequestSchema,
 	loanStatusResponseSchema,
 } from "shared/api/loan";
-import { getIdentifier } from "shared/types/auth";
+import { loanClaimsSchema } from "shared/types/auth";
 import {
 	createAuthorizationRequest,
 	forwardDCAPIResponse,
@@ -24,10 +24,9 @@ import { getUserById } from "../stores/users";
 
 // Loan claims for PID SD-JWT
 const LOAN_CLAIMS = [
+	"personal_administrative_number",
 	"family_name",
 	"given_name",
-	"personal_administrative_number",
-	"document_number",
 ];
 
 function getSession(c: {
@@ -93,11 +92,11 @@ export const loanRouter = new Hono()
 		if (statusResult.status === "authorized") {
 			const claims = await getExtractedCredentials(
 				pendingRequest.vidosAuthorizationId,
+				loanClaimsSchema,
 			);
 			const user = getUserById(session.userId);
-			const identifier = getIdentifier(claims);
 
-			if (!user || user.identifier !== identifier) {
+			if (!user || user.identifier !== claims.personal_administrative_number) {
 				return c.json({ error: "Identity mismatch" }, 403);
 			}
 
@@ -110,7 +109,7 @@ export const loanRouter = new Hono()
 				claims: {
 					familyName: claims.family_name,
 					givenName: claims.given_name,
-					identifier,
+					identifier: claims.personal_administrative_number,
 				},
 			});
 
@@ -152,11 +151,11 @@ export const loanRouter = new Hono()
 
 			const claims = await getExtractedCredentials(
 				pendingRequest.vidosAuthorizationId,
+				loanClaimsSchema,
 			);
 			const user = getUserById(session.userId);
-			const identifier = getIdentifier(claims);
 
-			if (!user || user.identifier !== identifier) {
+			if (!user || user.identifier !== claims.personal_administrative_number) {
 				return c.json({ error: "Identity mismatch" }, 403);
 			}
 

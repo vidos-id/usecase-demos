@@ -7,7 +7,7 @@ import {
 	signupRequestSchema,
 	signupStatusResponseSchema,
 } from "shared/api/signup";
-import { getIdentifier } from "shared/types/auth";
+import { signupClaimsSchema } from "shared/types/auth";
 import {
 	createAuthorizationRequest,
 	forwardDCAPIResponse,
@@ -84,19 +84,25 @@ export const signupRouter = new Hono()
 		);
 
 		if (statusResult.status === "authorized") {
-			// Get credentials and create user
+			// Get credentials validated for signup flow
 			const claims = await getExtractedCredentials(
 				pendingRequest.vidosAuthorizationId,
+				signupClaimsSchema,
 			);
 
 			const user = createUser({
-				identifier: getIdentifier(claims),
+				identifier: claims.personal_administrative_number,
 				familyName: claims.family_name,
 				givenName: claims.given_name,
-				birthDate: claims.birthdate,
-				nationality: claims.nationalities,
-				address: claims.place_of_birth,
+				birthDate: claims.birthdate ?? "",
+				nationality: claims.nationalities?.join(", ") ?? "",
+				address: claims.place_of_birth
+					? [claims.place_of_birth.locality, claims.place_of_birth.country]
+							.filter(Boolean)
+							.join(", ")
+					: undefined,
 				portrait: claims.picture,
+				documentNumber: claims.document_number,
 			});
 
 			const session = createSession({
@@ -151,19 +157,25 @@ export const signupRouter = new Hono()
 				return c.json({ error: "Verification failed" }, 400);
 			}
 
-			// Get credentials and create user
+			// Get credentials validated for signup flow
 			const claims = await getExtractedCredentials(
 				pendingRequest.vidosAuthorizationId,
+				signupClaimsSchema,
 			);
 
 			const user = createUser({
-				identifier: getIdentifier(claims),
+				identifier: claims.personal_administrative_number,
 				familyName: claims.family_name,
 				givenName: claims.given_name,
-				birthDate: claims.birthdate,
-				nationality: claims.nationalities,
-				address: claims.place_of_birth,
+				birthDate: claims.birthdate ?? "",
+				nationality: claims.nationalities?.join(", ") ?? "",
+				address: claims.place_of_birth
+					? [claims.place_of_birth.locality, claims.place_of_birth.country]
+							.filter(Boolean)
+							.join(", ")
+					: undefined,
 				portrait: claims.picture,
+				documentNumber: claims.document_number,
 			});
 
 			const session = createSession({

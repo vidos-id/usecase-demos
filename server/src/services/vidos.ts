@@ -1,5 +1,5 @@
 import createClient from "openapi-fetch";
-import { type ExtractedClaims, ExtractedClaimsSchema } from "shared/types/auth";
+import type { z } from "zod";
 import { env } from "../env";
 import type { paths } from "../generated/authorizer-api";
 
@@ -271,11 +271,12 @@ export async function forwardDCAPIResponse(
 
 /**
  * Retrieves extracted credentials from a completed authorization.
- * Returns claims using SD-JWT names directly.
+ * Validates against provided schema for flow-specific requirements.
  */
-export async function getExtractedCredentials(
+export async function getExtractedCredentials<T extends z.ZodTypeAny>(
 	authorizationId: string,
-): Promise<ExtractedClaims> {
+	schema: T,
+): Promise<z.infer<T>> {
 	const client = getAuthorizerClient();
 
 	const { data, error } = await client.GET(
@@ -307,17 +308,5 @@ export async function getExtractedCredentials(
 
 	const claims = credential.claims as Record<string, unknown>;
 
-	// Validate with Zod schema - claims should already use SD-JWT names
-	try {
-		return ExtractedClaimsSchema.parse(claims);
-	} catch (parseError) {
-		if (parseError instanceof Error) {
-			throw new Error(
-				`Missing required claims or validation failed: ${parseError.message}. Received: ${JSON.stringify(claims)}`,
-			);
-		}
-		throw new Error(
-			`Missing required claims or validation failed. Received: ${JSON.stringify(claims)}`,
-		);
-	}
+	return schema.parse(claims);
 }

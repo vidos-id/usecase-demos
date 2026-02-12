@@ -7,7 +7,7 @@ import {
 	paymentRequestSchema,
 	paymentStatusResponseSchema,
 } from "shared/api/payment";
-import { getIdentifier } from "shared/types/auth";
+import { paymentClaimsSchema } from "shared/types/auth";
 import {
 	createAuthorizationRequest,
 	forwardDCAPIResponse,
@@ -24,10 +24,9 @@ import { getUserById } from "../stores/users";
 
 // Payment claims for PID SD-JWT - minimal for confirmation
 const PAYMENT_CLAIMS = [
+	"personal_administrative_number",
 	"family_name",
 	"given_name",
-	"personal_administrative_number",
-	"document_number",
 ];
 
 // Helper to extract session from Authorization header
@@ -100,11 +99,11 @@ export const paymentRouter = new Hono()
 			// Verify identity matches session user
 			const claims = await getExtractedCredentials(
 				pendingRequest.vidosAuthorizationId,
+				paymentClaimsSchema,
 			);
 			const user = getUserById(session.userId);
-			const identifier = getIdentifier(claims);
 
-			if (!user || user.identifier !== identifier) {
+			if (!user || user.identifier !== claims.personal_administrative_number) {
 				return c.json({ error: "Identity mismatch" }, 403);
 			}
 
@@ -123,7 +122,7 @@ export const paymentRouter = new Hono()
 				claims: {
 					familyName: claims.family_name,
 					givenName: claims.given_name,
-					identifier,
+					identifier: claims.personal_administrative_number,
 				},
 			});
 
@@ -165,11 +164,11 @@ export const paymentRouter = new Hono()
 
 			const claims = await getExtractedCredentials(
 				pendingRequest.vidosAuthorizationId,
+				paymentClaimsSchema,
 			);
 			const user = getUserById(session.userId);
-			const identifier = getIdentifier(claims);
 
-			if (!user || user.identifier !== identifier) {
+			if (!user || user.identifier !== claims.personal_administrative_number) {
 				return c.json({ error: "Identity mismatch" }, 403);
 			}
 
@@ -193,7 +192,7 @@ export const paymentRouter = new Hono()
 				verifiedIdentity: {
 					familyName: claims.family_name,
 					givenName: claims.given_name,
-					identifier,
+					identifier: claims.personal_administrative_number,
 				},
 				transaction: {
 					id: metadata.transactionId,
