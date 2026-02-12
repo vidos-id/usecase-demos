@@ -18,7 +18,7 @@ Docker-based deployment. Bun runs TypeScript directly (no build step).
 
 ```bash
 # Build from repo root
-docker build -f server/Dockerfile -t vidos-server .
+docker build -f Dockerfile.server -t vidos-server .
 
 # Run
 docker run -p 3000:3000 \
@@ -30,7 +30,7 @@ docker run -p 3000:3000 \
 **Dokploy/Coolify config:**
 
 - Build context: repo root
-- Dockerfile: `server/Dockerfile`
+- Dockerfile: `Dockerfile.server`
 - Env vars: `VIDOS_AUTHORIZER_URL` (required), `VIDOS_API_KEY` (optional)
 
 ### Client (GitHub Pages)

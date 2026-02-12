@@ -32,9 +32,9 @@ Docker-based via Dokploy/Coolify. Bun runs TS directly (no build).
 
 ```bash
 # From repo root
-docker build -f server/Dockerfile -t vidos-server .
+docker build -f Dockerfile.server -t vidos-server .
 ```
 
-- Build context: repo root (not `server/`)
-- Dockerfile: `server/Dockerfile`
+- Build context: repo root
+- Dockerfile: `Dockerfile.server` (in repo root)
 - Env vars: `VIDOS_AUTHORIZER_URL` (required), `VIDOS_API_KEY` (optional)

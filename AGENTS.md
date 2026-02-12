@@ -94,3 +94,16 @@ client/src/routes/*.tsx          → `import { hcWithType } from "server/client"
 - Always validate inputs with `zValidator()` and outputs with `schema.parse()`.
 - `hc` path params do not match `/`; encode with `encodeURIComponent`.
 - Bun request body limit defaults to 128MiB; raise `Bun.serve({ maxRequestBodySize })` if needed.
+
+## Deployment
+
+### Server (Docker)
+
+See `Dockerfile.server` in repo root. Bun runs TS directly (no build).
+
+- Dockerfile: `Dockerfile.server`
+- Env vars: `VIDOS_AUTHORIZER_URL` (required), `VIDOS_API_KEY` (optional)
+
+### Client (GitHub Pages)
+
+Static Vite build. Set `VITE_VIDOS_DEMO_BANK_SERVER_URL` at build time.

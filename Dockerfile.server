@@ -5,8 +5,8 @@ WORKDIR /app
 # Copy everything (client excluded via .dockerignore)
 COPY . .
 
-# Install only server + shared deps (skip client)
-RUN bun install --frozen-lockfile --production --filter='!client'
+# Install all workspace deps (simpler than filtering)
+RUN bun install --frozen-lockfile --production
 
 USER bun
 ENV NODE_ENV=production
