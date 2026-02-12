@@ -7,6 +7,7 @@ import {
 	signinRequestSchema,
 	signinStatusResponseSchema,
 } from "shared/api/signin";
+import { SIGNIN_CLAIMS, SIGNIN_PURPOSE } from "shared/lib/claims";
 import { signinClaimsSchema } from "shared/types/auth";
 import {
 	createAuthorizationRequest,
@@ -22,9 +23,6 @@ import {
 import { createSession } from "../stores/sessions";
 import { getUserByIdentifier } from "../stores/users";
 
-// Signin claims for PID SD-JWT - only identifier needed
-const SIGNIN_CLAIMS = ["personal_administrative_number"];
-
 export const signinRouter = new Hono()
 	.post("/request", zValidator("json", signinRequestSchema), async (c) => {
 		const { mode } = c.req.valid("json");
@@ -32,7 +30,7 @@ export const signinRouter = new Hono()
 		const result = await createAuthorizationRequest({
 			mode,
 			requestedClaims: SIGNIN_CLAIMS,
-			purpose: "Verify your identity for signin",
+			purpose: SIGNIN_PURPOSE,
 		});
 
 		const pendingRequest = createPendingRequest({
@@ -48,11 +46,15 @@ export const signinRouter = new Hono()
 						mode: "direct_post",
 						requestId: pendingRequest.id,
 						authorizeUrl: result.authorizeUrl,
+						requestedClaims: SIGNIN_CLAIMS,
+						purpose: SIGNIN_PURPOSE,
 					}
 				: {
 						mode: "dc_api",
 						requestId: pendingRequest.id,
 						dcApiRequest: result.dcApiRequest,
+						requestedClaims: SIGNIN_CLAIMS,
+						purpose: SIGNIN_PURPOSE,
 					},
 		);
 

@@ -8,6 +8,7 @@ import {
 	paymentRequestSchema,
 	paymentStatusResponseSchema,
 } from "shared/api/payment";
+import { PAYMENT_CLAIMS, PAYMENT_PURPOSE } from "shared/lib/claims";
 import { paymentClaimsSchema } from "shared/types/auth";
 import {
 	createAuthorizationRequest,
@@ -22,13 +23,6 @@ import {
 } from "../stores/pending-auth-requests";
 import { getSessionById } from "../stores/sessions";
 import { getUserById, updateUser } from "../stores/users";
-
-// Payment claims for PID SD-JWT - minimal for confirmation
-const PAYMENT_CLAIMS = [
-	"personal_administrative_number",
-	"family_name",
-	"given_name",
-];
 
 // Helper to extract session from Authorization header
 function getSession(c: {
@@ -52,7 +46,7 @@ export const paymentRouter = new Hono()
 		const result = await createAuthorizationRequest({
 			mode: session.mode,
 			requestedClaims: PAYMENT_CLAIMS,
-			purpose: "Verify your identity for payment confirmation",
+			purpose: PAYMENT_PURPOSE,
 		});
 
 		const pendingRequest = createPendingRequest({
@@ -70,12 +64,16 @@ export const paymentRouter = new Hono()
 						requestId: pendingRequest.id,
 						transactionId,
 						authorizeUrl: result.authorizeUrl,
+						requestedClaims: PAYMENT_CLAIMS,
+						purpose: PAYMENT_PURPOSE,
 					}
 				: {
 						mode: "dc_api",
 						requestId: pendingRequest.id,
 						transactionId,
 						dcApiRequest: result.dcApiRequest,
+						requestedClaims: PAYMENT_CLAIMS,
+						purpose: PAYMENT_PURPOSE,
 					},
 		);
 

@@ -11,6 +11,7 @@ import {
 import { useEffect, useState } from "react";
 import { hcWithType } from "server/client";
 
+import { CredentialDisclosure } from "@/components/auth/credential-disclosure";
 import { DCApiHandler } from "@/components/auth/dc-api-handler";
 import { PollingStatus } from "@/components/auth/polling-status";
 import { QRCodeDisplay } from "@/components/auth/qr-code-display";
@@ -56,6 +57,8 @@ type PaymentState =
 			requestId: string;
 			authorizeUrl?: string;
 			dcApiRequest?: Record<string, unknown>;
+			requestedClaims: string[];
+			purpose: string;
 	  }
 	| { status: "completing" }
 	| { status: "success"; transactionId: string }
@@ -178,6 +181,8 @@ function PaymentConfirmPage() {
 				authorizeUrl:
 					data.mode === "direct_post" ? data.authorizeUrl : undefined,
 				dcApiRequest: data.mode === "dc_api" ? data.dcApiRequest : undefined,
+				requestedClaims: data.requestedClaims,
+				purpose: data.purpose,
 			});
 		} catch (err) {
 			setState({
@@ -313,6 +318,10 @@ function PaymentConfirmPage() {
 							mode === "direct_post" &&
 							state.authorizeUrl && (
 								<div className="space-y-4">
+									<CredentialDisclosure
+										requestedClaims={state.requestedClaims}
+										purpose={state.purpose}
+									/>
 									<QRCodeDisplay url={state.authorizeUrl} />
 									<PollingStatus
 										elapsedSeconds={elapsedSeconds}
@@ -325,11 +334,17 @@ function PaymentConfirmPage() {
 						{state.status === "awaiting_verification" &&
 							mode === "dc_api" &&
 							state.dcApiRequest && (
-								<DCApiHandler
-									dcApiRequest={state.dcApiRequest}
-									onSuccess={handleDCApiSuccess}
-									onError={handleDCApiError}
-								/>
+								<div className="space-y-4">
+									<CredentialDisclosure
+										requestedClaims={state.requestedClaims}
+										purpose={state.purpose}
+									/>
+									<DCApiHandler
+										dcApiRequest={state.dcApiRequest}
+										onSuccess={handleDCApiSuccess}
+										onError={handleDCApiError}
+									/>
+								</div>
 							)}
 
 						{/* Completing State */}

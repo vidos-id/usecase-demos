@@ -7,6 +7,7 @@ import {
 	signupRequestSchema,
 	signupStatusResponseSchema,
 } from "shared/api/signup";
+import { SIGNUP_CLAIMS, SIGNUP_PURPOSE } from "shared/lib/claims";
 import { signupClaimsSchema } from "shared/types/auth";
 import {
 	createAuthorizationRequest,
@@ -22,19 +23,6 @@ import {
 import { createSession } from "../stores/sessions";
 import { createUser, getUserByIdentifier } from "../stores/users";
 
-// Signup claims for PID SD-JWT - using actual SD-JWT claim names
-const SIGNUP_CLAIMS = [
-	"family_name",
-	"given_name",
-	"birthdate",
-	"email",
-	"place_of_birth",
-	"nationalities",
-	"personal_administrative_number",
-	"document_number",
-	"picture",
-];
-
 export const signupRouter = new Hono()
 	.post("/request", zValidator("json", signupRequestSchema), async (c) => {
 		const { mode } = c.req.valid("json");
@@ -42,7 +30,7 @@ export const signupRouter = new Hono()
 		const result = await createAuthorizationRequest({
 			mode,
 			requestedClaims: SIGNUP_CLAIMS,
-			purpose: "Verify your identity for signup",
+			purpose: SIGNUP_PURPOSE,
 		});
 
 		const pendingRequest = createPendingRequest({
@@ -59,6 +47,8 @@ export const signupRouter = new Hono()
 						requestId: pendingRequest.id,
 						authorizationId: result.authorizationId,
 						authorizeUrl: result.authorizeUrl,
+						requestedClaims: SIGNUP_CLAIMS,
+						purpose: SIGNUP_PURPOSE,
 					}
 				: {
 						mode: "dc_api",
@@ -66,6 +56,8 @@ export const signupRouter = new Hono()
 						authorizationId: result.authorizationId,
 						dcApiRequest: result.dcApiRequest,
 						responseUrl: result.responseUrl,
+						requestedClaims: SIGNUP_CLAIMS,
+						purpose: SIGNUP_PURPOSE,
 					},
 		);
 

@@ -3,6 +3,7 @@ import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { hcWithType } from "server/client";
 import type { PresentationMode } from "shared/types/auth";
+import { CredentialDisclosure } from "@/components/auth/credential-disclosure";
 import { DCApiHandler } from "@/components/auth/dc-api-handler";
 import { ModeSelector } from "@/components/auth/mode-selector";
 import { PollingStatus } from "@/components/auth/polling-status";
@@ -29,6 +30,8 @@ type AuthState =
 			requestId: string;
 			authorizeUrl?: string;
 			dcApiRequest?: Record<string, unknown>;
+			requestedClaims: string[];
+			purpose: string;
 	  }
 	| { status: "completing" }
 	| { status: "success" }
@@ -75,6 +78,8 @@ function SigninPage() {
 				authorizeUrl:
 					data.mode === "direct_post" ? data.authorizeUrl : undefined,
 				dcApiRequest: data.mode === "dc_api" ? data.dcApiRequest : undefined,
+				requestedClaims: data.requestedClaims,
+				purpose: data.purpose,
 			});
 		} catch (err) {
 			console.error("[Signin] error:", err);
@@ -222,7 +227,7 @@ function SigninPage() {
 		<div className="min-h-screen flex items-center justify-center p-4 lg:p-8">
 			<div className="w-full max-w-6xl">
 				{state.status === "idle" && (
-					<div className="grid lg:grid-cols-2 gap-0 rounded-2xl overflow-hidden shadow-2xl bg-card border border-border">
+					<div className="relative grid lg:grid-cols-2 gap-0 rounded-2xl overflow-hidden shadow-2xl bg-card border border-border">
 						{/* Traditional Method - Left Panel */}
 						<div className="relative bg-gradient-to-br from-muted/30 via-muted/10 to-background p-8 lg:p-12 animate-slide-in-left">
 							<div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-muted-foreground/20 to-transparent" />
@@ -424,6 +429,10 @@ function SigninPage() {
 					state.authorizeUrl && (
 						<Card className="w-full max-w-2xl mx-auto animate-fade-in">
 							<CardContent className="p-8">
+								<CredentialDisclosure
+									requestedClaims={state.requestedClaims}
+									purpose={state.purpose}
+								/>
 								<QRCodeDisplay url={state.authorizeUrl} />
 								<PollingStatus
 									elapsedSeconds={elapsedSeconds}
@@ -438,6 +447,10 @@ function SigninPage() {
 					state.dcApiRequest && (
 						<Card className="w-full max-w-2xl mx-auto animate-fade-in">
 							<CardContent className="p-8">
+								<CredentialDisclosure
+									requestedClaims={state.requestedClaims}
+									purpose={state.purpose}
+								/>
 								<DCApiHandler
 									dcApiRequest={state.dcApiRequest}
 									onSuccess={handleDCApiSuccess}

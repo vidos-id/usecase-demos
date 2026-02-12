@@ -24,7 +24,7 @@ function getAuthorizerClient() {
 
 export interface CreateAuthRequestParams {
 	mode: PresentationMode;
-	requestedClaims: string[]; // e.g. ["family_name", "given_name", "birth_date"]
+	requestedClaims: readonly string[]; // e.g. ["family_name", "given_name", "birth_date"]
 	purpose: string;
 }
 
@@ -81,7 +81,10 @@ const PID_VCT = "urn:eudi:pid:1";
  * Builds a DCQL query for SD-JWT PID credentials.
  * Claims should use actual SD-JWT names (e.g. "birthdate", "nationalities", "picture").
  */
-function buildPIDDCQLQuery(requestedClaims: string[], purpose?: string) {
+function buildPIDDCQLQuery(
+	requestedClaims: readonly string[],
+	purpose?: string,
+) {
 	return {
 		purpose,
 		credentials: [

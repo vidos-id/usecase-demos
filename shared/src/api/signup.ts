@@ -15,11 +15,15 @@ export const signupRequestResponseSchema = z.discriminatedUnion("mode", [
 	signupRequestResponseBaseSchema.extend({
 		mode: z.literal("direct_post"),
 		authorizeUrl: z.url(),
+		requestedClaims: z.array(z.string()),
+		purpose: z.string(),
 	}),
 	signupRequestResponseBaseSchema.extend({
 		mode: z.literal("dc_api"),
 		dcApiRequest: z.record(z.string(), z.unknown()),
 		responseUrl: z.url(),
+		requestedClaims: z.array(z.string()),
+		purpose: z.string(),
 	}),
 ]);
 export type SignupRequestResponse = z.infer<typeof signupRequestResponseSchema>;

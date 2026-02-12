@@ -8,6 +8,7 @@ import {
 	loanRequestSchema,
 	loanStatusResponseSchema,
 } from "shared/api/loan";
+import { LOAN_CLAIMS, LOAN_PURPOSE } from "shared/lib/claims";
 import { loanClaimsSchema } from "shared/types/auth";
 import {
 	createAuthorizationRequest,
@@ -22,13 +23,6 @@ import {
 } from "../stores/pending-auth-requests";
 import { getSessionById } from "../stores/sessions";
 import { getUserById, updateUser } from "../stores/users";
-
-// Loan claims for PID SD-JWT
-const LOAN_CLAIMS = [
-	"personal_administrative_number",
-	"family_name",
-	"given_name",
-];
 
 function getSession(c: {
 	req: { header: (name: string) => string | undefined };
@@ -48,7 +42,7 @@ export const loanRouter = new Hono()
 		const result = await createAuthorizationRequest({
 			mode: session.mode,
 			requestedClaims: LOAN_CLAIMS,
-			purpose: "Verify your identity for loan application",
+			purpose: LOAN_PURPOSE,
 		});
 
 		const pendingRequest = createPendingRequest({
@@ -65,11 +59,15 @@ export const loanRouter = new Hono()
 						mode: "direct_post",
 						requestId: pendingRequest.id,
 						authorizeUrl: result.authorizeUrl,
+						requestedClaims: LOAN_CLAIMS,
+						purpose: LOAN_PURPOSE,
 					}
 				: {
 						mode: "dc_api",
 						requestId: pendingRequest.id,
 						dcApiRequest: result.dcApiRequest,
+						requestedClaims: LOAN_CLAIMS,
+						purpose: LOAN_PURPOSE,
 					},
 		);
 

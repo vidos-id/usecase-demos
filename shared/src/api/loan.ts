@@ -26,10 +26,14 @@ export const loanRequestResponseSchema = z.discriminatedUnion("mode", [
 	loanRequestResponseBaseSchema.extend({
 		mode: z.literal("direct_post"),
 		authorizeUrl: z.url(),
+		requestedClaims: z.array(z.string()),
+		purpose: z.string(),
 	}),
 	loanRequestResponseBaseSchema.extend({
 		mode: z.literal("dc_api"),
 		dcApiRequest: z.record(z.string(), z.unknown()),
+		requestedClaims: z.array(z.string()),
+		purpose: z.string(),
 	}),
 ]);
 export type LoanRequestResponse = z.infer<typeof loanRequestResponseSchema>;
