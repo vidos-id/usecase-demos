@@ -1,14 +1,9 @@
 import { useLocation } from "@tanstack/react-router";
 import { Check, CircleDot } from "lucide-react";
+import { useEffect, useState } from "react";
+import { getSessionId, subscribeSession } from "@/lib/auth";
 import { getJourneyStep, type JourneyStep } from "@/lib/route-config";
 import { cn } from "@/lib/utils";
-
-const steps: { id: JourneyStep; label: string; description: string }[] = [
-	{ id: "intro", label: "Welcome", description: "Discover DemoBank" },
-	{ id: "authenticate", label: "Verify", description: "Prove your identity" },
-	{ id: "action", label: "Transact", description: "Complete your action" },
-	{ id: "finish", label: "Done", description: "Transaction complete" },
-];
 
 const stepOrder: JourneyStep[] = ["intro", "authenticate", "action", "finish"];
 
@@ -16,11 +11,47 @@ function getStepIndex(step: JourneyStep): number {
 	return stepOrder.indexOf(step);
 }
 
+function getSteps(isAuthenticated: boolean) {
+	return [
+		{
+			id: "intro" as JourneyStep,
+			label: "Welcome",
+			description: "Discover DemoBank",
+		},
+		{
+			id: "authenticate" as JourneyStep,
+			label: isAuthenticated ? "Authorized" : "Authorize",
+			description: isAuthenticated
+				? "Identity verified"
+				: "Prove your identity",
+		},
+		{
+			id: "action" as JourneyStep,
+			label: "Transact",
+			description: "Complete your action",
+		},
+		{
+			id: "finish" as JourneyStep,
+			label: "Done",
+			description: "Transaction complete",
+		},
+	];
+}
+
 export function ProgressIndicator() {
 	const location = useLocation();
 	const currentStep = getJourneyStep(location.pathname);
 	const currentStepIndex =
 		currentStep !== null ? getStepIndex(currentStep) : -1;
+	const [isAuthenticated, setIsAuthenticated] = useState(!!getSessionId());
+
+	useEffect(() => {
+		return subscribeSession(() => {
+			setIsAuthenticated(!!getSessionId());
+		});
+	}, []);
+
+	const steps = getSteps(isAuthenticated);
 
 	return (
 		<>

@@ -2,10 +2,15 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
 	AlertCircle,
 	ArrowLeft,
-	ArrowRight,
-	Banknote,
+	Briefcase,
+	Calculator,
+	Car,
+	Euro,
 	Fingerprint,
+	GraduationCap,
+	Home,
 	Loader2,
+	Percent,
 	ShieldCheck,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -15,17 +20,17 @@ import { DCApiHandler } from "@/components/auth/dc-api-handler";
 import { PollingStatus } from "@/components/auth/polling-status";
 import { QRCodeDisplay } from "@/components/auth/qr-code-display";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
 import { getSessionId } from "@/lib/auth";
 import { getStoredMode } from "@/lib/auth-helpers";
 import { cn } from "@/lib/utils";
+
+// Purpose icons mapping
+const PURPOSE_ICONS: Record<string, React.ElementType> = {
+	Car: Car,
+	"Home Improvement": Home,
+	Education: GraduationCap,
+	Other: Briefcase,
+};
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
 const client = hcWithType(SERVER_URL);
@@ -36,6 +41,7 @@ export const Route = createFileRoute("/_auth/loan/")({
 
 type FlowState =
 	| { status: "form" }
+	| { status: "review" }
 	| { status: "requesting" }
 	| {
 			status: "verifying";
@@ -44,6 +50,22 @@ type FlowState =
 			dcApiRequest?: Record<string, unknown>;
 	  }
 	| { status: "error"; message: string };
+
+// Simple interest rate for demo (5.9% APR)
+const DEMO_APR = 5.9;
+
+function calculateMonthlyPayment(
+	principal: number,
+	months: number,
+	apr: number,
+): number {
+	const monthlyRate = apr / 100 / 12;
+	if (monthlyRate === 0) return principal / months;
+	return (
+		(principal * (monthlyRate * (1 + monthlyRate) ** months)) /
+		((1 + monthlyRate) ** months - 1)
+	);
+}
 
 function LoanPage() {
 	const navigate = useNavigate();
@@ -57,9 +79,23 @@ function LoanPage() {
 	const mode = getStoredMode();
 	const isFormValid = amount && purpose && term;
 
-	// Calculate monthly payment estimate
+	// Calculate loan details
+	const loanAmount = amount ? Number(amount) : 0;
+	const loanTerm = term ? Number(term) : 0;
 	const monthlyPayment =
-		amount && term ? (Number(amount) / Number(term)).toFixed(2) : null;
+		loanAmount && loanTerm
+			? calculateMonthlyPayment(loanAmount, loanTerm, DEMO_APR)
+			: 0;
+	const totalPayment = monthlyPayment * loanTerm;
+	const totalInterest = totalPayment - loanAmount;
+
+	const handleContinue = () => {
+		setState({ status: "review" });
+	};
+
+	const handleBack = () => {
+		setState({ status: "form" });
+	};
 
 	const handleSubmit = async () => {
 		setState({ status: "requesting" });
@@ -191,124 +227,285 @@ function LoanPage() {
 
 	return (
 		<div className="min-h-[calc(100vh-4rem)] py-8 px-4 sm:px-6 lg:px-8">
-			<div className="max-w-lg mx-auto space-y-8">
+			<div className="max-w-lg mx-auto space-y-6">
 				{/* Header */}
 				<div className="flex items-center justify-between">
-					<Button asChild variant="ghost" size="sm" className="gap-2">
-						<Link to="/dashboard">
-							<ArrowLeft className="h-4 w-4" />
-							Dashboard
-						</Link>
+					<Button
+						asChild={state.status === "form"}
+						variant="ghost"
+						size="sm"
+						className="gap-2"
+						onClick={state.status === "review" ? handleBack : undefined}
+					>
+						{state.status === "form" ? (
+							<Link to="/dashboard">
+								<ArrowLeft className="h-4 w-4" />
+								Dashboard
+							</Link>
+						) : state.status === "review" ? (
+							<>
+								<ArrowLeft className="h-4 w-4" />
+								Edit
+							</>
+						) : (
+							<Link to="/dashboard">
+								<ArrowLeft className="h-4 w-4" />
+								Dashboard
+							</Link>
+						)}
 					</Button>
-					{state.status === "form" && (
-						<div className="flex items-center gap-2 text-xs text-muted-foreground">
-							<ShieldCheck className="h-4 w-4 text-primary" />
-							<span className="font-mono uppercase tracking-wider">
-								Instant Approval
-							</span>
-						</div>
-					)}
-				</div>
-
-				{/* Title */}
-				<div className="text-center space-y-2">
-					<div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-primary/10 mb-2">
-						<Banknote className="h-6 w-6 text-primary" />
+					<div className="flex items-center gap-2 text-xs text-muted-foreground">
+						<ShieldCheck className="h-4 w-4 text-primary" />
+						<span className="font-mono uppercase tracking-wider">
+							Personal Loan
+						</span>
 					</div>
-					<h1 className="text-2xl font-bold tracking-tight">
-						Apply for a Loan
-					</h1>
-					<p className="text-muted-foreground">
-						Get approved instantly with your EUDI Wallet
-					</p>
 				</div>
 
 				{/* Form state */}
 				{state.status === "form" && (
-					<div className="space-y-6">
-						{/* Loan configurator */}
-						<div className="rounded-2xl border border-border/60 bg-background p-6 space-y-5">
-							<div className="space-y-2">
-								<Label className="text-xs uppercase tracking-wider text-muted-foreground">
-									Loan Amount
-								</Label>
-								<Select value={amount} onValueChange={setAmount}>
-									<SelectTrigger className="h-12">
-										<SelectValue placeholder="Select amount" />
-									</SelectTrigger>
-									<SelectContent>
+					<>
+						{/* Loan configurator card */}
+						<div className="rounded-2xl border border-border/60 bg-background overflow-hidden">
+							<div className="p-6 space-y-6">
+								<div className="space-y-1">
+									<h1 className="text-xl font-semibold">Configure Your Loan</h1>
+									<p className="text-sm text-muted-foreground">
+										Select the loan parameters that work for you
+									</p>
+								</div>
+
+								{/* Amount selection - visual cards */}
+								<div className="space-y-3">
+									<span className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2 font-medium">
+										<Euro className="h-3.5 w-3.5" />
+										Loan Amount
+									</span>
+									<div className="grid grid-cols-2 gap-3">
 										{LOAN_AMOUNTS.map((a) => (
-											<SelectItem key={a} value={a.toString()}>
-												€{a.toLocaleString()}
-											</SelectItem>
+											<button
+												key={a}
+												type="button"
+												onClick={() => setAmount(a.toString())}
+												className={cn(
+													"relative p-4 rounded-xl border-2 text-left transition-all",
+													"hover:border-primary/40 hover:bg-primary/5",
+													amount === a.toString()
+														? "border-primary bg-primary/5 ring-2 ring-primary/20"
+														: "border-border/60 bg-background",
+												)}
+											>
+												<span className="text-xl font-bold font-mono">
+													€{a.toLocaleString()}
+												</span>
+												{amount === a.toString() && (
+													<div className="absolute top-2 right-2 h-2 w-2 rounded-full bg-primary" />
+												)}
+											</button>
 										))}
-									</SelectContent>
-								</Select>
-							</div>
-
-							<div className="space-y-2">
-								<Label className="text-xs uppercase tracking-wider text-muted-foreground">
-									Purpose
-								</Label>
-								<Select value={purpose} onValueChange={setPurpose}>
-									<SelectTrigger className="h-12">
-										<SelectValue placeholder="Select purpose" />
-									</SelectTrigger>
-									<SelectContent>
-										{LOAN_PURPOSES.map((p) => (
-											<SelectItem key={p} value={p}>
-												{p}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
-							</div>
-
-							<div className="space-y-2">
-								<Label className="text-xs uppercase tracking-wider text-muted-foreground">
-									Term
-								</Label>
-								<Select value={term} onValueChange={setTerm}>
-									<SelectTrigger className="h-12">
-										<SelectValue placeholder="Select term" />
-									</SelectTrigger>
-									<SelectContent>
-										{LOAN_TERMS.map((t) => (
-											<SelectItem key={t} value={t.toString()}>
-												{t} months
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
-							</div>
-
-							{/* Monthly estimate */}
-							{monthlyPayment && (
-								<div className="pt-4 border-t border-border/40">
-									<div className="flex justify-between items-center">
-										<span className="text-sm text-muted-foreground">
-											Est. monthly payment
-										</span>
-										<span className="text-lg font-bold font-mono">
-											€{monthlyPayment}
-										</span>
 									</div>
-									<p className="text-xs text-muted-foreground mt-1">
-										*Simplified estimate, actual rate may vary
+								</div>
+
+								{/* Purpose selection - icon cards */}
+								<div className="space-y-3">
+									<span className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2 font-medium">
+										What's it for?
+									</span>
+									<div className="grid grid-cols-2 gap-3">
+										{LOAN_PURPOSES.map((p) => {
+											const Icon = PURPOSE_ICONS[p] || Briefcase;
+											return (
+												<button
+													key={p}
+													type="button"
+													onClick={() => setPurpose(p)}
+													className={cn(
+														"relative p-4 rounded-xl border-2 text-left transition-all",
+														"hover:border-primary/40 hover:bg-primary/5",
+														"flex flex-col gap-2",
+														purpose === p
+															? "border-primary bg-primary/5 ring-2 ring-primary/20"
+															: "border-border/60 bg-background",
+													)}
+												>
+													<div
+														className={cn(
+															"h-9 w-9 rounded-lg flex items-center justify-center",
+															purpose === p
+																? "bg-primary text-primary-foreground"
+																: "bg-muted",
+														)}
+													>
+														<Icon className="h-4.5 w-4.5" />
+													</div>
+													<span className="font-medium text-sm">{p}</span>
+													{purpose === p && (
+														<div className="absolute top-2 right-2 h-2 w-2 rounded-full bg-primary" />
+													)}
+												</button>
+											);
+										})}
+									</div>
+								</div>
+
+								{/* Term selection - segmented buttons */}
+								<div className="space-y-3">
+									<span className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2 font-medium">
+										Repayment Term
+									</span>
+									<div className="flex gap-2 p-1 bg-muted/50 rounded-xl">
+										{LOAN_TERMS.map((t) => (
+											<button
+												key={t}
+												type="button"
+												onClick={() => setTerm(t.toString())}
+												className={cn(
+													"flex-1 py-3 px-2 rounded-lg font-medium text-sm transition-all",
+													term === t.toString()
+														? "bg-background text-foreground shadow-sm"
+														: "text-muted-foreground hover:text-foreground",
+												)}
+											>
+												{t} mo
+											</button>
+										))}
+									</div>
+								</div>
+							</div>
+
+							{/* Calculator preview */}
+							{isFormValid && (
+								<div className="px-6 py-4 bg-muted/30 border-t border-border/40">
+									<div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+										<Calculator className="h-4 w-4" />
+										<span className="font-medium">Estimated Payment</span>
+									</div>
+									<div className="flex items-baseline gap-1">
+										<span className="text-3xl font-bold font-mono">
+											€{monthlyPayment.toFixed(2)}
+										</span>
+										<span className="text-muted-foreground">/month</span>
+									</div>
+									<p className="text-xs text-muted-foreground mt-2">
+										{DEMO_APR}% APR representative
 									</p>
 								</div>
 							)}
 						</div>
 
 						<Button
-							onClick={handleSubmit}
-							className="w-full h-12 text-base group"
+							onClick={handleContinue}
+							className="w-full h-12 text-base"
 							disabled={!isFormValid}
 						>
-							Submit Application
-							<ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+							Review Application
 						</Button>
-					</div>
+
+						{/* Info */}
+						<div className="rounded-xl bg-primary/5 border border-primary/20 p-4">
+							<div className="flex items-start gap-3">
+								<div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+									<Fingerprint className="h-4 w-4 text-primary" />
+								</div>
+								<div className="space-y-1">
+									<p className="text-sm font-medium">Instant Decision</p>
+									<p className="text-xs text-muted-foreground leading-relaxed">
+										Your EUDI Wallet provides verified identity — no documents
+										to upload, no lengthy forms to fill.
+									</p>
+								</div>
+							</div>
+						</div>
+					</>
+				)}
+
+				{/* Review state */}
+				{state.status === "review" && (
+					<>
+						{/* Loan summary card */}
+						<div className="rounded-2xl border border-border/60 bg-background overflow-hidden">
+							<div className="p-6 space-y-4">
+								<h2 className="text-lg font-semibold">Loan Summary</h2>
+
+								{/* Principal amount - large display */}
+								<div className="py-4 text-center">
+									<p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
+										Loan Amount
+									</p>
+									<p className="text-4xl font-bold font-mono tracking-tight">
+										€{loanAmount.toLocaleString()}
+									</p>
+								</div>
+
+								{/* Details grid */}
+								<div className="grid grid-cols-2 gap-4 py-4 border-t border-border/40">
+									<div className="text-center p-3 rounded-lg bg-muted/30">
+										<p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
+											Monthly
+										</p>
+										<p className="text-xl font-bold font-mono">
+											€{monthlyPayment.toFixed(2)}
+										</p>
+									</div>
+									<div className="text-center p-3 rounded-lg bg-muted/30">
+										<p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
+											Term
+										</p>
+										<p className="text-xl font-bold font-mono">{loanTerm} mo</p>
+									</div>
+								</div>
+
+								{/* Additional details */}
+								<div className="space-y-3 pt-4 border-t border-border/40">
+									<div className="flex justify-between items-center">
+										<span className="text-sm text-muted-foreground">
+											Purpose
+										</span>
+										<span className="font-medium">{purpose}</span>
+									</div>
+									<div className="flex justify-between items-center">
+										<span className="text-sm text-muted-foreground flex items-center gap-1.5">
+											<Percent className="h-3.5 w-3.5" />
+											APR
+										</span>
+										<span className="font-medium font-mono">{DEMO_APR}%</span>
+									</div>
+									<div className="flex justify-between items-center">
+										<span className="text-sm text-muted-foreground">
+											Total Interest
+										</span>
+										<span className="font-medium font-mono">
+											€{totalInterest.toFixed(2)}
+										</span>
+									</div>
+									<div className="flex justify-between items-center pt-2 border-t border-border/40">
+										<span className="text-sm font-medium">Total Repayment</span>
+										<span className="font-bold font-mono">
+											€{totalPayment.toFixed(2)}
+										</span>
+									</div>
+								</div>
+							</div>
+
+							{/* Action area */}
+							<div className="p-6 bg-muted/30 border-t border-border/40">
+								<Button
+									onClick={handleSubmit}
+									className="w-full h-12 text-base group"
+								>
+									<Fingerprint className="mr-2 h-5 w-5" />
+									Verify & Submit
+								</Button>
+							</div>
+						</div>
+
+						{/* Terms notice */}
+						<p className="text-xs text-center text-muted-foreground">
+							By submitting, you agree to verify your identity using your EUDI
+							Wallet. Your PID credentials will be used for identity
+							verification only.
+						</p>
+					</>
 				)}
 
 				{/* Requesting state */}
@@ -327,18 +524,31 @@ function LoanPage() {
 				{state.status === "verifying" &&
 					mode === "direct_post" &&
 					state.authorizeUrl && (
-						<div className="rounded-2xl border border-border/60 bg-background p-6 space-y-4">
-							<div className="text-center mb-4">
-								<h2 className="font-semibold">Verify Your Identity</h2>
-								<p className="text-sm text-muted-foreground">
-									Scan with your EUDI Wallet to complete the application
-								</p>
+						<div className="rounded-2xl border border-border/60 bg-background overflow-hidden">
+							<div className="p-6 space-y-4">
+								<div className="text-center">
+									<h2 className="font-semibold">Verify Your Identity</h2>
+									<p className="text-sm text-muted-foreground">
+										Scan with your EUDI Wallet to complete
+									</p>
+								</div>
+
+								{/* Loan summary reminder */}
+								<div className="flex items-center justify-between py-3 px-4 bg-muted/30 rounded-lg">
+									<span className="text-sm text-muted-foreground">
+										Loan Amount
+									</span>
+									<span className="font-bold font-mono">
+										€{loanAmount.toLocaleString()}
+									</span>
+								</div>
+
+								<QRCodeDisplay url={state.authorizeUrl} />
+								<PollingStatus
+									elapsedSeconds={elapsedSeconds}
+									onCancel={handleReset}
+								/>
 							</div>
-							<QRCodeDisplay url={state.authorizeUrl} />
-							<PollingStatus
-								elapsedSeconds={elapsedSeconds}
-								onCancel={handleReset}
-							/>
 						</div>
 					)}
 
@@ -346,18 +556,31 @@ function LoanPage() {
 				{state.status === "verifying" &&
 					mode === "dc_api" &&
 					state.dcApiRequest && (
-						<div className="rounded-2xl border border-border/60 bg-background p-6">
-							<div className="text-center mb-4">
-								<h2 className="font-semibold">Verify Your Identity</h2>
-								<p className="text-sm text-muted-foreground">
-									Confirm with your browser wallet
-								</p>
+						<div className="rounded-2xl border border-border/60 bg-background overflow-hidden">
+							<div className="p-6 space-y-4">
+								<div className="text-center">
+									<h2 className="font-semibold">Verify Your Identity</h2>
+									<p className="text-sm text-muted-foreground">
+										Confirm with your browser wallet
+									</p>
+								</div>
+
+								{/* Loan summary reminder */}
+								<div className="flex items-center justify-between py-3 px-4 bg-muted/30 rounded-lg">
+									<span className="text-sm text-muted-foreground">
+										Loan Amount
+									</span>
+									<span className="font-bold font-mono">
+										€{loanAmount.toLocaleString()}
+									</span>
+								</div>
+
+								<DCApiHandler
+									dcApiRequest={state.dcApiRequest}
+									onSuccess={handleDCApiSuccess}
+									onError={(msg) => setState({ status: "error", message: msg })}
+								/>
 							</div>
-							<DCApiHandler
-								dcApiRequest={state.dcApiRequest}
-								onSuccess={handleDCApiSuccess}
-								onError={(msg) => setState({ status: "error", message: msg })}
-							/>
 						</div>
 					)}
 
@@ -376,27 +599,17 @@ function LoanPage() {
 								<p className="text-sm opacity-80">{state.message}</p>
 							</div>
 						</div>
-						<Button onClick={handleReset} variant="outline" className="w-full">
-							Try Again
-						</Button>
-					</div>
-				)}
-
-				{/* Info */}
-				{state.status === "form" && (
-					<div className="rounded-xl bg-primary/5 border border-primary/20 p-4">
-						<div className="flex items-start gap-3">
-							<div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-								<Fingerprint className="h-4 w-4 text-primary" />
-							</div>
-							<div className="space-y-1">
-								<p className="text-sm font-medium">No Documents Required</p>
-								<p className="text-xs text-muted-foreground leading-relaxed">
-									Your EUDI Wallet credential contains verified identity
-									information. No need to upload documents or fill out lengthy
-									forms.
-								</p>
-							</div>
+						<div className="flex gap-2">
+							<Button
+								onClick={() => setState({ status: "form" })}
+								variant="outline"
+								className="flex-1"
+							>
+								Start Over
+							</Button>
+							<Button onClick={handleSubmit} className="flex-1">
+								Retry
+							</Button>
 						</div>
 					</div>
 				)}
