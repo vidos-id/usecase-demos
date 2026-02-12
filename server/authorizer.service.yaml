@@ -1,5 +1,90 @@
 openapi: 3.0.2
 paths:
+  /health:
+    get:
+      tags: []
+      parameters: []
+      operationId: getHealth
+      responses:
+        "204":
+          description: "204"
+        "400":
+          description: Bad request error
+          content:
+            application/json:
+              schema:
+                description: Bad request error
+                type: object
+                properties:
+                  type:
+                    description: Error type identifier
+                    type: string
+                  message:
+                    description: User-facing error message
+                    type: string
+                  action:
+                    description: Suggested action to resolve the error
+                    type: string
+                required:
+                  - message
+        "401":
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                description: Unauthorized - authentication required
+                type: object
+                properties:
+                  type:
+                    description: Error type identifier
+                    type: string
+                  message:
+                    description: User-facing error message
+                    type: string
+                  action:
+                    description: Suggested action to resolve the error
+                    type: string
+                required:
+                  - message
+        "404":
+          description: Resource not found error
+          content:
+            application/json:
+              schema:
+                description: Resource not found error
+                type: object
+                properties:
+                  type:
+                    description: Error type identifier
+                    type: string
+                  message:
+                    description: User-facing error message
+                    type: string
+                  action:
+                    description: Suggested action to resolve the error
+                    type: string
+                required:
+                  - message
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                description: Internal server error
+                type: object
+                properties:
+                  type:
+                    description: Error type identifier
+                    type: string
+                  message:
+                    description: User-facing error message
+                    type: string
+                  action:
+                    description: Suggested action to resolve the error
+                    type: string
+                required:
+                  - message
+      security: []
   /instances/oid4vp-trust-anchor:
     get:
       description: Retrieves the X.509 certificate for the configured trust anchor of
