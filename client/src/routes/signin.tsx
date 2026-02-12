@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Loader2 } from "lucide-react";
+import { AlertCircle, Loader2, UserSearch } from "lucide-react";
 import { useEffect, useState } from "react";
 import { hcWithType } from "server/client";
 import type { PresentationMode } from "shared/types/auth";
@@ -8,7 +8,6 @@ import { DCApiHandler } from "@/components/auth/dc-api-handler";
 import { ModeSelector } from "@/components/auth/mode-selector";
 import { PollingStatus } from "@/components/auth/polling-status";
 import { QRCodeDisplay } from "@/components/auth/qr-code-display";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -475,30 +474,63 @@ function SigninPage() {
 
 				{state.status === "error" && (
 					<Card className="w-full max-w-2xl mx-auto animate-slide-up">
-						<CardContent className="p-8">
-							<Alert variant="destructive">
-								<AlertDescription>{state.message}</AlertDescription>
-							</Alert>
-							<div className="mt-6 space-y-3">
-								{state.showSignupLink ? (
-									<>
-										<p className="text-sm text-center text-muted-foreground">
-											Don't have an account yet?
+						<CardContent className="p-12">
+							{state.showSignupLink ? (
+								<div className="space-y-6 text-center">
+									<div className="flex justify-center">
+										<div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center">
+											<UserSearch className="w-12 h-12 text-muted-foreground" />
+										</div>
+									</div>
+									<div className="space-y-2">
+										<h3 className="text-2xl font-bold text-foreground">
+											Account Not Found
+										</h3>
+										<p className="text-sm text-muted-foreground max-w-md mx-auto">
+											{state.message}
 										</p>
-										<Button asChild variant="outline" className="w-full">
+									</div>
+									<div className="flex flex-col gap-3 max-w-sm mx-auto">
+										<Button
+											asChild
+											className="w-full h-12 text-base font-semibold"
+											size="lg"
+										>
 											<Link to="/signup">Create Account</Link>
 										</Button>
-									</>
-								) : (
+										<Button
+											onClick={handleCancel}
+											variant="outline"
+											className="w-full"
+										>
+											Try Again
+										</Button>
+									</div>
+								</div>
+							) : (
+								<div className="space-y-6 text-center">
+									<div className="flex justify-center">
+										<div className="w-20 h-20 rounded-full bg-destructive/10 flex items-center justify-center">
+											<AlertCircle className="w-12 h-12 text-destructive" />
+										</div>
+									</div>
+									<div className="space-y-2">
+										<h3 className="text-2xl font-bold text-foreground">
+											Something Went Wrong
+										</h3>
+										<p className="text-sm text-muted-foreground max-w-md mx-auto">
+											{state.message}
+										</p>
+									</div>
 									<Button
 										onClick={handleCancel}
 										variant="outline"
-										className="w-full"
+										className="w-full max-w-sm mx-auto"
 									>
 										Try Again
 									</Button>
-								)}
-							</div>
+								</div>
+							)}
 						</CardContent>
 					</Card>
 				)}
