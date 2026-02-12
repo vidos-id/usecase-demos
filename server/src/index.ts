@@ -5,6 +5,7 @@ import { sessionResponseSchema } from "shared/api/session";
 import { userProfileResponseSchema } from "shared/api/users-me";
 import { helloRouter } from "./routes/hello";
 import { otherRouter } from "./routes/other";
+import { paymentRouter } from "./routes/payment";
 import { signinRouter } from "./routes/signin";
 import { signupRouter } from "./routes/signup";
 import { getSessionById } from "./stores/sessions";
@@ -20,6 +21,7 @@ export const app = new Hono()
 	.route("/other", otherRouter)
 	.route("/api/signup", signupRouter)
 	.route("/api/signin", signinRouter)
+	.route("/api/payment", paymentRouter)
 	.get("/api/session", (c) => {
 		const authHeader = c.req.header("Authorization");
 		if (!authHeader?.startsWith("Bearer ")) {
