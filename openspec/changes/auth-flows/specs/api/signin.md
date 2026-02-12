@@ -7,7 +7,7 @@ The system SHALL create a Vidos authorization request for user signin with minim
 
 #### Scenario: Successful request creation with direct_post mode
 - **WHEN** client sends POST /api/signin/request with `{ mode: "direct_post" }`
-- **THEN** server creates DCQL authorization with Vidos API requesting claims: personal_administrative_number, document_number, family_name, given_name
+- **THEN** server creates DCQL authorization with Vidos API requesting claims: personal_administrative_number
 - **THEN** server returns discriminated union response `{ mode: "direct_post", requestId, authorizeUrl }`
 - **THEN** requestId is stored in pendingRequests map with associated authorizationId and mode
 
@@ -33,8 +33,8 @@ The system SHALL allow clients to poll the status of a pending signin authorizat
 #### Scenario: Authorization completed with existing user
 - **WHEN** client sends GET /api/signin/status/:requestId for completed authorization
 - **THEN** server polls Vidos API and receives authorized status
-- **THEN** server fetches verified credentials from Vidos API /credentials endpoint
-- **THEN** server matches user by identifier (personalAdministrativeNumber or documentNumber)
+- **THEN** server fetches verified credentials from Vidos API /credentials endpoint with signinClaimsSchema
+- **THEN** server matches user by personal_administrative_number
 - **THEN** server creates session with stored mode preference
 - **THEN** server deletes pending request from map
 - **THEN** server returns `{ status: "authorized", sessionId, user, mode }`
@@ -64,8 +64,8 @@ The system SHALL complete signin by processing Digital Credentials API response 
 #### Scenario: Successful DC API completion with existing user
 - **WHEN** client sends POST /api/signin/complete/:requestId with `{ origin, dcResponse }`
 - **THEN** server forwards dcResponse to Vidos API dc_api.jwt endpoint
-- **THEN** server fetches verified credentials from Vidos API /credentials endpoint
-- **THEN** server matches user by identifier
+- **THEN** server fetches verified credentials from Vidos API /credentials endpoint with signinClaimsSchema
+- **THEN** server matches user by personal_administrative_number
 - **THEN** server creates session with dc_api mode
 - **THEN** server deletes pending request from map
 - **THEN** server returns `{ sessionId, user, mode }`

@@ -7,7 +7,7 @@ The system SHALL create a Vidos authorization request for user signup with full 
 
 #### Scenario: Successful request creation with direct_post mode
 - **WHEN** client sends POST /api/signup/request with `{ mode: "direct_post" }`
-- **THEN** server creates DCQL authorization with Vidos API requesting claims: family_name, given_name, birth_date, birth_place, nationality, resident_address, personal_administrative_number, document_number, portrait
+- **THEN** server creates DCQL authorization with Vidos API requesting claims: personal_administrative_number, family_name, given_name, birthdate, place_of_birth, nationalities, document_number, picture
 - **THEN** server returns discriminated union response `{ mode: "direct_post", requestId, authorizationId, authorizeUrl }`
 - **THEN** requestId is stored in pendingRequests map with associated authorizationId and mode
 
@@ -33,8 +33,8 @@ The system SHALL allow clients to poll the status of a pending signup authorizat
 #### Scenario: Authorization completed
 - **WHEN** client sends GET /api/signup/status/:requestId for completed authorization
 - **THEN** server polls Vidos API and receives authorized status
-- **THEN** server fetches verified credentials from Vidos API /credentials endpoint
-- **THEN** server creates new user with extracted PID claims (familyName, givenName, birthDate, etc.)
+- **THEN** server fetches verified credentials from Vidos API /credentials endpoint with signupClaimsSchema
+- **THEN** server creates new user with identifier=personal_administrative_number, documentNumber (optional), family_name, given_name, birthdate, nationalities (flattened to string), place_of_birth (flattened to string), picture
 - **THEN** server creates session with stored mode preference
 - **THEN** server deletes pending request from map
 - **THEN** server returns `{ status: "authorized", sessionId, user, mode }`
@@ -57,8 +57,8 @@ The system SHALL complete signup by processing Digital Credentials API response 
 #### Scenario: Successful DC API completion
 - **WHEN** client sends POST /api/signup/complete/:requestId with `{ origin, dcResponse }`
 - **THEN** server forwards dcResponse to Vidos API dc_api.jwt endpoint
-- **THEN** server fetches verified credentials from Vidos API /credentials endpoint
-- **THEN** server creates new user with extracted PID claims
+- **THEN** server fetches verified credentials from Vidos API /credentials endpoint with signupClaimsSchema
+- **THEN** server creates new user with identifier=personal_administrative_number and other claims
 - **THEN** server creates session with dc_api mode
 - **THEN** server deletes pending request from map
 - **THEN** server returns `{ sessionId, user, mode }`

@@ -8,7 +8,7 @@ The system SHALL accept payment transaction details and create a Vidos authoriza
 #### Scenario: Create payment request with direct_post mode
 - **WHEN** authenticated user posts transaction details with session mode "direct_post"
 - **THEN** system generates transactionId immediately in format "txn-{timestamp}-{random8chars}"
-- **THEN** system creates Vidos DCQL authorization request with claims: family_name, given_name, personal_administrative_number, document_number
+- **THEN** system creates Vidos DCQL authorization request with claims: personal_administrative_number, family_name, given_name
 - **THEN** system uses purpose "Verify your identity for payment confirmation"
 - **THEN** system returns discriminated union response `{ mode: "direct_post", requestId, transactionId, authorizeUrl }`
 
@@ -27,11 +27,11 @@ The system SHALL accept payment transaction details and create a Vidos authoriza
 - **THEN** system returns 400 validation error
 
 ### Requirement: Request minimal PID claims
-The system SHALL request only family_name, given_name, personal_administrative_number, and document_number claims for payment confirmation via DCQL.
+The system SHALL request only personal_administrative_number, family_name, and given_name claims for payment confirmation via DCQL.
 
 #### Scenario: PID claims requested
 - **WHEN** system creates payment authorization request
-- **THEN** DCQL query contains credentials[0].claims with paths: ["family_name"], ["given_name"], ["personal_administrative_number"], ["document_number"]
+- **THEN** DCQL query contains credentials[0].claims with paths: ["personal_administrative_number"], ["family_name"], ["given_name"]
 
 ### Requirement: Generate unique transaction ID on request
 The system SHALL generate a unique transaction ID immediately upon payment request creation and include it in the response.
@@ -66,20 +66,20 @@ The system SHALL allow polling of payment authorization status by requestId.
 The system SHALL finalize payment after successful identity verification and validate that verified identity matches session user.
 
 #### Scenario: Complete payment with matching identity
-- **WHEN** user completes payment with credential identifier matching session user
+- **WHEN** user completes payment with credential personal_administrative_number matching session user identifier
 - **THEN** system returns transaction details with confirmedAt timestamp
-- **THEN** response includes verifiedIdentity object with familyName, givenName, identifier
+- **THEN** response includes verifiedIdentity object with familyName, givenName, identifier (personal_administrative_number)
 - **THEN** response includes transaction object with id, recipient, amount, reference, confirmedAt
 
 #### Scenario: Complete payment with mismatched identity
-- **WHEN** user completes payment with credential identifier not matching session user
+- **WHEN** user completes payment with credential personal_administrative_number not matching session user identifier
 - **THEN** system returns 403 error "Identity mismatch"
 
 #### Scenario: Complete payment in dc_api mode
 - **WHEN** client posts DC API response to complete endpoint with `{ origin, dcResponse }`
 - **THEN** system forwards dcResponse to Vidos API dc_api.jwt endpoint
-- **THEN** system fetches credentials from Vidos API /credentials endpoint
-- **THEN** system validates identity match and returns completion response
+- **THEN** system fetches credentials from Vidos API /credentials endpoint with paymentClaimsSchema
+- **THEN** system validates personal_administrative_number matches session user and returns completion response
 
 ### Requirement: Store pending payment metadata
 The system SHALL store transaction details with authorization request for retrieval on completion.

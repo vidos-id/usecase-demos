@@ -248,14 +248,14 @@ User creates a new bank account using PID credential instead of manual form entr
    - "Browser Wallet" (Digital Credentials API) - if browser supports
 5. Client calls `POST /api/signup/request` with `{ mode: "direct_post" | "dc_api" }`
 6. Server creates Vidos authorization request for:
+   - `personal_administrative_number` (mandatory - primary identifier)
    - `family_name` (mandatory)
    - `given_name` (mandatory)
-   - `birth_date` (mandatory)
-   - `nationality` (mandatory)
-   - `resident_address` or structured address fields
+   - `birthdate` (optional)
+   - `nationalities` (optional - array)
+   - `place_of_birth` (optional - object with locality/country)
    - `portrait` (optional - for profile photo)
-   - `personal_administrative_number` (optional - for unique ID)
-   - `document_number` (optional - backup identifier)
+   - `document_number` (optional - kept for reference)
 7. **If direct_post mode:**
    - Server returns `{ requestId, authorizeUrl }`
    - Client displays QR code (desktop) or "Open Wallet" button (mobile) with `authorizeUrl`
@@ -285,10 +285,7 @@ Returning user authenticates using PID credential.
 4. **Mode selection**: User chooses presentation mode (same as signup)
 5. Client calls `POST /api/signin/request` with `{ mode: "direct_post" | "dc_api" }`
 6. Server creates Vidos authorization request for minimal attributes:
-   - `personal_administrative_number` (preferred identifier)
-   - `document_number` (fallback identifier)
-   - `family_name` (for verification/display)
-   - `given_name` (for verification/display)
+   - `personal_administrative_number` (primary identifier)
 7. Flow proceeds per selected mode (same as signup)
 8. On success: Server matches user by identifier, creates session, stores mode preference
 9. If match found: Returns `{ sessionId, user, mode }`, redirect to dashboard
@@ -327,9 +324,9 @@ User initiates a transaction that requires identity confirmation.
 5. "Confirm with EUDI Wallet" button
 6. Client calls `POST /api/payment/request` with transaction details (uses session's stored mode)
 7. Server creates Vidos authorization request for identity confirmation:
+   - `personal_administrative_number`
    - `family_name`
    - `given_name`
-   - `personal_administrative_number` or `document_number`
 8. Flow proceeds per session's mode (direct_post or dc_api)
 9. On success: Show "Transaction Successful" confirmation with details
 10. Return to dashboard (balance unchanged - it's a demo)
@@ -416,7 +413,8 @@ User actions for session management and demo reset.
 // User store
 interface User {
   id: string; // UUID
-  identifier: string; // personal_administrative_number or document_number
+  identifier: string; // personal_administrative_number (primary identifier)
+  documentNumber?: string; // document_number (kept for reference)
   familyName: string;
   givenName: string;
   birthDate: string;
@@ -583,20 +581,18 @@ N/A - This is an internal demo application. Requirements derived from:
 
 **PID Attributes (from ARF PID Rulebook):**
 
-Mandatory attributes:
+Note: "Mandatory" refers to issuance requirements. At presentation time, only requested claims are returned.
 
+Attributes used in this demo:
+
+- `personal_administrative_number` - Unique national ID (primary identifier)
 - `family_name` - Current surname(s)
 - `given_name` - Current first name(s)
-- `birth_date` - Date of birth (YYYY-MM-DD)
-- `birth_place` - Country/region/locality of birth
-- `nationality` - Alpha-2 country code(s)
-
-Optional attributes used in this demo:
-
-- `resident_address` / structured address fields
+- `birthdate` - Date of birth (YYYY-MM-DD)
+- `nationalities` - Array of Alpha-2 country codes
+- `place_of_birth` - Object with locality/country fields
 - `portrait` - Facial image (JPEG, base64 in SD-JWT)
-- `personal_administrative_number` - Unique national ID
-- `document_number` - Document reference number
+- `document_number` - Document reference number (kept for reference)
 
 **Vidos Authorizer Integration:**
 

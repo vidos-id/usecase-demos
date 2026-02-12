@@ -81,26 +81,32 @@ The system SHALL forward VP token responses from Digital Credentials API to Vido
 - **THEN** system returns status from response
 
 ### Requirement: Retrieve Extracted Credentials
-The system SHALL retrieve normalized claims from completed authorizations via Vidos credentials endpoint.
+The system SHALL retrieve and validate claims from completed authorizations via Vidos credentials endpoint using a generic schema parameter.
 
-#### Scenario: Get credentials for authorized request
-- **WHEN** caller invokes getExtractedCredentials with authorization ID
+#### Scenario: Get credentials with flow-specific schema
+- **WHEN** caller invokes getExtractedCredentials with authorization ID and Zod schema
 - **THEN** system sends GET to `/openid4/vp/v1_0/authorizations/{authorizationId}/credentials`
 - **THEN** system extracts claims from first credential in response
+- **THEN** system validates claims against provided schema
+- **THEN** system returns typed claims matching schema
 
-#### Scenario: Normalize snake_case to camelCase
-- **WHEN** credential contains family_name, given_name, birth_date
-- **THEN** system returns claims with familyName, givenName, birthDate
+#### Scenario: Keep SD-JWT claim names
+- **WHEN** credential contains family_name, given_name, birthdate, nationalities, place_of_birth
+- **THEN** system returns claims with original SD-JWT names (no camelCase conversion)
+- **THEN** nationalities is array of strings
+- **THEN** place_of_birth is object with optional locality and country fields
 
-#### Scenario: Handle identifier field
-- **WHEN** credential contains personal_administrative_number
-- **THEN** system sets identifier to personal_administrative_number value
-- **WHEN** credential contains document_number but no personal_administrative_number
-- **THEN** system sets identifier to document_number value
+#### Scenario: Flow-specific schemas
+- **WHEN** signup flow requests credentials
+- **THEN** schema requires personal_administrative_number, family_name, given_name
+- **WHEN** signin flow requests credentials
+- **THEN** schema requires only personal_administrative_number
+- **WHEN** loan/payment flow requests credentials
+- **THEN** schema requires personal_administrative_number, family_name, given_name
 
-#### Scenario: Validate required claims
-- **WHEN** required claims are missing from credential
-- **THEN** system throws error with details about missing claims
+#### Scenario: Schema validation failure
+- **WHEN** claims do not match provided schema requirements
+- **THEN** system throws Zod validation error with details
 
 #### Scenario: No credentials found
 - **WHEN** credentials array is empty

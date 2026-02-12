@@ -7,13 +7,13 @@ The system SHALL provide an endpoint POST /api/loan/request that creates a Vidos
 
 #### Scenario: Create loan authorization in direct_post mode
 - **WHEN** client sends POST /api/loan/request with amount "25000", purpose "Car", term "24"
-- **THEN** system creates Vidos DCQL authorization request with claims: family_name, given_name, personal_administrative_number, document_number
+- **THEN** system creates Vidos DCQL authorization request with claims: personal_administrative_number, family_name, given_name
 - **THEN** system uses purpose "Verify your identity for loan application"
 - **THEN** system returns 200 with discriminated union response `{ mode: "direct_post", requestId, authorizeUrl }`
 
 #### Scenario: Create loan authorization in dc_api mode
 - **WHEN** client sends POST /api/loan/request with amount "50000", purpose "Education", term "36"
-- **THEN** system creates Vidos DCQL authorization request with claims: family_name, given_name, personal_administrative_number, document_number
+- **THEN** system creates Vidos DCQL authorization request with claims: personal_administrative_number, family_name, given_name
 - **THEN** system uses purpose "Verify your identity for loan application"
 - **THEN** system returns 200 with discriminated union response `{ mode: "dc_api", requestId, dcApiRequest }`
 
