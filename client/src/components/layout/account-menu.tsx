@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { LogOut, RotateCcw, User } from "lucide-react";
 import { useState } from "react";
 import { hcWithType } from "server/client";
+import { getImageDataUrl } from "shared/lib/image";
 import { toast } from "sonner";
 import { ResetConfirmation } from "@/components/dialogs/reset-confirmation";
 import { Button } from "@/components/ui/button";
@@ -77,19 +78,21 @@ export function AccountMenu() {
 		navigate({ to: "/" });
 	};
 
+	const portraitUrl = getImageDataUrl(user?.portrait);
+
 	return (
 		<>
 			<DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
 				<DropdownMenuTrigger asChild>
 					<Button variant="ghost" size="icon" className="rounded-full">
-						{user?.portrait ? (
+						{portraitUrl ? (
 							<img
-								src={`data:image/jpeg;base64,${user.portrait}`}
+								src={portraitUrl}
 								alt="Profile"
-								className="w-8 h-8 rounded-full object-cover"
+								className="size-9 rounded-full object-cover"
 							/>
 						) : user ? (
-							<div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-bold">
+							<div className="size-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-bold">
 								{user.givenName?.[0]}
 								{user.familyName?.[0]}
 							</div>

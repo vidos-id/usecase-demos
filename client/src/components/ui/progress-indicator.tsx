@@ -21,23 +21,21 @@ export function ProgressIndicator() {
 	const location = useLocation();
 	const currentStep = getJourneyStep(location.pathname);
 
-	// Don't render if step is null (dashboard, profile, etc.)
-	if (currentStep === null) {
-		return null;
-	}
-
-	const currentStepIndex = getStepIndex(currentStep);
+	// Always render, but show all steps as inactive if no journey step
+	const currentStepIndex =
+		currentStep !== null ? getStepIndex(currentStep) : -1;
 
 	return (
-		<div className="w-full bg-muted/50 border-b">
-			<div className="max-w-3xl mx-auto px-4 py-3">
+		<div className="w-full bg-background/80 backdrop-blur-sm border-t border-border/40">
+			<div className="max-w-3xl mx-auto px-4 py-2">
 				<nav aria-label="Progress">
 					<ol className="flex items-center justify-between">
 						{steps.map((step, index) => {
 							const stepIndex = getStepIndex(step.id);
 							const isCompleted = stepIndex < currentStepIndex;
 							const isCurrent = step.id === currentStep;
-							const isUpcoming = stepIndex > currentStepIndex;
+							const isUpcoming =
+								stepIndex > currentStepIndex || currentStep === null;
 
 							return (
 								<li key={step.id} className="flex items-center">
@@ -45,16 +43,16 @@ export function ProgressIndicator() {
 									<div className="flex flex-col items-center gap-1">
 										<div
 											className={cn(
-												"w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors",
-												isCompleted && "bg-primary text-primary-foreground",
+												"w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium transition-colors",
+												isCompleted && "bg-primary/70 text-primary-foreground",
 												isCurrent &&
-													"bg-primary text-primary-foreground ring-2 ring-primary ring-offset-2",
+													"bg-primary/80 text-primary-foreground ring-1 ring-primary/50 ring-offset-1",
 												isUpcoming &&
-													"bg-muted text-muted-foreground border border-muted-foreground/30",
+													"bg-muted/50 text-muted-foreground/60 border border-muted-foreground/20",
 											)}
 										>
 											{isCompleted ? (
-												<Check className="w-4 h-4" />
+												<Check className="w-3 h-3" />
 											) : (
 												<span>{index + 1}</span>
 											)}
@@ -62,10 +60,10 @@ export function ProgressIndicator() {
 										{/* Label - full on sm+, abbreviated on mobile */}
 										<span
 											className={cn(
-												"text-xs font-medium",
-												isCurrent && "text-primary",
-												isCompleted && "text-primary",
-												isUpcoming && "text-muted-foreground",
+												"text-[10px] font-medium",
+												isCurrent && "text-primary/80",
+												isCompleted && "text-primary/70",
+												isUpcoming && "text-muted-foreground/60",
 											)}
 										>
 											<span className="hidden sm:inline">{step.label}</span>
@@ -77,10 +75,10 @@ export function ProgressIndicator() {
 									{index < steps.length - 1 && (
 										<div
 											className={cn(
-												"flex-1 h-0.5 mx-2 sm:mx-4",
+												"flex-1 h-[1px] mx-2 sm:mx-4",
 												stepIndex < currentStepIndex
-													? "bg-primary"
-													: "bg-muted-foreground/30",
+													? "bg-primary/60"
+													: "bg-muted-foreground/20",
 											)}
 										/>
 									)}

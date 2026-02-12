@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { hcWithType } from "server/client";
+import { getImageDataUrl } from "shared/lib/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { getSessionId } from "@/lib/auth";
 
@@ -32,6 +33,8 @@ function ProfilePage() {
 		return <div className="flex justify-center py-12">Loading...</div>;
 	}
 
+	const portraitUrl = getImageDataUrl(user?.portrait);
+
 	return (
 		<div className="max-w-2xl mx-auto px-4 py-8 space-y-8">
 			<h1 className="text-3xl font-bold">Your Profile</h1>
@@ -40,9 +43,9 @@ function ProfilePage() {
 				<CardContent className="pt-6 space-y-6">
 					{/* Portrait / Avatar */}
 					<div className="flex justify-center">
-						{user?.portrait ? (
+						{portraitUrl ? (
 							<img
-								src={`data:image/jpeg;base64,${user.portrait}`}
+								src={portraitUrl}
 								alt="Profile"
 								className="w-24 h-24 rounded-full object-cover"
 							/>

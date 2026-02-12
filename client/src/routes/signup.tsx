@@ -1,5 +1,5 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Loader2 } from "lucide-react";
+import { createFileRoute } from "@tanstack/react-router";
+import { CheckCircle2, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { hcWithType } from "server/client";
 import type { PresentationMode } from "shared/types/auth";
@@ -16,7 +16,6 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { setSessionId } from "@/lib/auth";
 import { getStoredMode, setStoredMode } from "@/lib/auth-helpers";
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
@@ -36,11 +35,10 @@ type AuthState =
 			dcApiRequest?: Record<string, unknown>;
 	  }
 	| { status: "completing" }
-	| { status: "success" }
+	| { status: "success"; sessionId: string }
 	| { status: "error"; message: string };
 
 function SignupPage() {
-	const navigate = useNavigate();
 	const [mode, setMode] = useState<PresentationMode>(getStoredMode);
 	const [state, setState] = useState<AuthState>({ status: "idle" });
 	const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -106,10 +104,8 @@ function SignupPage() {
 
 				if (data.status === "authorized" && data.sessionId) {
 					console.log("[Signup] authorized!");
-					setSessionId(data.sessionId);
 					setStoredMode(data.mode || mode);
-					setState({ status: "success" });
-					navigate({ to: "/profile" });
+					setState({ status: "success", sessionId: data.sessionId });
 					return;
 				}
 
@@ -120,6 +116,16 @@ function SignupPage() {
 				) {
 					console.error("[Signup] verification failed:", data.status);
 					setState({ status: "error", message: `Verification ${data.status}` });
+					return;
+				}
+
+				if (data.status === "account_exists") {
+					console.log("[Signup] account already exists");
+					setState({
+						status: "error",
+						message:
+							"account_exists:An account with this identity already exists. Please sign in instead or delete your existing account first.",
+					});
 					return;
 				}
 
@@ -144,7 +150,7 @@ function SignupPage() {
 
 		poll();
 		return () => clearTimeout(timeoutId);
-	}, [state, mode, navigate]);
+	}, [state, mode]);
 
 	// DC API completion handler
 	const handleDCApiSuccess = async (response: Record<string, unknown>) => {
@@ -164,15 +170,22 @@ function SignupPage() {
 					res.status,
 					await res.text(),
 				);
+				// Check if it's account exists error
+				if (res.status === 400) {
+					setState({
+						status: "error",
+						message:
+							"account_exists:An account with this identity already exists. Please sign in instead or delete your existing account first.",
+					});
+					return;
+				}
 				throw new Error("Completion failed");
 			}
 
 			const data = await res.json();
 			console.log("[Signup] DC API complete success!");
-			setSessionId(data.sessionId);
 			setStoredMode(data.mode);
-			setState({ status: "success" });
-			navigate({ to: "/profile" });
+			setState({ status: "success", sessionId: data.sessionId });
 		} catch (err) {
 			console.error("[Signup] complete error:", err);
 			setState({
@@ -240,10 +253,46 @@ function SignupPage() {
 						</div>
 					)}
 
+					{state.status === "success" && (
+						<div className="space-y-6 text-center">
+							<div className="flex justify-center">
+								<CheckCircle2 className="w-16 h-16 text-green-600" />
+							</div>
+							<div className="space-y-2">
+								<h3 className="text-xl font-semibold text-green-700">
+									Account Created Successfully!
+								</h3>
+								<p className="text-sm text-muted-foreground">
+									Your online banking account has been created. Please sign in
+									to start using your account.
+								</p>
+							</div>
+							<Button asChild className="w-full" size="lg">
+								<a href="/signin">Sign In to Continue</a>
+							</Button>
+						</div>
+					)}
+
 					{state.status === "error" && (
 						<>
 							<Alert variant="destructive">
-								<AlertDescription>{state.message}</AlertDescription>
+								<AlertDescription>
+									{state.message.startsWith("account_exists:") ? (
+										<div className="space-y-2">
+											<p>{state.message.replace("account_exists:", "")}</p>
+											<div className="flex gap-2 mt-3">
+												<Button asChild variant="outline" size="sm">
+													<a href="/signin">Sign In</a>
+												</Button>
+												<Button asChild variant="outline" size="sm">
+													<a href="/delete-account">Delete Account</a>
+												</Button>
+											</div>
+										</div>
+									) : (
+										state.message
+									)}
+								</AlertDescription>
 							</Alert>
 							<Button
 								onClick={handleCancel}

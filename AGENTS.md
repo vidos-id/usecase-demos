@@ -10,15 +10,14 @@ JIT (Just-in-Time) packages — `shared` and `server` export `.ts` source direct
 
 ```bash
 bun install                        # install deps
-bun run dev                        # all workspaces
-bun run dev:client                 # client only
-bun run dev:server                 # server only
 bun run build                      # vite build (client only)
 bun run check-types                # tsc --noEmit across workspaces
 bun run lint                       # biome lint .
 bun run format                     # biome format . --write
 bun run test                       # run tests
 ```
+
+**DO NOT** run `bun run dev` or any variant from it unless explicitly told to do so. This will start the server in watch mode. I will run it if needed.
 
 ## Directory Structure
 

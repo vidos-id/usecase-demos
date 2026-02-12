@@ -20,7 +20,7 @@ import {
 	getPendingRequestById,
 } from "../stores/pending-auth-requests";
 import { createSession } from "../stores/sessions";
-import { createUser } from "../stores/users";
+import { createUser, getUserByIdentifier } from "../stores/users";
 
 // Signup claims for PID SD-JWT - using actual SD-JWT claim names
 const SIGNUP_CLAIMS = [
@@ -89,6 +89,18 @@ export const signupRouter = new Hono()
 				pendingRequest.vidosAuthorizationId,
 				signupClaimsSchema,
 			);
+
+			// Check if user already exists
+			const existingUser = getUserByIdentifier(
+				claims.personal_administrative_number,
+			);
+			if (existingUser) {
+				deletePendingRequest(pendingRequest.id);
+				const response = signupStatusResponseSchema.parse({
+					status: "account_exists" as const,
+				});
+				return c.json(response);
+			}
 
 			const user = createUser({
 				identifier: claims.personal_administrative_number,
@@ -162,6 +174,15 @@ export const signupRouter = new Hono()
 				pendingRequest.vidosAuthorizationId,
 				signupClaimsSchema,
 			);
+
+			// Check if user already exists
+			const existingUser = getUserByIdentifier(
+				claims.personal_administrative_number,
+			);
+			if (existingUser) {
+				deletePendingRequest(pendingRequest.id);
+				return c.json({ error: "Account already exists" }, 400);
+			}
 
 			const user = createUser({
 				identifier: claims.personal_administrative_number,

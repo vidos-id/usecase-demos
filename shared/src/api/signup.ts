@@ -25,7 +25,14 @@ export const signupRequestResponseSchema = z.discriminatedUnion("mode", [
 export type SignupRequestResponse = z.infer<typeof signupRequestResponseSchema>;
 
 export const signupStatusResponseSchema = z.object({
-	status: z.enum(["pending", "authorized", "rejected", "error", "expired"]),
+	status: z.enum([
+		"pending",
+		"authorized",
+		"rejected",
+		"error",
+		"expired",
+		"account_exists",
+	]),
 	sessionId: z.string().optional(),
 	user: z
 		.object({

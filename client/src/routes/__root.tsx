@@ -30,10 +30,10 @@ function RootLayout() {
 		<ProgressContext.Provider value={{ currentStep, setCurrentStep }}>
 			<div className="min-h-screen flex flex-col bg-background">
 				<Header />
-				<ProgressIndicator />
 				<main className="flex-1">
 					<Outlet />
 				</main>
+				<ProgressIndicator />
 			</div>
 			<TanStackRouterDevtools />
 		</ProgressContext.Provider>
