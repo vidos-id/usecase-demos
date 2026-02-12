@@ -29,7 +29,7 @@ export function Header() {
 						{/* Logo mark */}
 						<div className="relative">
 							<img
-								src="/logo.svg"
+								src="/usecase-demos/logo.svg"
 								alt="VidosDemoBank"
 								className="w-10 h-10 drop-shadow-sm group-hover:drop-shadow-md transition-all duration-300"
 							/>
