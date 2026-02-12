@@ -11,6 +11,7 @@ import {
 	Briefcase,
 	Calculator,
 	Car,
+	Clock,
 	Euro,
 	Fingerprint,
 	GraduationCap,
@@ -53,7 +54,8 @@ type FlowState =
 			requestedClaims: string[];
 			purpose: string;
 	  }
-	| { status: "error"; message: string };
+	| { status: "error"; message: string }
+	| { status: "expired" };
 
 // Simple interest rate for demo (5.9% APR)
 const DEMO_APR = 5.9;
@@ -164,11 +166,12 @@ function LoanPage() {
 					return;
 				}
 
-				if (
-					data.status === "rejected" ||
-					data.status === "error" ||
-					data.status === "expired"
-				) {
+				if (data.status === "expired") {
+					setState({ status: "expired" });
+					return;
+				}
+
+				if (data.status === "rejected" || data.status === "error") {
 					setState({ status: "error", message: `Verification ${data.status}` });
 					return;
 				}
@@ -599,6 +602,38 @@ function LoanPage() {
 							<div className="space-y-1">
 								<p className="font-medium">Application Failed</p>
 								<p className="text-sm opacity-80">{state.message}</p>
+							</div>
+						</div>
+						<div className="flex gap-2">
+							<Button
+								onClick={() => setState({ status: "form" })}
+								variant="outline"
+								className="flex-1"
+							>
+								Start Over
+							</Button>
+							<Button onClick={handleSubmit} className="flex-1">
+								Retry
+							</Button>
+						</div>
+					</div>
+				)}
+
+				{/* Expired state */}
+				{state.status === "expired" && (
+					<div className="space-y-4">
+						<div
+							className={cn(
+								"flex items-start gap-3 p-4 rounded-xl",
+								"bg-amber-500/10 border border-amber-500/20 text-amber-700",
+							)}
+						>
+							<Clock className="h-5 w-5 flex-shrink-0 mt-0.5" />
+							<div className="space-y-1">
+								<p className="font-medium">Request Expired</p>
+								<p className="text-sm opacity-80">
+									The verification request has expired. Please try again.
+								</p>
 							</div>
 						</div>
 						<div className="flex gap-2">

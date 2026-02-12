@@ -1,5 +1,5 @@
 import { createFileRoute, useRouteContext } from "@tanstack/react-router";
-import { AlertCircle, CheckCircle2, Loader2, UserX } from "lucide-react";
+import { AlertCircle, CheckCircle2, Clock, Loader2, UserX } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { PresentationMode } from "shared/types/auth";
 import { CredentialDisclosure } from "@/components/auth/credential-disclosure";
@@ -29,7 +29,8 @@ type AuthState =
 	  }
 	| { status: "completing" }
 	| { status: "success"; sessionId: string }
-	| { status: "error"; message: string };
+	| { status: "error"; message: string }
+	| { status: "expired" };
 
 function SignupPage() {
 	const { apiClient } = useRouteContext({ from: "__root__" });
@@ -105,11 +106,13 @@ function SignupPage() {
 					return;
 				}
 
-				if (
-					data.status === "rejected" ||
-					data.status === "error" ||
-					data.status === "expired"
-				) {
+				if (data.status === "expired") {
+					console.log("[Signup] request expired");
+					setState({ status: "expired" });
+					return;
+				}
+
+				if (data.status === "rejected" || data.status === "error") {
 					console.error("[Signup] verification failed:", data.status);
 					setState({ status: "error", message: `Verification ${data.status}` });
 					return;
@@ -567,6 +570,35 @@ function SignupPage() {
 									</Button>
 								</div>
 							)}
+						</CardContent>
+					</Card>
+				)}
+
+				{state.status === "expired" && (
+					<Card className="w-full max-w-2xl mx-auto animate-slide-up">
+						<CardContent className="p-12">
+							<div className="space-y-6 text-center">
+								<div className="flex justify-center">
+									<div className="w-20 h-20 rounded-full bg-amber-500/10 flex items-center justify-center">
+										<Clock className="w-12 h-12 text-amber-600" />
+									</div>
+								</div>
+								<div className="space-y-2">
+									<h3 className="text-2xl font-bold text-foreground">
+										Request Expired
+									</h3>
+									<p className="text-sm text-muted-foreground max-w-md mx-auto">
+										The verification request has expired. Please try again.
+									</p>
+								</div>
+								<Button
+									onClick={handleCancel}
+									variant="outline"
+									className="w-full max-w-sm mx-auto"
+								>
+									Try Again
+								</Button>
+							</div>
 						</CardContent>
 					</Card>
 				)}

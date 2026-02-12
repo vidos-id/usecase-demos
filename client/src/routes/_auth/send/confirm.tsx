@@ -9,6 +9,7 @@ import {
 	AlertCircle,
 	ArrowLeft,
 	CheckCircle2,
+	Clock,
 	Fingerprint,
 	Loader2,
 	ShieldCheck,
@@ -62,7 +63,8 @@ type PaymentState =
 	  }
 	| { status: "completing" }
 	| { status: "success"; transactionId: string }
-	| { status: "error"; message: string };
+	| { status: "error"; message: string }
+	| { status: "expired" };
 
 function PaymentConfirmPage() {
 	const navigate = useNavigate();
@@ -113,11 +115,12 @@ function PaymentConfirmPage() {
 					return;
 				}
 
-				if (
-					data.status === "rejected" ||
-					data.status === "error" ||
-					data.status === "expired"
-				) {
+				if (data.status === "expired") {
+					setState({ status: "expired" });
+					return;
+				}
+
+				if (data.status === "rejected" || data.status === "error") {
 					setState({ status: "error", message: `Verification ${data.status}` });
 					return;
 				}
@@ -353,6 +356,38 @@ function PaymentConfirmPage() {
 									<div className="space-y-1">
 										<p className="font-medium">Payment Failed</p>
 										<p className="text-sm opacity-80">{state.message}</p>
+									</div>
+								</div>
+								<div className="flex gap-2">
+									<Button
+										onClick={() => navigate({ to: "/send" })}
+										variant="outline"
+										className="flex-1"
+									>
+										Start Over
+									</Button>
+									<Button onClick={startPaymentVerification} className="flex-1">
+										Retry
+									</Button>
+								</div>
+							</div>
+						)}
+
+						{/* Expired State */}
+						{state.status === "expired" && (
+							<div className="space-y-4">
+								<div
+									className={cn(
+										"flex items-start gap-3 p-4 rounded-xl",
+										"bg-amber-500/10 border border-amber-500/20 text-amber-700",
+									)}
+								>
+									<Clock className="h-5 w-5 flex-shrink-0 mt-0.5" />
+									<div className="space-y-1">
+										<p className="font-medium">Request Expired</p>
+										<p className="text-sm opacity-80">
+											The verification request has expired. Please try again.
+										</p>
 									</div>
 								</div>
 								<div className="flex gap-2">
