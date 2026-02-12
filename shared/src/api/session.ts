@@ -11,3 +11,9 @@ export const sessionResponseSchema = z.discriminatedUnion("authenticated", [
 ]);
 
 export type SessionResponse = z.infer<typeof sessionResponseSchema>;
+
+export const deleteSessionResponseSchema = z.object({
+	success: z.boolean(),
+});
+
+export type DeleteSessionResponse = z.infer<typeof deleteSessionResponseSchema>;
