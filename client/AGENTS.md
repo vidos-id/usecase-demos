@@ -69,3 +69,13 @@ Modern banking aesthetic with EU Digital Identity focus. Maintain consistency wi
 - Split panels: `grid lg:grid-cols-2 gap-12` for auth pages
 - Form pages: Centered `max-w-lg mx-auto`
 - Success pages: Centered icon + large amount display
+
+## Deployment
+
+Static build deployed to GitHub Pages via GitHub Actions.
+
+```bash
+bun run build  # outputs to dist/
+```
+
+Set `VITE_VIDOS_DEMO_BANK_SERVER_URL` to the deployed server URL at build time.

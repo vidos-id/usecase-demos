@@ -25,3 +25,16 @@ src/lib/        # helpers (env, errors)
 
 - `hc` path params do not match `/` unless encoded. Use `encodeURIComponent`.
 - Bun has a 128MiB request limit; raise `Bun.serve({ maxRequestBodySize })` if needed.
+
+## Deployment
+
+Docker-based via Dokploy/Coolify. Bun runs TS directly (no build).
+
+```bash
+# From repo root
+docker build -f server/Dockerfile -t vidos-server .
+```
+
+- Build context: repo root (not `server/`)
+- Dockerfile: `server/Dockerfile`
+- Env vars: `VIDOS_AUTHORIZER_URL` (required), `VIDOS_API_KEY` (optional)
