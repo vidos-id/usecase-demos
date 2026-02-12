@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
 	AlertCircle,
@@ -69,6 +70,7 @@ function calculateMonthlyPayment(
 
 function LoanPage() {
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 	const [amount, setAmount] = useState<string>("");
 	const [purpose, setPurpose] = useState<string>("");
 	const [term, setTerm] = useState<string>("");
@@ -162,6 +164,7 @@ function LoanPage() {
 				const data = await res.json();
 
 				if (data.status === "authorized") {
+					queryClient.invalidateQueries({ queryKey: ["user", "me"] });
 					navigate({ to: "/loan/success" });
 					return;
 				}
@@ -193,7 +196,7 @@ function LoanPage() {
 
 		poll();
 		return () => clearTimeout(timeoutId);
-	}, [state, mode, navigate, sessionId]);
+	}, [state, mode, navigate, sessionId, queryClient]);
 
 	const handleDCApiSuccess = async (response: Record<string, unknown>) => {
 		if (state.status !== "verifying") return;
@@ -211,6 +214,7 @@ function LoanPage() {
 
 			if (!res.ok) throw new Error("Completion failed");
 
+			queryClient.invalidateQueries({ queryKey: ["user", "me"] });
 			navigate({ to: "/loan/success" });
 		} catch (err) {
 			setState({

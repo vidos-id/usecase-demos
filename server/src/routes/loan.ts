@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import {
@@ -20,7 +21,7 @@ import {
 	getPendingRequestById,
 } from "../stores/pending-auth-requests";
 import { getSessionById } from "../stores/sessions";
-import { getUserById } from "../stores/users";
+import { getUserById, updateUser } from "../stores/users";
 
 // Loan claims for PID SD-JWT
 const LOAN_CLAIMS = [
@@ -103,6 +104,31 @@ export const loanRouter = new Hono()
 			const loanRequestId = `loan-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 			deletePendingRequest(pendingRequest.id);
 
+			// Append loan activity and update balance + pendingLoansTotal (direct_post flow)
+			const metadata = pendingRequest.metadata as {
+				amount: string;
+				purpose: string;
+				term: string;
+			};
+			const loanAmount = Number(metadata.amount);
+			const activityItem = {
+				id: randomUUID(),
+				type: "loan" as const,
+				title: "Loan application submitted",
+				amount: loanAmount,
+				createdAt: new Date().toISOString(),
+				meta: {
+					loanAmount,
+					loanPurpose: metadata.purpose,
+					loanTerm: Number(metadata.term),
+				},
+			};
+			updateUser(user.id, {
+				balance: user.balance + loanAmount,
+				pendingLoansTotal: user.pendingLoansTotal + loanAmount,
+				activity: [activityItem, ...user.activity],
+			});
+
 			const response = loanStatusResponseSchema.parse({
 				status: "authorized" as const,
 				loanRequestId,
@@ -161,6 +187,31 @@ export const loanRouter = new Hono()
 
 			const loanRequestId = `loan-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 			deletePendingRequest(pendingRequest.id);
+
+			// Append loan activity and update balance + pendingLoansTotal
+			const metadata = pendingRequest.metadata as {
+				amount: string;
+				purpose: string;
+				term: string;
+			};
+			const loanAmount = Number(metadata.amount);
+			const activityItem = {
+				id: randomUUID(),
+				type: "loan" as const,
+				title: "Loan application submitted",
+				amount: loanAmount,
+				createdAt: new Date().toISOString(),
+				meta: {
+					loanAmount,
+					loanPurpose: metadata.purpose,
+					loanTerm: Number(metadata.term),
+				},
+			};
+			updateUser(user.id, {
+				balance: user.balance + loanAmount,
+				pendingLoansTotal: user.pendingLoansTotal + loanAmount,
+				activity: [activityItem, ...user.activity],
+			});
 
 			const response = loanCompleteResponseSchema.parse({
 				loanRequestId,

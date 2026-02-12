@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import {
@@ -20,7 +21,7 @@ import {
 	getPendingRequestById,
 } from "../stores/pending-auth-requests";
 import { getSessionById } from "../stores/sessions";
-import { getUserById } from "../stores/users";
+import { getUserById, updateUser } from "../stores/users";
 
 // Payment claims for PID SD-JWT - minimal for confirmation
 const PAYMENT_CLAIMS = [
@@ -116,6 +117,24 @@ export const paymentRouter = new Hono()
 			};
 			deletePendingRequest(pendingRequest.id);
 
+			// Append activity and update balance (direct_post flow)
+			const paymentAmount = Number(metadata.amount);
+			const activityItem = {
+				id: randomUUID(),
+				type: "payment" as const,
+				title: `Payment to ${metadata.recipient}`,
+				amount: -paymentAmount,
+				createdAt: new Date().toISOString(),
+				meta: {
+					recipient: metadata.recipient,
+					reference: metadata.reference,
+				},
+			};
+			updateUser(user.id, {
+				balance: user.balance - paymentAmount,
+				activity: [activityItem, ...user.activity],
+			});
+
 			const response = paymentStatusResponseSchema.parse({
 				status: "authorized" as const,
 				transactionId: metadata.transactionId,
@@ -182,6 +201,24 @@ export const paymentRouter = new Hono()
 			const confirmedAt = new Date().toISOString();
 
 			deletePendingRequest(pendingRequest.id);
+
+			// Append activity and update balance
+			const paymentAmount = Number(metadata.amount);
+			const activityItem = {
+				id: randomUUID(),
+				type: "payment" as const,
+				title: `Payment to ${metadata.recipient}`,
+				amount: -paymentAmount,
+				createdAt: confirmedAt,
+				meta: {
+					recipient: metadata.recipient,
+					reference: metadata.reference,
+				},
+			};
+			updateUser(user.id, {
+				balance: user.balance - paymentAmount,
+				activity: [activityItem, ...user.activity],
+			});
 
 			const response = paymentCompleteResponseSchema.parse({
 				transactionId: metadata.transactionId,

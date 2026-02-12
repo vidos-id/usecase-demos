@@ -137,11 +137,11 @@ function PaymentSuccessPage() {
 					</div>
 
 					{/* Demo notice */}
-					<div className="px-6 py-4 bg-amber-500/5 border-t border-amber-500/20">
-						<p className="text-sm text-amber-700 dark:text-amber-400">
-							<span className="font-medium">Demo Mode:</span> Your balance has
-							not been updated. In production, this payment would be processed
-							immediately.
+					<div className="px-6 py-4 bg-primary/5 border-t border-primary/20">
+						<p className="text-sm text-primary">
+							<span className="font-medium">Demo Mode:</span> Your balance and
+							activity list have been updated to reflect this payment. No real
+							funds were transferred.
 						</p>
 					</div>
 				</div>

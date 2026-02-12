@@ -60,11 +60,11 @@ function LoanSuccessPage() {
 					</div>
 
 					{/* Demo notice */}
-					<div className="px-6 py-4 bg-amber-500/5 border-t border-amber-500/20">
-						<p className="text-sm text-amber-700 dark:text-amber-400">
-							<span className="font-medium">Demo Mode:</span> This is a
-							simulated application. In production, your application would be
-							processed by our lending team.
+					<div className="px-6 py-4 bg-primary/5 border-t border-primary/20">
+						<p className="text-sm text-primary">
+							<span className="font-medium">Demo Mode:</span> Your balance and
+							pending loans have been updated for demo purposes. The loan amount
+							has been added to your activity.
 						</p>
 					</div>
 				</div>

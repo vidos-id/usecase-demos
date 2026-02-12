@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
 	AlertCircle,
@@ -62,6 +63,7 @@ type PaymentState =
 
 function PaymentConfirmPage() {
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 	const search = Route.useSearch();
 	const [state, setState] = useState<PaymentState>({ status: "idle" });
 	const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -97,6 +99,7 @@ function PaymentConfirmPage() {
 
 				if (data.status === "authorized" && data.transactionId) {
 					setState({ status: "success", transactionId: data.transactionId });
+					queryClient.invalidateQueries({ queryKey: ["user", "me"] });
 					navigate({
 						to: "/send/success",
 						search: {
@@ -137,7 +140,7 @@ function PaymentConfirmPage() {
 
 		poll();
 		return () => clearTimeout(timeoutId);
-	}, [state, mode, navigate, search]);
+	}, [state, mode, navigate, search, queryClient]);
 
 	// Redirect if no search params
 	useEffect(() => {
@@ -204,6 +207,7 @@ function PaymentConfirmPage() {
 
 			const data = await res.json();
 			setState({ status: "success", transactionId: data.transactionId });
+			queryClient.invalidateQueries({ queryKey: ["user", "me"] });
 			navigate({
 				to: "/send/success",
 				search: {

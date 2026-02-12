@@ -86,6 +86,9 @@ export const app = new Hono()
 			email: user.email,
 			address: user.address,
 			portrait: user.portrait,
+			balance: user.balance,
+			pendingLoansTotal: user.pendingLoansTotal,
+			activity: user.activity,
 		});
 		return c.json(response);
 	})
