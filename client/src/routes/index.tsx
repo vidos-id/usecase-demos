@@ -1,14 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-	ArrowRight,
-	BookOpen,
-	Fingerprint,
-	Lock,
-	Shield,
-	Smartphone,
-	Zap,
-} from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { useEffect, useState } from "react";
+import {
+	FeaturesSection,
+	PoweredByVidos,
+	TrustBadges,
+	WalletCardVisual,
+} from "@/components/landing";
 import { Button } from "@/components/ui/button";
 import { getSessionId, subscribeSession } from "@/lib/auth";
 
@@ -94,215 +92,17 @@ function LandingPage() {
 								)}
 							</div>
 
-							{/* Trust bar */}
-							<div className="flex items-center gap-6 pt-4 text-muted-foreground/70">
-								<div className="flex items-center gap-1.5">
-									<Shield className="h-4 w-4" />
-									<span className="text-sm">eIDAS 2.0</span>
-								</div>
-								<div className="flex items-center gap-1.5">
-									<Lock className="h-4 w-4" />
-									<span className="text-sm">OID4VP</span>
-								</div>
-								<div className="flex items-center gap-1.5">
-									<Zap className="h-4 w-4" />
-									<span className="text-sm">Instant KYC</span>
-								</div>
-							</div>
+							<TrustBadges />
 						</div>
 
 						{/* Right: Visual */}
-						<div className="relative lg:h-[480px] flex items-center justify-center animate-slide-in-right">
-							{/* Background decoration */}
-							<div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10 rounded-3xl" />
-							<div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-primary/10 rounded-full blur-3xl" />
-
-							{/* Card stack visualization */}
-							<div className="relative z-10 w-full max-w-sm">
-								{/* Back card - Traditional form */}
-								<div className="absolute top-8 left-4 right-4 bg-muted/50 rounded-2xl p-6 border border-border/40 rotate-[-3deg] opacity-60">
-									<div className="space-y-3">
-										<div className="h-3 w-24 bg-muted-foreground/20 rounded" />
-										<div className="h-8 w-full bg-muted-foreground/10 rounded" />
-										<div className="h-3 w-20 bg-muted-foreground/20 rounded" />
-										<div className="h-8 w-full bg-muted-foreground/10 rounded" />
-										<div className="h-3 w-28 bg-muted-foreground/20 rounded" />
-										<div className="h-8 w-full bg-muted-foreground/10 rounded" />
-									</div>
-								</div>
-
-								{/* Front card - Wallet */}
-								<div className="relative bg-gradient-to-br from-background to-muted/30 rounded-2xl p-6 border border-border shadow-2xl shadow-primary/10 rotate-[2deg]">
-									{/* Wallet header */}
-									<div className="flex items-center justify-between mb-6">
-										<div className="flex items-center gap-2">
-											<div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-												<Smartphone className="h-4 w-4 text-primary" />
-											</div>
-											<div>
-												<div className="text-sm font-semibold">
-													Digital Wallet
-												</div>
-												<div className="text-[10px] text-muted-foreground">
-													Person Identification
-												</div>
-											</div>
-										</div>
-										<div className="h-6 w-6 rounded-full bg-green-500/20 flex items-center justify-center">
-											<div className="h-2 w-2 rounded-full bg-green-500" />
-										</div>
-									</div>
-
-									{/* Credential preview */}
-									<div className="space-y-3 mb-6">
-										<div className="flex justify-between items-center py-2 border-b border-border/40">
-											<span className="text-xs text-muted-foreground">
-												Full Name
-											</span>
-											<span className="text-sm font-medium">Maria García</span>
-										</div>
-										<div className="flex justify-between items-center py-2 border-b border-border/40">
-											<span className="text-xs text-muted-foreground">
-												Date of Birth
-											</span>
-											<span className="text-sm font-medium">1990-05-15</span>
-										</div>
-										<div className="flex justify-between items-center py-2 border-b border-border/40">
-											<span className="text-xs text-muted-foreground">
-												Nationality
-											</span>
-											<span className="text-sm font-medium">Spanish</span>
-										</div>
-									</div>
-
-									{/* Action */}
-									<div className="flex items-center justify-center gap-2 py-3 bg-primary/10 rounded-lg">
-										<Fingerprint className="h-4 w-4 text-primary" />
-										<span className="text-sm font-medium text-primary">
-											Share with DemoBank
-										</span>
-									</div>
-								</div>
-							</div>
-						</div>
+						<WalletCardVisual />
 					</div>
 				</div>
 			</section>
 
-			{/* Features Section */}
-			<section className="py-16 border-t border-border/40 bg-muted/20">
-				<div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-					<div className="grid sm:grid-cols-3 gap-8">
-						<FeatureCard
-							icon={<Fingerprint className="h-5 w-5" />}
-							title="What is PID?"
-							description="Person Identification Data (PID) is the core credential in EUDI Wallets. Government-verified attributes like name, birth date, and nationality — cryptographically signed per EU standards (ISO 18013-5, SD-JWT VC)."
-						/>
-						<FeatureCard
-							icon={<Smartphone className="h-5 w-5" />}
-							title="Selective Disclosure"
-							description="Share only what's needed. Prove you're over 18 without revealing your birth date. Your credentials stay on-device — no central database, full GDPR compliance."
-						/>
-						<FeatureCard
-							icon={<Shield className="h-5 w-5" />}
-							title="eIDAS 2.0 Ready"
-							description="By Dec 2027, banks must accept EUDI Wallet credentials for Strong Customer Authentication (SCA). This demo shows how PID-based identification streamlines KYC and payments."
-						/>
-					</div>
-				</div>
-			</section>
-
-			{/* Powered by Vidos Section */}
-			<section className="py-10 border-t border-border/40 bg-muted/10">
-				<div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-					<div className="flex flex-col items-center gap-6">
-						{/* Powered by Vidos - Prominent */}
-						<a
-							href="https://vidos.id"
-							target="_blank"
-							rel="noopener noreferrer"
-							className="group flex flex-col items-center gap-2 hover:opacity-90 transition-opacity"
-						>
-							<span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
-								Verification infrastructure by
-							</span>
-							<img
-								src={"/usecase-demos/vidos-logo.svg"}
-								alt="Vidos"
-								className="h-8 dark:invert"
-							/>
-						</a>
-
-						{/* Resource Links */}
-						<div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm pt-4 border-t border-border/30 w-full max-w-xl">
-							<ResourceLink
-								href="https://vidos.id/docs"
-								icon={<BookOpen className="h-3.5 w-3.5" />}
-								label="Vidos Docs"
-							/>
-							<ResourceLink
-								href="https://authorizer.demo.vidos.id"
-								icon={<Zap className="h-3.5 w-3.5" />}
-								label="Authorizer Tester"
-							/>
-							<ResourceLink
-								href="https://eudi.dev/latest/"
-								icon={<Shield className="h-3.5 w-3.5" />}
-								label="EUDI ARF"
-							/>
-							<ResourceLink
-								href="https://eudi.dev/latest/annexes/annex-3/annex-3.01-pid-rulebook/"
-								icon={<Fingerprint className="h-3.5 w-3.5" />}
-								label="PID Rulebook"
-							/>
-						</div>
-					</div>
-				</div>
-			</section>
+			<FeaturesSection />
+			<PoweredByVidos />
 		</div>
-	);
-}
-
-function FeatureCard({
-	icon,
-	title,
-	description,
-}: {
-	icon: React.ReactNode;
-	title: string;
-	description: string;
-}) {
-	return (
-		<div className="group p-6 rounded-2xl bg-background border border-border/40 hover:border-primary/30 transition-colors duration-300">
-			<div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-4 group-hover:bg-primary/20 transition-colors duration-300">
-				{icon}
-			</div>
-			<h3 className="text-base font-semibold mb-2">{title}</h3>
-			<p className="text-sm text-muted-foreground leading-relaxed">
-				{description}
-			</p>
-		</div>
-	);
-}
-
-function ResourceLink({
-	href,
-	icon,
-	label,
-}: {
-	href: string;
-	icon: React.ReactNode;
-	label: string;
-}) {
-	return (
-		<a
-			href={href}
-			target="_blank"
-			rel="noopener noreferrer"
-			className="group flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors"
-		>
-			{icon}
-			<span className="font-medium">{label}</span>
-		</a>
 	);
 }
