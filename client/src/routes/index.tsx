@@ -101,8 +101,8 @@ function LandingPage() {
 				</div>
 			</section>
 
-			<FeaturesSection />
 			<PoweredByVidos />
+			<FeaturesSection />
 		</div>
 	);
 }
