@@ -9,7 +9,7 @@ export const Route = createFileRoute("/_auth")({
 			throw redirect({ to: "/" });
 		}
 
-		const res = await apiClient.api.session.$get({});
+		const res = await apiClient.api.auth.session.$get({});
 
 		if (!res.ok) {
 			throw redirect({ to: "/" });

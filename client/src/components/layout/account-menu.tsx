@@ -31,7 +31,7 @@ export function AccountMenu() {
 	const { data: user } = useQuery({
 		queryKey: ["user", "me"],
 		queryFn: async () => {
-			const res = await apiClient.api.users.me.$get({});
+			const res = await apiClient.api.profile.me.$get({});
 			if (!res.ok) throw new Error("Failed to fetch user");
 			return res.json();
 		},
@@ -39,7 +39,7 @@ export function AccountMenu() {
 
 	const handleSignOut = async () => {
 		try {
-			await apiClient.api.session.$delete({});
+			await apiClient.api.auth.session.$delete({});
 		} catch {
 			// Continue with local cleanup even if API fails
 		}

@@ -7,6 +7,11 @@
 			"inputs": ["**/*.yaml", "**/*.yml", "package.json"],
 			"outputs": ["src/generated/**"]
 		},
+		"db:generate": {
+			"dependsOn": ["^db:generate"],
+			"inputs": ["drizzle.config.ts", "src/db/**/*.ts", "package.json"],
+			"outputs": ["src/db/generated/**"]
+		},
 		"build": {
 			"dependsOn": ["^check-types"],
 			"inputs": [

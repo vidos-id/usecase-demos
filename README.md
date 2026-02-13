@@ -24,6 +24,8 @@ docker build -f Dockerfile.server -t vidos-server .
 docker run -p 3000:3000 \
   -e VIDOS_AUTHORIZER_URL=https://your-authorizer.com \
   -e VIDOS_API_KEY=your-key \
+  -e VIDOS_SQLITE_PATH=/data/vidos.sqlite \
+  -v /host/vidos-db:/data \
   vidos-server
 ```
 
@@ -31,7 +33,9 @@ docker run -p 3000:3000 \
 
 - Build context: repo root
 - Dockerfile: `Dockerfile.server`
-- Env vars: `VIDOS_AUTHORIZER_URL` (required), `VIDOS_API_KEY` (optional)
+- Env vars: `VIDOS_AUTHORIZER_URL` (required), `VIDOS_API_KEY` (optional), `VIDOS_SQLITE_PATH` (optional, default `./data/vidos.sqlite`)
+- If you mount SQLite to `/data`, ensure the mount is writable and keep WAL sidecars (`.sqlite-wal`, `.sqlite-shm`) in the same folder.
+- Back up the mounted DB folder atomically (or stop writes briefly) so main file and WAL sidecars stay consistent.
 
 ### Client (GitHub Pages)
 

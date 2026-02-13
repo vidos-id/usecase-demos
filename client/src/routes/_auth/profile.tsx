@@ -22,7 +22,7 @@ function ProfilePage() {
 	const { data: user, isLoading } = useQuery({
 		queryKey: ["user", "me"],
 		queryFn: async () => {
-			const res = await apiClient.api.users.me.$get({});
+			const res = await apiClient.api.profile.me.$get({});
 			if (!res.ok) throw new Error("Failed to fetch user");
 			return res.json();
 		},

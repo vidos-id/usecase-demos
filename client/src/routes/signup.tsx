@@ -48,7 +48,7 @@ function SignupPage() {
 		console.log("[Signup] starting request, mode:", mode);
 
 		try {
-			const res = await apiClient.api.signup.request.$post({ json: { mode } });
+			const res = await apiClient.api.auth.signup.request.$post({ json: { mode } });
 			if (!res.ok) {
 				console.error("[Signup] request failed:", res.status, await res.text());
 				throw new Error("Failed to create signup request");
@@ -87,7 +87,7 @@ function SignupPage() {
 
 		const poll = async () => {
 			try {
-				const res = await apiClient.api.signup.status[":requestId"].$get({
+				const res = await apiClient.api.auth.signup.status[":requestId"].$get({
 					param: { requestId: state.requestId },
 				});
 
@@ -149,7 +149,7 @@ function SignupPage() {
 
 		poll();
 		return () => clearTimeout(timeoutId);
-	}, [state, mode]);
+	}, [state, mode, apiClient]);
 
 	// DC API completion handler
 	const handleDCApiSuccess = async (response: Record<string, unknown>) => {
@@ -158,7 +158,7 @@ function SignupPage() {
 		setState({ status: "completing" });
 		console.log("[Signup] completing DC API flow");
 		try {
-			const res = await apiClient.api.signup.complete[":requestId"].$post({
+			const res = await apiClient.api.auth.signup.complete[":requestId"].$post({
 				param: { requestId: state.requestId },
 				json: { origin: window.location.origin, dcResponse: response },
 			});

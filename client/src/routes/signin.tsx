@@ -55,7 +55,7 @@ function SigninPage() {
 		console.log("[Signin] starting request, mode:", mode);
 
 		try {
-			const res = await apiClient.api.signin.request.$post({ json: { mode } });
+			const res = await apiClient.api.auth.signin.request.$post({ json: { mode } });
 
 			if (res.status === 404) {
 				console.log("[Signin] no account found");
@@ -105,7 +105,7 @@ function SigninPage() {
 
 		const poll = async () => {
 			try {
-				const res = await apiClient.api.signin.status[":requestId"].$get({
+				const res = await apiClient.api.auth.signin.status[":requestId"].$get({
 					param: { requestId: state.requestId },
 				});
 
@@ -174,7 +174,7 @@ function SigninPage() {
 
 		poll();
 		return () => clearTimeout(timeoutId);
-	}, [state, mode, navigate]);
+	}, [state, mode, navigate, apiClient]);
 
 	// DC API completion handler
 	const handleDCApiSuccess = async (response: Record<string, unknown>) => {
@@ -183,7 +183,7 @@ function SigninPage() {
 		setState({ status: "completing" });
 		console.log("[Signin] completing DC API flow");
 		try {
-			const res = await apiClient.api.signin.complete[":requestId"].$post({
+			const res = await apiClient.api.auth.signin.complete[":requestId"].$post({
 				param: { requestId: state.requestId },
 				json: { origin: window.location.origin, dcResponse: response },
 			});
