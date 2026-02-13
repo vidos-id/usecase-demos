@@ -14,12 +14,9 @@ import { paymentRouter } from "./routes/payment";
 import { signinRouter } from "./routes/signin";
 import { signupRouter } from "./routes/signup";
 import { vidosAuthorizerHealthCheck } from "./services/vidos";
-import {
-	clearAllSessions,
-	deleteSession,
-	getSessionById,
-} from "./stores/sessions";
-import { clearAllUsers, getUserById } from "./stores/users";
+
+import { deleteSession, getSessionById } from "./stores/sessions";
+import { deleteUser, getUserById } from "./stores/users";
 
 export const app = new Hono()
 	.use(cors())
@@ -105,12 +102,24 @@ export const app = new Hono()
 		return c.json(response);
 	})
 	.delete("/api/admin/reset", (c) => {
-		clearAllUsers();
-		clearAllSessions();
+		const authHeader = c.req.header("Authorization");
+		if (!authHeader?.startsWith("Bearer ")) {
+			return c.json({ error: "Unauthorized" }, 401);
+		}
+
+		const sessionId = authHeader.slice(7);
+		const session = getSessionById(sessionId);
+
+		if (!session) {
+			return c.json({ error: "Unauthorized" }, 401);
+		}
+
+		// Delete user (cascades to sessions via FK constraint)
+		deleteUser(session.userId);
 
 		const response = resetResponseSchema.parse({
 			success: true,
-			message: "Demo data has been reset",
+			message: "Your demo data has been reset",
 		});
 		return c.json(response);
 	});

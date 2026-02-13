@@ -106,6 +106,12 @@ See `Dockerfile.server` in repo root. Bun runs TS directly (no build).
 - Dockerfile: `Dockerfile.server`
 - Env vars: `VIDOS_AUTHORIZER_URL` (required), `VIDOS_API_KEY` (optional)
 
+For persistent data, mount a volume at `/app/data`:
+
+```bash
+docker run -v /host/data:/app/data -e DATABASE_PATH=/app/data/demobank.db ...
+```
+
 ### Client (GitHub Pages)
 
 Static Vite build. Set `VITE_VIDOS_DEMO_BANK_SERVER_URL` at build time.

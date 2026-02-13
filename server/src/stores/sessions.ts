@@ -1,9 +1,21 @@
 import { randomUUID } from "crypto";
-import type { Session } from "../types/session";
+import { eq } from "drizzle-orm";
+import { db } from "../db";
+import { type Session, sessions as sessionsTable } from "../db/schema";
 
-const sessions = new Map<string, Session>();
+export type { Session };
 
 const DEFAULT_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+const mapRowToSession = (row: typeof sessionsTable.$inferSelect): Session => {
+	return {
+		id: row.id,
+		userId: row.userId,
+		mode: row.mode as Session["mode"],
+		createdAt: new Date(row.createdAt),
+		expiresAt: new Date(row.expiresAt),
+	};
+};
 
 export const createSession = (
 	data: Omit<Session, "id" | "createdAt" | "expiresAt">,
@@ -16,16 +28,29 @@ export const createSession = (
 		createdAt: now,
 		expiresAt: new Date(now.getTime() + ttlMs),
 	};
-	sessions.set(session.id, session);
+
+	db.insert(sessionsTable)
+		.values({
+			id: session.id,
+			userId: session.userId,
+			mode: session.mode,
+			createdAt: session.createdAt.toISOString(),
+			expiresAt: session.expiresAt.toISOString(),
+		})
+		.run();
 	return session;
 };
 
 export const getSessionById = (id: string): Session | undefined => {
-	const session = sessions.get(id);
-	if (!session) {
+	const row = db
+		.select()
+		.from(sessionsTable)
+		.where(eq(sessionsTable.id, id))
+		.get();
+	if (!row) {
 		return undefined;
 	}
-	// Check if expired
+	const session = mapRowToSession(row);
 	if (new Date() > session.expiresAt) {
 		return undefined;
 	}
@@ -34,19 +59,29 @@ export const getSessionById = (id: string): Session | undefined => {
 
 export const getSessionsByUserId = (userId: string): Session[] => {
 	const now = new Date();
-	const result: Session[] = [];
-	for (const session of sessions.values()) {
-		if (session.userId === userId && now <= session.expiresAt) {
-			result.push(session);
-		}
-	}
-	return result;
+	const rows = db
+		.select()
+		.from(sessionsTable)
+		.where(eq(sessionsTable.userId, userId))
+		.all();
+	return rows
+		.map(mapRowToSession)
+		.filter((session) => now <= session.expiresAt);
 };
 
 export const deleteSession = (id: string): boolean => {
-	return sessions.delete(id);
+	const row = db
+		.select({ id: sessionsTable.id })
+		.from(sessionsTable)
+		.where(eq(sessionsTable.id, id))
+		.get();
+	if (!row) {
+		return false;
+	}
+	db.delete(sessionsTable).where(eq(sessionsTable.id, id)).run();
+	return true;
 };
 
 export const clearAllSessions = (): void => {
-	sessions.clear();
+	db.delete(sessionsTable).run();
 };

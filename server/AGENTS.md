@@ -38,3 +38,19 @@ docker build -f Dockerfile.server -t vidos-server .
 - Build context: repo root
 - Dockerfile: `Dockerfile.server` (in repo root)
 - Env vars: `VIDOS_AUTHORIZER_URL` (required), `VIDOS_API_KEY` (optional)
+
+## Database (SQLite + Drizzle)
+
+Schema in `src/db/schema.ts` (DB source of truth). Migrations auto-run on startup.
+
+```bash
+# From repo root:
+bun run --filter server db:generate   # after schema changes
+bun run --filter server db:studio     # GUI browser
+```
+
+- `DATABASE_PATH` env var (required) - set in `.env.local` for local dev: `./data/demobank.db`
+- Money as INTEGER cents (convert to dollars in API layer)
+- JSON columns (`activity`, `metadata`, `result`): use `$type<T>()` + Zod parse on read
+- API schemas in `shared/` are separate from DB schema (no shared->server imports)
+- `PRAGMA foreign_keys = ON` set on connection for cascades

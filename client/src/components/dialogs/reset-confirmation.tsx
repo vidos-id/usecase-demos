@@ -27,10 +27,10 @@ export function ResetConfirmation({
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
 			<AlertDialogContent>
 				<AlertDialogHeader>
-					<AlertDialogTitle>Reset Demo Data?</AlertDialogTitle>
+					<AlertDialogTitle>Reset Your Demo Data?</AlertDialogTitle>
 					<AlertDialogDescription>
-						This will remove all user accounts and sessions. You will need to
-						sign up again to continue using the demo.
+						This will remove your account and all associated data. You will need
+						to sign up again to continue using the demo.
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
@@ -46,7 +46,7 @@ export function ResetConfirmation({
 								Resetting...
 							</>
 						) : (
-							"Reset All Data"
+							"Reset My Data"
 						)}
 					</AlertDialogAction>
 				</AlertDialogFooter>

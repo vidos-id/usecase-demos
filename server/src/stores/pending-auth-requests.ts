@@ -1,24 +1,94 @@
 import { randomUUID } from "crypto";
-import type { PendingAuthRequest } from "../types/pending-auth-request";
+import { eq } from "drizzle-orm";
+import { db } from "../db";
+import {
+	type PendingAuthMetadata,
+	type PendingAuthRequest,
+	type PendingAuthResult,
+	pendingAuthMetadataSchema,
+	pendingAuthRequests as pendingAuthRequestsTable,
+	pendingAuthResultSchema,
+} from "../db/schema";
 
-const pendingAuthRequests = new Map<string, PendingAuthRequest>();
+export type { PendingAuthRequest };
 
 // Default TTL for all requests (10 minutes for signup/signin)
 const DEFAULT_REQUEST_TTL_MS = 10 * 60 * 1000;
 // Short TTL for loan/payment requests (5 minutes per spec)
 const SHORT_REQUEST_TTL_MS = 5 * 60 * 1000;
 
+type PendingAuthRow = typeof pendingAuthRequestsTable.$inferSelect;
+
+const parseMetadata = (
+	raw: PendingAuthRow["metadata"],
+): PendingAuthRequest["metadata"] => {
+	if (raw === null || raw === undefined) {
+		return undefined;
+	}
+	if (typeof raw === "string") {
+		return pendingAuthMetadataSchema.parse(JSON.parse(raw));
+	}
+	return pendingAuthMetadataSchema.parse(raw);
+};
+
+const parseResult = (
+	raw: PendingAuthRow["result"],
+): PendingAuthRequest["result"] => {
+	if (raw === null || raw === undefined) {
+		return undefined;
+	}
+	if (typeof raw === "string") {
+		return pendingAuthResultSchema.parse(JSON.parse(raw));
+	}
+	return pendingAuthResultSchema.parse(raw);
+};
+
+const mapRowToPendingAuthRequest = (
+	row: PendingAuthRow,
+): PendingAuthRequest => {
+	return {
+		id: row.id,
+		vidosAuthorizationId: row.vidosAuthorizationId,
+		type: row.type as PendingAuthRequest["type"],
+		mode: row.mode as PendingAuthRequest["mode"],
+		status: row.status as PendingAuthRequest["status"],
+		responseUrl: row.responseUrl ?? undefined,
+		metadata: parseMetadata(row.metadata),
+		createdAt: new Date(row.createdAt),
+		completedAt: row.completedAt ? new Date(row.completedAt) : undefined,
+		result: parseResult(row.result),
+	};
+};
+
 export const createPendingRequest = (
 	data: Omit<PendingAuthRequest, "id" | "status" | "createdAt">,
 ): PendingAuthRequest => {
-	const request: PendingAuthRequest = {
-		...data,
-		id: randomUUID(),
+	const id = randomUUID();
+	const createdAt = new Date();
+
+	const row: typeof pendingAuthRequestsTable.$inferInsert = {
+		id,
+		vidosAuthorizationId: data.vidosAuthorizationId,
+		type: data.type,
+		mode: data.mode,
 		status: "pending",
-		createdAt: new Date(),
+		responseUrl: data.responseUrl ?? null,
+		metadata: data.metadata
+			? (JSON.stringify(data.metadata) as unknown as PendingAuthMetadata)
+			: null,
+		createdAt: createdAt.toISOString(),
+		completedAt: null,
+		result: null,
 	};
-	pendingAuthRequests.set(request.id, request);
-	return request;
+
+	db.insert(pendingAuthRequestsTable).values(row).run();
+
+	return {
+		...data,
+		id,
+		status: "pending",
+		createdAt,
+	};
 };
 
 function getRequestTtl(type: string): number {
@@ -32,34 +102,43 @@ function getRequestTtl(type: string): number {
 export const getPendingRequestById = (
 	id: string,
 ): PendingAuthRequest | undefined => {
-	const request = pendingAuthRequests.get(id);
-	if (!request) {
+	const row = db
+		.select()
+		.from(pendingAuthRequestsTable)
+		.where(eq(pendingAuthRequestsTable.id, id))
+		.get();
+	if (!row) {
 		return undefined;
 	}
-	// Check if expired based on request type
-	const ttl = getRequestTtl(request.type);
-	if (Date.now() - request.createdAt.getTime() > ttl) {
-		pendingAuthRequests.delete(id);
+	const createdAt = new Date(row.createdAt);
+	const ttl = getRequestTtl(row.type);
+	if (Date.now() - createdAt.getTime() > ttl) {
+		updateRequestToExpired(row.id);
 		return undefined;
 	}
-	return request;
+	return mapRowToPendingAuthRequest(row);
 };
 
 export const getPendingRequestByAuthId = (
 	vidosAuthorizationId: string,
 ): PendingAuthRequest | undefined => {
-	for (const request of pendingAuthRequests.values()) {
-		if (request.vidosAuthorizationId === vidosAuthorizationId) {
-			// Check if expired based on request type
-			const ttl = getRequestTtl(request.type);
-			if (Date.now() - request.createdAt.getTime() > ttl) {
-				pendingAuthRequests.delete(request.id);
-				return undefined;
-			}
-			return request;
-		}
+	const row = db
+		.select()
+		.from(pendingAuthRequestsTable)
+		.where(
+			eq(pendingAuthRequestsTable.vidosAuthorizationId, vidosAuthorizationId),
+		)
+		.get();
+	if (!row) {
+		return undefined;
 	}
-	return undefined;
+	const createdAt = new Date(row.createdAt);
+	const ttl = getRequestTtl(row.type);
+	if (Date.now() - createdAt.getTime() > ttl) {
+		updateRequestToExpired(row.id);
+		return undefined;
+	}
+	return mapRowToPendingAuthRequest(row);
 };
 
 export const updateRequestToCompleted = (
@@ -67,53 +146,54 @@ export const updateRequestToCompleted = (
 	claims: Record<string, unknown>,
 	sessionId?: string,
 ): void => {
-	const request = pendingAuthRequests.get(id);
-	if (!request) {
-		return;
-	}
-	request.status = "completed";
-	request.completedAt = new Date();
-	request.result = {
-		claims,
-		sessionId,
-	};
-	pendingAuthRequests.set(id, request);
+	const result = { claims, sessionId };
+	db.update(pendingAuthRequestsTable)
+		.set({
+			status: "completed",
+			completedAt: new Date().toISOString(),
+			result: JSON.stringify(result) as unknown as PendingAuthResult,
+		})
+		.where(eq(pendingAuthRequestsTable.id, id))
+		.run();
 };
 
 export const updateRequestToFailed = (id: string, error: string): void => {
-	const request = pendingAuthRequests.get(id);
-	if (!request) {
-		return;
-	}
-	request.status = "failed";
-	request.completedAt = new Date();
-	request.result = {
-		claims: {},
-		error,
-	};
-	pendingAuthRequests.set(id, request);
+	const result = { claims: {}, error };
+	db.update(pendingAuthRequestsTable)
+		.set({
+			status: "failed",
+			completedAt: new Date().toISOString(),
+			result: JSON.stringify(result) as unknown as PendingAuthResult,
+		})
+		.where(eq(pendingAuthRequestsTable.id, id))
+		.run();
 };
 
 export const updateRequestToExpired = (id: string): void => {
-	const request = pendingAuthRequests.get(id);
-	if (!request) {
-		return;
-	}
-	request.status = "expired";
-	request.completedAt = new Date();
-	pendingAuthRequests.set(id, request);
+	db.update(pendingAuthRequestsTable)
+		.set({
+			status: "expired",
+			completedAt: new Date().toISOString(),
+		})
+		.where(eq(pendingAuthRequestsTable.id, id))
+		.run();
 };
 
 export const listPendingRequests = (): PendingAuthRequest[] => {
-	const result: PendingAuthRequest[] = [];
-	for (const request of pendingAuthRequests.values()) {
-		if (request.status === "pending") {
-			result.push(request);
-		}
-	}
-	return result;
+	const rows = db
+		.select()
+		.from(pendingAuthRequestsTable)
+		.where(eq(pendingAuthRequestsTable.status, "pending"))
+		.all();
+	return rows.map(mapRowToPendingAuthRequest);
 };
 
 export const deletePendingRequest = (id: string): void => {
-	pendingAuthRequests.delete(id);
+	db.delete(pendingAuthRequestsTable)
+		.where(eq(pendingAuthRequestsTable.id, id))
+		.run();
+};
+
+export const clearAllPendingRequests = (): void => {
+	db.delete(pendingAuthRequestsTable).run();
 };

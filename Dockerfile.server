@@ -8,6 +8,8 @@ COPY . .
 # Install all workspace deps (simpler than filtering)
 RUN bun install --frozen-lockfile --production
 
+RUN mkdir -p /app/data && chown bun:bun /app/data
+
 USER bun
 ENV NODE_ENV=production
 EXPOSE 3000
