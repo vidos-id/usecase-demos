@@ -62,6 +62,6 @@
 ## 9. Verification
 
 - [x] 9.1 Run `bun run check-types` - ensure no type errors
-- [ ] 9.2 Test signup/signin flows persist across server restart
-- [ ] 9.3 Test payment/loan flows update user balance and activity in database
-- [ ] 9.4 Test admin reset clears all tables
+- [x] 9.2 Test signup/signin flows persist across server restart
+- [x] 9.3 Test payment/loan flows update user balance and activity in database
+- [x] 9.4 Test admin reset clears all tables
