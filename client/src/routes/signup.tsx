@@ -349,13 +349,27 @@ function AccountExistsError({
 							<UserX className="w-12 h-12 text-amber-600" />
 						</div>
 					</div>
-					<div className="space-y-2">
+					<div className="space-y-3">
 						<h3 className="text-2xl font-bold text-foreground">
 							Account Already Exists
 						</h3>
 						<p className="text-sm text-muted-foreground max-w-md mx-auto">
 							{message}
 						</p>
+						<div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 max-w-md mx-auto text-left">
+							<p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
+								<span className="font-semibold">Why did this happen?</span> You
+								may have already signed up with this credential, or another user
+								shares the same identifier. This demo uses the personal
+								identification number from your PID credential as a unique
+								identifier — test wallets like Multipaz or shared EUDI test
+								identities often have the same value.
+							</p>
+							<p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed mt-2">
+								If this is your account, simply proceed with{" "}
+								<span className="font-semibold">Sign In</span> below.
+							</p>
+						</div>
 					</div>
 					<div className="flex flex-col gap-3 max-w-sm mx-auto">
 						<Button
