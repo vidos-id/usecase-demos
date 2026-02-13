@@ -1,4 +1,4 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
 	createFileRoute,
 	Link,
@@ -20,7 +20,7 @@ import {
 	Percent,
 	ShieldCheck,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { LOAN_AMOUNTS, LOAN_PURPOSES, LOAN_TERMS } from "shared/api/loan";
 import type { DcApiRequest } from "shared/types/auth";
 import { CredentialDisclosure } from "@/components/auth/credential-disclosure";
@@ -46,7 +46,6 @@ export const Route = createFileRoute("/_auth/loan/")({
 type FlowState =
 	| { status: "form" }
 	| { status: "review" }
-	| { status: "requesting" }
 	| {
 			status: "verifying";
 			mode: "direct_post";
@@ -90,7 +89,7 @@ function LoanPage() {
 	const [purpose, setPurpose] = useState<string>("");
 	const [term, setTerm] = useState<string>("");
 	const [state, setState] = useState<FlowState>({ status: "form" });
-	const [elapsedSeconds, setElapsedSeconds] = useState(0);
+	const [pollingStartTime] = useState(() => Date.now());
 
 	const isFormValid = amount && purpose && term;
 
@@ -112,10 +111,9 @@ function LoanPage() {
 		setState({ status: "form" });
 	};
 
-	const handleSubmit = async () => {
-		setState({ status: "requesting" });
-
-		try {
+	// Mutation for submitting loan request
+	const requestMutation = useMutation({
+		mutationFn: async () => {
 			const res = await apiClient.api.loan.request.$post({
 				json: {
 					amount: amount as "5000" | "10000" | "25000" | "50000",
@@ -130,7 +128,9 @@ function LoanPage() {
 
 			if (!res.ok) throw new Error("Failed to create loan request");
 
-			const data = await res.json();
+			return res.json();
+		},
+		onSuccess: (data) => {
 			if (data.mode === "direct_post") {
 				setState({
 					status: "verifying",
@@ -150,75 +150,78 @@ function LoanPage() {
 					purpose: data.purpose,
 				});
 			}
-		} catch (err) {
+		},
+		onError: (err) => {
 			setState({
 				status: "error",
 				message: err instanceof Error ? err.message : "Unknown error",
 			});
-		}
-	};
+		},
+	});
 
-	// Polling for direct_post mode
-	useEffect(() => {
-		if (state.status !== "verifying" || state.mode !== "direct_post") return;
+	// Polling query for direct_post mode
+	const currentRequestId =
+		state.status === "verifying" && state.mode === "direct_post"
+			? state.requestId
+			: null;
 
-		let interval = 1000;
-		const maxInterval = 5000;
-		const timeout = 5 * 60 * 1000;
-		const startTime = Date.now();
-		let timeoutId: ReturnType<typeof setTimeout>;
+	const pollingQuery = useQuery({
+		queryKey: ["loan", "status", currentRequestId, apiClient],
+		queryFn: async () => {
+			if (!currentRequestId) throw new Error("No request ID");
 
-		const poll = async () => {
-			try {
-				const res = await apiClient.api.loan.status[":requestId"].$get({
-					param: { requestId: state.requestId },
-				});
+			const res = await apiClient.api.loan.status[":requestId"].$get({
+				param: { requestId: currentRequestId },
+			});
 
-				if (!res.ok) throw new Error("Polling failed");
+			if (!res.ok) throw new Error("Polling failed");
 
-				const data = await res.json();
-
-				if (data.status === "authorized") {
-					queryClient.invalidateQueries({ queryKey: ["user", "me"] });
-					navigate({ to: "/loan/success" });
-					return;
-				}
-
-				if (data.status === "expired") {
-					setState({ status: "expired" });
-					return;
-				}
-
-				if (data.status === "rejected" || data.status === "error") {
-					setState({ status: "error", message: `Verification ${data.status}` });
-					return;
-				}
-
-				if (Date.now() - startTime > timeout) {
-					setState({ status: "error", message: "Verification timed out" });
-					return;
-				}
-
-				setElapsedSeconds(Math.floor((Date.now() - startTime) / 1000));
-				interval = Math.min(interval * 1.5, maxInterval);
-				timeoutId = setTimeout(poll, interval);
-			} catch (err) {
-				setState({
-					status: "error",
-					message: err instanceof Error ? err.message : "Polling failed",
-				});
+			return res.json();
+		},
+		enabled: !!currentRequestId,
+		refetchInterval: (query) => {
+			// Stop polling after 5 minutes
+			if (Date.now() - pollingStartTime > 5 * 60 * 1000) {
+				return false;
 			}
-		};
+			// Exponential backoff: start at 1s, max 5s
+			const count = query.state.dataUpdateCount;
+			return Math.min(1000 * 1.5 ** count, 5000);
+		},
+	});
 
-		poll();
-		return () => clearTimeout(timeoutId);
-	}, [state, navigate, queryClient, apiClient]);
+	// Handle polling results
+	if (pollingQuery.data && state.status === "verifying") {
+		const data = pollingQuery.data;
 
-	const handleDCApiSuccess = async (response: Record<string, unknown>) => {
-		if (state.status !== "verifying") return;
+		if (data.status === "authorized") {
+			queryClient.invalidateQueries({ queryKey: ["user", "me"] });
+			navigate({ to: "/loan/success" });
+		} else if (data.status === "expired") {
+			setState({ status: "expired" });
+		} else if (data.status === "rejected" || data.status === "error") {
+			setState({ status: "error", message: `Verification ${data.status}` });
+		}
+	}
 
-		const { requestId } = state;
-		try {
+	// Check for timeout
+	if (
+		state.status === "verifying" &&
+		state.mode === "direct_post" &&
+		Date.now() - pollingStartTime > 5 * 60 * 1000
+	) {
+		setState({ status: "error", message: "Verification timed out" });
+	}
+
+	// Mutation for DC API completion
+	const completeMutation = useMutation({
+		mutationFn: async ({
+			requestId,
+			response,
+		}: {
+			requestId: string;
+			response: Record<string, unknown>;
+		}) => {
 			const res = await apiClient.api.loan.complete[":requestId"].$post({
 				param: { requestId },
 				json: { origin: window.location.origin, dcResponse: response },
@@ -226,20 +229,30 @@ function LoanPage() {
 
 			if (!res.ok) throw new Error("Completion failed");
 
+			return res.json();
+		},
+		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["user", "me"] });
 			navigate({ to: "/loan/success" });
-		} catch (err) {
+		},
+		onError: (err) => {
 			setState({
 				status: "error",
 				message: err instanceof Error ? err.message : "Completion failed",
 			});
-		}
+		},
+	});
+
+	const handleDCApiSuccess = (response: Record<string, unknown>) => {
+		if (state.status !== "verifying") return;
+		completeMutation.mutate({ requestId: state.requestId, response });
 	};
 
 	const handleReset = () => {
 		setState({ status: "form" });
-		setElapsedSeconds(0);
 	};
+
+	const elapsedSeconds = Math.floor((Date.now() - pollingStartTime) / 1000);
 
 	return (
 		<div className="min-h-[calc(100vh-4rem)] py-8 px-4 sm:px-6 lg:px-8">
@@ -506,11 +519,21 @@ function LoanPage() {
 							{/* Action area */}
 							<div className="p-6 bg-muted/30 border-t border-border/40">
 								<Button
-									onClick={handleSubmit}
+									onClick={() => requestMutation.mutate()}
+									disabled={requestMutation.isPending}
 									className="w-full h-12 text-base group"
 								>
-									<Fingerprint className="mr-2 h-5 w-5" />
-									Verify & Submit
+									{requestMutation.isPending ? (
+										<>
+											<Loader2 className="mr-2 h-5 w-5 animate-spin" />
+											Creating application...
+										</>
+									) : (
+										<>
+											<Fingerprint className="mr-2 h-5 w-5" />
+											Verify & Submit
+										</>
+									)}
 								</Button>
 							</div>
 						</div>
@@ -522,18 +545,6 @@ function LoanPage() {
 							verification only.
 						</p>
 					</>
-				)}
-
-				{/* Requesting state */}
-				{state.status === "requesting" && (
-					<div className="rounded-2xl border border-border/60 bg-background p-8">
-						<div className="flex flex-col items-center gap-4">
-							<Loader2 className="h-8 w-8 animate-spin text-primary" />
-							<p className="text-muted-foreground">
-								Creating loan application...
-							</p>
-						</div>
-					</div>
 				)}
 
 				{/* Verifying state - Direct Post */}
@@ -600,6 +611,14 @@ function LoanPage() {
 								onSuccess={handleDCApiSuccess}
 								onError={(msg) => setState({ status: "error", message: msg })}
 							/>
+							{completeMutation.isPending && (
+								<div className="flex items-center justify-center gap-3 py-4">
+									<Loader2 className="h-5 w-5 animate-spin text-primary" />
+									<p className="text-muted-foreground">
+										Processing application...
+									</p>
+								</div>
+							)}
 						</div>
 					</div>
 				)}
@@ -627,8 +646,16 @@ function LoanPage() {
 							>
 								Start Over
 							</Button>
-							<Button onClick={handleSubmit} className="flex-1">
-								Retry
+							<Button
+								onClick={() => requestMutation.mutate()}
+								disabled={requestMutation.isPending}
+								className="flex-1"
+							>
+								{requestMutation.isPending ? (
+									<Loader2 className="h-4 w-4 animate-spin" />
+								) : (
+									"Retry"
+								)}
 							</Button>
 						</div>
 					</div>
@@ -659,8 +686,16 @@ function LoanPage() {
 							>
 								Start Over
 							</Button>
-							<Button onClick={handleSubmit} className="flex-1">
-								Retry
+							<Button
+								onClick={() => requestMutation.mutate()}
+								disabled={requestMutation.isPending}
+								className="flex-1"
+							>
+								{requestMutation.isPending ? (
+									<Loader2 className="h-4 w-4 animate-spin" />
+								) : (
+									"Retry"
+								)}
 							</Button>
 						</div>
 					</div>

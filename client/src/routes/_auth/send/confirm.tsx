@@ -1,4 +1,4 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
 	createFileRoute,
 	Link,
@@ -53,7 +53,6 @@ export const Route = createFileRoute("/_auth/send/confirm")({
 
 type PaymentState =
 	| { status: "idle" }
-	| { status: "requesting" }
 	| {
 			status: "awaiting_verification";
 			mode: "direct_post";
@@ -70,7 +69,6 @@ type PaymentState =
 			requestedClaims: string[];
 			purpose: string;
 	  }
-	| { status: "completing" }
 	| { status: "success"; transactionId: string }
 	| { status: "error"; message: string }
 	| { status: "expired" };
@@ -81,79 +79,7 @@ function PaymentConfirmPage() {
 	const { apiClient } = useRouteContext({ from: "__root__" });
 	const search = Route.useSearch();
 	const [state, setState] = useState<PaymentState>({ status: "idle" });
-	const [elapsedSeconds, setElapsedSeconds] = useState(0);
-
-	// Polling for direct_post mode
-	useEffect(() => {
-		if (
-			state.status !== "awaiting_verification" ||
-			state.mode !== "direct_post"
-		)
-			return;
-
-		let interval = 1000;
-		const maxInterval = 5000;
-		const timeout = 5 * 60 * 1000;
-		const startTime = Date.now();
-		let timeoutId: ReturnType<typeof setTimeout>;
-
-		const poll = async () => {
-			if (!search) return;
-
-			try {
-				const res = await apiClient.api.payment.status[":requestId"].$get({
-					param: { requestId: state.requestId },
-				});
-
-				if (!res.ok) throw new Error("Polling failed");
-
-				const data = await res.json();
-
-				if (data.status === "authorized" && data.transactionId) {
-					setState({ status: "success", transactionId: data.transactionId });
-					queryClient.invalidateQueries({ queryKey: ["user", "me"] });
-					navigate({
-						to: "/send/success",
-						search: {
-							transactionId: data.transactionId,
-							recipient: search.recipient,
-							amount: search.amount,
-							reference: search.reference,
-							confirmedAt: new Date().toISOString(),
-						},
-					});
-					return;
-				}
-
-				if (data.status === "expired") {
-					setState({ status: "expired" });
-					return;
-				}
-
-				if (data.status === "rejected" || data.status === "error") {
-					setState({ status: "error", message: `Verification ${data.status}` });
-					return;
-				}
-
-				if (Date.now() - startTime > timeout) {
-					setState({ status: "error", message: "Verification timed out" });
-					return;
-				}
-
-				setElapsedSeconds(Math.floor((Date.now() - startTime) / 1000));
-				interval = Math.min(interval * 1.5, maxInterval);
-				timeoutId = setTimeout(poll, interval);
-			} catch (err) {
-				setState({
-					status: "error",
-					message: err instanceof Error ? err.message : "Polling failed",
-				});
-			}
-		};
-
-		poll();
-		return () => clearTimeout(timeoutId);
-	}, [state, navigate, search, queryClient, apiClient]);
+	const [pollingStartTime] = useState(() => Date.now());
 
 	// Redirect if no search params
 	useEffect(() => {
@@ -162,12 +88,11 @@ function PaymentConfirmPage() {
 		}
 	}, [search, navigate]);
 
-	if (!search) return null;
+	// Mutation for starting payment verification
+	const requestMutation = useMutation({
+		mutationFn: async () => {
+			if (!search) throw new Error("No search params");
 
-	const startPaymentVerification = async () => {
-		setState({ status: "requesting" });
-
-		try {
 			const res = await apiClient.api.payment.request.$post({
 				json: {
 					recipient: search.recipient,
@@ -178,7 +103,9 @@ function PaymentConfirmPage() {
 
 			if (!res.ok) throw new Error("Failed to create payment request");
 
-			const data = await res.json();
+			return res.json();
+		},
+		onSuccess: (data) => {
 			if (data.mode === "direct_post") {
 				setState({
 					status: "awaiting_verification",
@@ -198,20 +125,88 @@ function PaymentConfirmPage() {
 					purpose: data.purpose,
 				});
 			}
-		} catch (err) {
+		},
+		onError: (err) => {
 			setState({
 				status: "error",
 				message: err instanceof Error ? err.message : "Unknown error",
 			});
+		},
+	});
+
+	// Polling query for direct_post mode
+	const currentRequestId =
+		state.status === "awaiting_verification" && state.mode === "direct_post"
+			? state.requestId
+			: null;
+
+	const pollingQuery = useQuery({
+		queryKey: ["payment", "status", currentRequestId, apiClient],
+		queryFn: async () => {
+			if (!currentRequestId) throw new Error("No request ID");
+
+			const res = await apiClient.api.payment.status[":requestId"].$get({
+				param: { requestId: currentRequestId },
+			});
+
+			if (!res.ok) throw new Error("Polling failed");
+
+			return res.json();
+		},
+		enabled: !!currentRequestId,
+		refetchInterval: (query) => {
+			// Stop polling after 5 minutes
+			if (Date.now() - pollingStartTime > 5 * 60 * 1000) {
+				return false;
+			}
+			// Exponential backoff: start at 1s, max 5s
+			const count = query.state.dataUpdateCount;
+			return Math.min(1000 * 1.5 ** count, 5000);
+		},
+	});
+
+	// Handle polling results
+	if (pollingQuery.data && state.status === "awaiting_verification" && search) {
+		const data = pollingQuery.data;
+
+		if (data.status === "authorized" && data.transactionId) {
+			setState({ status: "success", transactionId: data.transactionId });
+			queryClient.invalidateQueries({ queryKey: ["user", "me"] });
+			navigate({
+				to: "/send/success",
+				search: {
+					transactionId: data.transactionId,
+					recipient: search.recipient,
+					amount: search.amount,
+					reference: search.reference,
+					confirmedAt: new Date().toISOString(),
+				},
+			});
+		} else if (data.status === "expired") {
+			setState({ status: "expired" });
+		} else if (data.status === "rejected" || data.status === "error") {
+			setState({ status: "error", message: `Verification ${data.status}` });
 		}
-	};
+	}
 
-	const handleDCApiSuccess = async (response: Record<string, unknown>) => {
-		if (state.status !== "awaiting_verification") return;
+	// Check for timeout
+	if (
+		state.status === "awaiting_verification" &&
+		state.mode === "direct_post" &&
+		Date.now() - pollingStartTime > 5 * 60 * 1000
+	) {
+		setState({ status: "error", message: "Verification timed out" });
+	}
 
-		const { requestId } = state;
-		setState({ status: "completing" });
-		try {
+	// Mutation for DC API completion
+	const completeMutation = useMutation({
+		mutationFn: async ({
+			requestId,
+			response,
+		}: {
+			requestId: string;
+			response: Record<string, unknown>;
+		}) => {
 			const res = await apiClient.api.payment.complete[":requestId"].$post({
 				param: { requestId },
 				json: { origin: window.location.origin, dcResponse: response },
@@ -219,7 +214,9 @@ function PaymentConfirmPage() {
 
 			if (!res.ok) throw new Error("Completion failed");
 
-			const data = await res.json();
+			return res.json();
+		},
+		onSuccess: (data) => {
 			setState({ status: "success", transactionId: data.transactionId });
 			queryClient.invalidateQueries({ queryKey: ["user", "me"] });
 			navigate({
@@ -232,12 +229,18 @@ function PaymentConfirmPage() {
 					confirmedAt: data.confirmedAt,
 				},
 			});
-		} catch (err) {
+		},
+		onError: (err) => {
 			setState({
 				status: "error",
 				message: err instanceof Error ? err.message : "Completion failed",
 			});
-		}
+		},
+	});
+
+	const handleDCApiSuccess = (response: Record<string, unknown>) => {
+		if (state.status !== "awaiting_verification") return;
+		completeMutation.mutate({ requestId: state.requestId, response });
 	};
 
 	const handleDCApiError = (error: string) => {
@@ -247,6 +250,10 @@ function PaymentConfirmPage() {
 	const handleCancel = () => {
 		setState({ status: "idle" });
 	};
+
+	if (!search) return null;
+
+	const elapsedSeconds = Math.floor((Date.now() - pollingStartTime) / 1000);
 
 	return (
 		<div className="min-h-[calc(100vh-4rem)] py-8 px-4 sm:px-6 lg:px-8">
@@ -304,22 +311,22 @@ function PaymentConfirmPage() {
 						{/* Idle State */}
 						{state.status === "idle" && (
 							<Button
-								onClick={startPaymentVerification}
+								onClick={() => requestMutation.mutate()}
+								disabled={requestMutation.isPending}
 								className="w-full h-12 text-base group"
 							>
-								<Fingerprint className="mr-2 h-5 w-5" />
-								Verify with Wallet
+								{requestMutation.isPending ? (
+									<>
+										<Loader2 className="mr-2 h-5 w-5 animate-spin" />
+										Creating request...
+									</>
+								) : (
+									<>
+										<Fingerprint className="mr-2 h-5 w-5" />
+										Verify with Wallet
+									</>
+								)}
 							</Button>
-						)}
-
-						{/* Requesting State */}
-						{state.status === "requesting" && (
-							<div className="flex items-center justify-center gap-3 py-4">
-								<Loader2 className="h-5 w-5 animate-spin text-primary" />
-								<p className="text-muted-foreground">
-									Creating payment request...
-								</p>
-							</div>
 						)}
 
 						{/* Awaiting Verification - Direct Post Mode */}
@@ -351,16 +358,16 @@ function PaymentConfirmPage() {
 										onSuccess={handleDCApiSuccess}
 										onError={handleDCApiError}
 									/>
+									{completeMutation.isPending && (
+										<div className="flex items-center justify-center gap-3 py-4">
+											<Loader2 className="h-5 w-5 animate-spin text-primary" />
+											<p className="text-muted-foreground">
+												Processing payment...
+											</p>
+										</div>
+									)}
 								</div>
 							)}
-
-						{/* Completing State */}
-						{state.status === "completing" && (
-							<div className="flex items-center justify-center gap-3 py-4">
-								<Loader2 className="h-5 w-5 animate-spin text-primary" />
-								<p className="text-muted-foreground">Processing payment...</p>
-							</div>
-						)}
 
 						{/* Error State */}
 						{state.status === "error" && (
@@ -385,8 +392,16 @@ function PaymentConfirmPage() {
 									>
 										Start Over
 									</Button>
-									<Button onClick={startPaymentVerification} className="flex-1">
-										Retry
+									<Button
+										onClick={() => requestMutation.mutate()}
+										disabled={requestMutation.isPending}
+										className="flex-1"
+									>
+										{requestMutation.isPending ? (
+											<Loader2 className="h-4 w-4 animate-spin" />
+										) : (
+											"Retry"
+										)}
 									</Button>
 								</div>
 							</div>
@@ -417,8 +432,16 @@ function PaymentConfirmPage() {
 									>
 										Start Over
 									</Button>
-									<Button onClick={startPaymentVerification} className="flex-1">
-										Retry
+									<Button
+										onClick={() => requestMutation.mutate()}
+										disabled={requestMutation.isPending}
+										className="flex-1"
+									>
+										{requestMutation.isPending ? (
+											<Loader2 className="h-4 w-4 animate-spin" />
+										) : (
+											"Retry"
+										)}
 									</Button>
 								</div>
 							</div>

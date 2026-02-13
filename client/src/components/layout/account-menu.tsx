@@ -1,7 +1,8 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useRouteContext } from "@tanstack/react-router";
 import {
 	ChevronDown,
+	Loader2,
 	LogOut,
 	RotateCcw,
 	ShieldCheck,
@@ -37,15 +38,45 @@ export function AccountMenu() {
 		},
 	});
 
-	const handleSignOut = async () => {
-		try {
+	// Mutation for sign out
+	const signOutMutation = useMutation({
+		mutationFn: async () => {
 			await apiClient.api.session.$delete({});
-		} catch {
-			// Continue with local cleanup even if API fails
-		}
-		clearSession();
-		queryClient.clear();
-		navigate({ to: "/" });
+		},
+		onSettled: () => {
+			// Always clear local state, even if API fails
+			clearSession();
+			queryClient.clear();
+			navigate({ to: "/" });
+		},
+	});
+
+	// Mutation for reset demo data
+	const resetMutation = useMutation({
+		mutationFn: async () => {
+			const res = await apiClient.api.admin.reset.$delete({});
+			if (res.ok) {
+				const data = await res.json();
+				return data;
+			}
+			throw new Error("Failed to reset demo data");
+		},
+		onSuccess: (data) => {
+			toast.success(data.message);
+		},
+		onError: () => {
+			toast.error("Failed to reset demo data");
+		},
+		onSettled: () => {
+			clearSession();
+			queryClient.clear();
+			setResetDialogOpen(false);
+			navigate({ to: "/" });
+		},
+	});
+
+	const handleSignOut = () => {
+		signOutMutation.mutate();
 	};
 
 	const handleResetClick = () => {
@@ -53,20 +84,8 @@ export function AccountMenu() {
 		setResetDialogOpen(true);
 	};
 
-	const handleResetConfirm = async () => {
-		try {
-			const res = await apiClient.api.admin.reset.$delete({});
-			if (res.ok) {
-				const data = await res.json();
-				toast.success(data.message);
-			}
-		} catch {
-			toast.error("Failed to reset demo data");
-		}
-		clearSession();
-		queryClient.clear();
-		setResetDialogOpen(false);
-		navigate({ to: "/" });
+	const handleResetConfirm = () => {
+		resetMutation.mutate();
 	};
 
 	const portraitUrl = getImageDataUrl(user?.portrait);
@@ -128,8 +147,16 @@ export function AccountMenu() {
 					)}
 
 					{/* Menu items */}
-					<DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
-						<LogOut className="mr-2 h-4 w-4" />
+					<DropdownMenuItem
+						onClick={handleSignOut}
+						disabled={signOutMutation.isPending}
+						className="cursor-pointer"
+					>
+						{signOutMutation.isPending ? (
+							<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+						) : (
+							<LogOut className="mr-2 h-4 w-4" />
+						)}
 						Sign Out
 					</DropdownMenuItem>
 
@@ -149,6 +176,7 @@ export function AccountMenu() {
 				open={resetDialogOpen}
 				onOpenChange={setResetDialogOpen}
 				onConfirm={handleResetConfirm}
+				isPending={resetMutation.isPending}
 			/>
 		</>
 	);

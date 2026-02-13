@@ -1,3 +1,4 @@
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
 	createFileRoute,
 	Link,
@@ -5,7 +6,7 @@ import {
 	useRouteContext,
 } from "@tanstack/react-router";
 import { AlertCircle, Clock, Loader2, UserSearch } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { DcApiRequest, PresentationMode } from "shared/types/auth";
 import { CredentialDisclosure } from "@/components/auth/credential-disclosure";
 import { DCApiHandler } from "@/components/auth/dc-api-handler";
@@ -24,7 +25,6 @@ export const Route = createFileRoute("/signin")({
 
 type AuthState =
 	| { status: "idle" }
-	| { status: "requesting" }
 	| {
 			status: "awaiting_verification";
 			mode: "direct_post";
@@ -41,7 +41,6 @@ type AuthState =
 			requestedClaims: string[];
 			purpose: string;
 	  }
-	| { status: "completing" }
 	| { status: "success" }
 	| { status: "error"; message: string; showSignupLink?: boolean }
 	| { status: "expired" };
@@ -51,36 +50,29 @@ function SigninPage() {
 	const { apiClient } = useRouteContext({ from: "__root__" });
 	const [mode, setMode] = useState<PresentationMode>(getStoredMode);
 	const [state, setState] = useState<AuthState>({ status: "idle" });
-	const [elapsedSeconds, setElapsedSeconds] = useState(0);
+	const [pollingStartTime] = useState(() => Date.now());
 
 	const handleModeChange = (newMode: PresentationMode) => {
 		setMode(newMode);
 		setStoredMode(newMode);
 	};
 
-	const startSignin = async () => {
-		setState({ status: "requesting" });
-		console.log("[Signin] starting request, mode:", mode);
-
-		try {
+	// Mutation for starting signin request
+	const requestMutation = useMutation({
+		mutationFn: async () => {
 			const res = await apiClient.api.signin.request.$post({ json: { mode } });
 
 			if (res.status === 404) {
-				console.log("[Signin] no account found");
-				setState({
-					status: "error",
-					message: "No account found with this identity.",
-					showSignupLink: true,
-				});
-				return;
+				throw { type: "not_found" as const };
 			}
 
 			if (!res.ok) {
-				console.error("[Signin] request failed:", res.status, await res.text());
 				throw new Error("Failed to create signin request");
 			}
 
-			const data = await res.json();
+			return res.json();
+		},
+		onSuccess: (data) => {
 			console.log("[Signin] request created:", data.requestId);
 			if (data.mode === "direct_post") {
 				setState({
@@ -101,153 +93,161 @@ function SigninPage() {
 					purpose: data.purpose,
 				});
 			}
-		} catch (err) {
+		},
+		onError: (err) => {
 			console.error("[Signin] error:", err);
-			setState({
-				status: "error",
-				message: err instanceof Error ? err.message : "Unknown error",
-			});
-		}
-	};
-
-	// Polling for direct_post mode
-	useEffect(() => {
-		if (
-			state.status !== "awaiting_verification" ||
-			state.mode !== "direct_post"
-		)
-			return;
-
-		let interval = 1000;
-		const maxInterval = 5000;
-		const timeout = 5 * 60 * 1000;
-		const startTime = Date.now();
-		let timeoutId: ReturnType<typeof setTimeout>;
-
-		const poll = async () => {
-			try {
-				const res = await apiClient.api.signin.status[":requestId"].$get({
-					param: { requestId: state.requestId },
-				});
-
-				if (!res.ok) {
-					console.error("[Signin] poll failed:", res.status, await res.text());
-					throw new Error("Polling failed");
-				}
-
-				const data = await res.json();
-				console.log("[Signin] poll status:", data.status);
-
-				if (data.status === "authorized" && data.sessionId) {
-					console.log("[Signin] authorized!");
-					setSessionId(data.sessionId);
-					setStoredMode(data.mode || mode);
-					setState({ status: "success" });
-					navigate({ to: "/dashboard" });
-					return;
-				}
-
-				if (data.status === "not_found") {
-					console.error("[Signin] no account found");
-					setState({
-						status: "error",
-						message:
-							data.error ||
-							"No account found with this identity. Please sign up.",
-						showSignupLink: true,
-					});
-					return;
-				}
-
-				if (data.status === "expired") {
-					console.log("[Signin] request expired");
-					setState({ status: "expired" });
-					return;
-				}
-
-				if (data.status === "rejected" || data.status === "error") {
-					console.error("[Signin] verification failed:", data.status);
-					setState({
-						status: "error",
-						message: data.error || `Verification ${data.status}`,
-					});
-					return;
-				}
-
-				// Check timeout
-				if (Date.now() - startTime > timeout) {
-					console.error("[Signin] timed out");
-					setState({ status: "error", message: "Verification timed out" });
-					return;
-				}
-
-				setElapsedSeconds(Math.floor((Date.now() - startTime) / 1000));
-				interval = Math.min(interval * 1.5, maxInterval);
-				timeoutId = setTimeout(poll, interval);
-			} catch (err) {
-				console.error("[Signin] poll error:", err);
+			if (
+				err &&
+				typeof err === "object" &&
+				"type" in err &&
+				err.type === "not_found"
+			) {
 				setState({
 					status: "error",
-					message: err instanceof Error ? err.message : "Polling failed",
+					message: "No account found with this identity.",
+					showSignupLink: true,
+				});
+			} else {
+				setState({
+					status: "error",
+					message: err instanceof Error ? err.message : "Unknown error",
 				});
 			}
-		};
+		},
+	});
 
-		poll();
-		return () => clearTimeout(timeoutId);
-	}, [state, mode, navigate]);
+	// Polling query for direct_post mode
+	const currentRequestId =
+		state.status === "awaiting_verification" && state.mode === "direct_post"
+			? state.requestId
+			: null;
 
-	// DC API completion handler
-	const handleDCApiSuccess = async (response: Record<string, unknown>) => {
-		if (state.status !== "awaiting_verification") return;
+	const pollingQuery = useQuery({
+		queryKey: ["signin", "status", currentRequestId],
+		queryFn: async () => {
+			if (!currentRequestId) throw new Error("No request ID");
 
-		const { requestId } = state;
-		setState({ status: "completing" });
-		console.log("[Signin] completing DC API flow");
-		try {
+			const res = await apiClient.api.signin.status[":requestId"].$get({
+				param: { requestId: currentRequestId },
+			});
+
+			if (!res.ok) {
+				throw new Error("Polling failed");
+			}
+
+			return res.json();
+		},
+		enabled: !!currentRequestId,
+		refetchInterval: (query) => {
+			// Stop polling after 5 minutes
+			if (Date.now() - pollingStartTime > 5 * 60 * 1000) {
+				return false;
+			}
+			// Exponential backoff: start at 1s, max 5s
+			const count = query.state.dataUpdateCount;
+			return Math.min(1000 * 1.5 ** count, 5000);
+		},
+	});
+
+	// Handle polling results
+	if (pollingQuery.data && state.status === "awaiting_verification") {
+		const data = pollingQuery.data;
+
+		if (data.status === "authorized" && data.sessionId) {
+			console.log("[Signin] authorized!");
+			setSessionId(data.sessionId);
+			setStoredMode(data.mode || mode);
+			setState({ status: "success" });
+			navigate({ to: "/dashboard" });
+		} else if (data.status === "not_found") {
+			setState({
+				status: "error",
+				message:
+					data.error || "No account found with this identity. Please sign up.",
+				showSignupLink: true,
+			});
+		} else if (data.status === "expired") {
+			setState({ status: "expired" });
+		} else if (data.status === "rejected" || data.status === "error") {
+			setState({
+				status: "error",
+				message: data.error || `Verification ${data.status}`,
+			});
+		}
+	}
+
+	// Check for timeout
+	if (
+		state.status === "awaiting_verification" &&
+		state.mode === "direct_post" &&
+		Date.now() - pollingStartTime > 5 * 60 * 1000
+	) {
+		setState({ status: "error", message: "Verification timed out" });
+	}
+
+	// Mutation for DC API completion
+	const completeMutation = useMutation({
+		mutationFn: async ({
+			requestId,
+			response,
+		}: {
+			requestId: string;
+			response: Record<string, unknown>;
+		}) => {
 			const res = await apiClient.api.signin.complete[":requestId"].$post({
 				param: { requestId },
 				json: { origin: window.location.origin, dcResponse: response },
 			});
 
 			if (res.status === 404) {
-				console.log("[Signin] no account found on complete");
-				setState({
-					status: "error",
-					message: "No account found with this identity.",
-					showSignupLink: true,
-				});
-				return;
+				throw { type: "not_found" as const };
 			}
 
 			if (!res.ok) {
-				console.error(
-					"[Signin] complete failed:",
-					res.status,
-					await res.text(),
-				);
 				throw new Error("Completion failed");
 			}
 
-			const data = await res.json();
+			return res.json();
+		},
+		onSuccess: (data) => {
 			console.log("[Signin] DC API complete success!");
 			setSessionId(data.sessionId);
 			setStoredMode(data.mode);
 			setState({ status: "success" });
 			navigate({ to: "/dashboard" });
-		} catch (err) {
+		},
+		onError: (err) => {
 			console.error("[Signin] complete error:", err);
-			setState({
-				status: "error",
-				message: err instanceof Error ? err.message : "Completion failed",
-			});
-		}
+			if (
+				err &&
+				typeof err === "object" &&
+				"type" in err &&
+				err.type === "not_found"
+			) {
+				setState({
+					status: "error",
+					message: "No account found with this identity.",
+					showSignupLink: true,
+				});
+			} else {
+				setState({
+					status: "error",
+					message: err instanceof Error ? err.message : "Completion failed",
+				});
+			}
+		},
+	});
+
+	const handleDCApiSuccess = (response: Record<string, unknown>) => {
+		if (state.status !== "awaiting_verification") return;
+		completeMutation.mutate({ requestId: state.requestId, response });
 	};
 
 	const handleCancel = () => {
 		setState({ status: "idle" });
-		setElapsedSeconds(0);
 	};
+
+	const elapsedSeconds = Math.floor((Date.now() - pollingStartTime) / 1000);
 
 	return (
 		<div className="min-h-screen flex items-center justify-center p-4 lg:p-8">
@@ -411,11 +411,19 @@ function SigninPage() {
 									<div className="pt-6 space-y-4">
 										<ModeSelector value={mode} onChange={handleModeChange} />
 										<Button
-											onClick={startSignin}
+											onClick={() => requestMutation.mutate()}
+											disabled={requestMutation.isPending}
 											className="w-full h-12 text-base font-semibold shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300"
 											size="lg"
 										>
-											Continue with Wallet →
+											{requestMutation.isPending ? (
+												<>
+													<Loader2 className="mr-2 h-5 w-5 animate-spin" />
+													Creating request...
+												</>
+											) : (
+												"Continue with Wallet →"
+											)}
 										</Button>
 									</div>
 								</div>
@@ -435,19 +443,6 @@ function SigninPage() {
 							</div>
 						</div>
 					</div>
-				)}
-
-				{state.status === "requesting" && (
-					<Card className="w-full max-w-2xl mx-auto animate-fade-in">
-						<CardContent className="flex justify-center py-16">
-							<div className="text-center space-y-4">
-								<Loader2 className="w-12 h-12 animate-spin mx-auto text-primary" />
-								<p className="text-sm text-muted-foreground">
-									Creating authorization request...
-								</p>
-							</div>
-						</CardContent>
-					</Card>
 				)}
 
 				{state.status === "awaiting_verification" &&
@@ -480,22 +475,17 @@ function SigninPage() {
 									onSuccess={handleDCApiSuccess}
 									onError={(msg) => setState({ status: "error", message: msg })}
 								/>
+								{completeMutation.isPending && (
+									<div className="flex items-center justify-center gap-3 py-4 mt-4">
+										<Loader2 className="h-5 w-5 animate-spin text-primary" />
+										<p className="text-muted-foreground">
+											Completing verification...
+										</p>
+									</div>
+								)}
 							</CardContent>
 						</Card>
 					)}
-
-				{state.status === "completing" && (
-					<Card className="w-full max-w-2xl mx-auto animate-fade-in">
-						<CardContent className="flex justify-center py-16">
-							<div className="text-center space-y-4">
-								<Loader2 className="w-12 h-12 animate-spin mx-auto text-primary" />
-								<p className="text-sm text-muted-foreground">
-									Completing verification...
-								</p>
-							</div>
-						</CardContent>
-					</Card>
-				)}
 
 				{state.status === "error" && (
 					<Card className="w-full max-w-2xl mx-auto animate-slide-up">

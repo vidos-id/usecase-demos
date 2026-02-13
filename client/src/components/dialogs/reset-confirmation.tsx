@@ -1,3 +1,4 @@
+import { Loader2 } from "lucide-react";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -13,12 +14,14 @@ interface ResetConfirmationProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	onConfirm: () => void;
+	isPending?: boolean;
 }
 
 export function ResetConfirmation({
 	open,
 	onOpenChange,
 	onConfirm,
+	isPending = false,
 }: ResetConfirmationProps) {
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -31,12 +34,20 @@ export function ResetConfirmation({
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel>Cancel</AlertDialogCancel>
+					<AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
 					<AlertDialogAction
 						onClick={onConfirm}
+						disabled={isPending}
 						className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
 					>
-						Reset All Data
+						{isPending ? (
+							<>
+								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+								Resetting...
+							</>
+						) : (
+							"Reset All Data"
+						)}
 					</AlertDialogAction>
 				</AlertDialogFooter>
 			</AlertDialogContent>

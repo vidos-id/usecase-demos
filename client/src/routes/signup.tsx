@@ -1,6 +1,7 @@
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useRouteContext } from "@tanstack/react-router";
 import { AlertCircle, CheckCircle2, Clock, Loader2, UserX } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { DcApiRequest, PresentationMode } from "shared/types/auth";
 import { CredentialDisclosure } from "@/components/auth/credential-disclosure";
 import { DCApiHandler } from "@/components/auth/dc-api-handler";
@@ -18,7 +19,6 @@ export const Route = createFileRoute("/signup")({
 
 type AuthState =
 	| { status: "idle" }
-	| { status: "requesting" }
 	| {
 			status: "awaiting_verification";
 			mode: "direct_post";
@@ -35,7 +35,6 @@ type AuthState =
 			requestedClaims: string[];
 			purpose: string;
 	  }
-	| { status: "completing" }
 	| { status: "success"; sessionId: string }
 	| { status: "error"; message: string }
 	| { status: "expired" };
@@ -44,25 +43,23 @@ function SignupPage() {
 	const { apiClient } = useRouteContext({ from: "__root__" });
 	const [mode, setMode] = useState<PresentationMode>(getStoredMode);
 	const [state, setState] = useState<AuthState>({ status: "idle" });
-	const [elapsedSeconds, setElapsedSeconds] = useState(0);
+	const [pollingStartTime] = useState(() => Date.now());
 
 	const handleModeChange = (newMode: PresentationMode) => {
 		setMode(newMode);
 		setStoredMode(newMode);
 	};
 
-	const startSignup = async () => {
-		setState({ status: "requesting" });
-		console.log("[Signup] starting request, mode:", mode);
-
-		try {
+	// Mutation for starting signup request
+	const requestMutation = useMutation({
+		mutationFn: async () => {
 			const res = await apiClient.api.signup.request.$post({ json: { mode } });
 			if (!res.ok) {
-				console.error("[Signup] request failed:", res.status, await res.text());
 				throw new Error("Failed to create signup request");
 			}
-
-			const data = await res.json();
+			return res.json();
+		},
+		onSuccess: (data) => {
 			console.log("[Signup] request created:", data.requestId);
 			if (data.mode === "direct_post") {
 				setState({
@@ -83,143 +80,139 @@ function SignupPage() {
 					purpose: data.purpose,
 				});
 			}
-		} catch (err) {
+		},
+		onError: (err) => {
 			console.error("[Signup] error:", err);
 			setState({
 				status: "error",
 				message: err instanceof Error ? err.message : "Unknown error",
 			});
-		}
-	};
+		},
+	});
 
-	// Polling for direct_post mode
-	useEffect(() => {
-		if (
-			state.status !== "awaiting_verification" ||
-			state.mode !== "direct_post"
-		)
-			return;
+	// Polling query for direct_post mode
+	const currentRequestId =
+		state.status === "awaiting_verification" && state.mode === "direct_post"
+			? state.requestId
+			: null;
 
-		let interval = 1000;
-		const maxInterval = 5000;
-		const timeout = 5 * 60 * 1000;
-		const startTime = Date.now();
-		let timeoutId: ReturnType<typeof setTimeout>;
+	const pollingQuery = useQuery({
+		queryKey: ["signup", "status", currentRequestId, apiClient],
+		queryFn: async () => {
+			if (!currentRequestId) throw new Error("No request ID");
 
-		const poll = async () => {
-			try {
-				const res = await apiClient.api.signup.status[":requestId"].$get({
-					param: { requestId: state.requestId },
-				});
+			const res = await apiClient.api.signup.status[":requestId"].$get({
+				param: { requestId: currentRequestId },
+			});
 
-				if (!res.ok) {
-					console.error("[Signup] poll failed:", res.status, await res.text());
-					throw new Error("Polling failed");
-				}
-
-				const data = await res.json();
-				console.log("[Signup] poll status:", data.status);
-
-				if (data.status === "authorized" && data.sessionId) {
-					console.log("[Signup] authorized!");
-					setStoredMode(data.mode || mode);
-					setState({ status: "success", sessionId: data.sessionId });
-					return;
-				}
-
-				if (data.status === "expired") {
-					console.log("[Signup] request expired");
-					setState({ status: "expired" });
-					return;
-				}
-
-				if (data.status === "rejected" || data.status === "error") {
-					console.error("[Signup] verification failed:", data.status);
-					setState({ status: "error", message: `Verification ${data.status}` });
-					return;
-				}
-
-				if (data.status === "account_exists") {
-					console.log("[Signup] account already exists");
-					setState({
-						status: "error",
-						message:
-							"account_exists:An account with this identity already exists. Please sign in instead or delete your existing account first.",
-					});
-					return;
-				}
-
-				// Check timeout
-				if (Date.now() - startTime > timeout) {
-					console.error("[Signup] timed out");
-					setState({ status: "error", message: "Verification timed out" });
-					return;
-				}
-
-				setElapsedSeconds(Math.floor((Date.now() - startTime) / 1000));
-				interval = Math.min(interval * 1.5, maxInterval);
-				timeoutId = setTimeout(poll, interval);
-			} catch (err) {
-				console.error("[Signup] poll error:", err);
-				setState({
-					status: "error",
-					message: err instanceof Error ? err.message : "Polling failed",
-				});
+			if (!res.ok) {
+				throw new Error("Polling failed");
 			}
-		};
 
-		poll();
-		return () => clearTimeout(timeoutId);
-	}, [state, mode]);
+			return res.json();
+		},
+		enabled: !!currentRequestId,
+		refetchInterval: (query) => {
+			// Stop polling after 5 minutes
+			if (Date.now() - pollingStartTime > 5 * 60 * 1000) {
+				return false;
+			}
+			// Exponential backoff: start at 1s, max 5s
+			const count = query.state.dataUpdateCount;
+			return Math.min(1000 * 1.5 ** count, 5000);
+		},
+	});
 
-	// DC API completion handler
-	const handleDCApiSuccess = async (response: Record<string, unknown>) => {
-		if (state.status !== "awaiting_verification") return;
+	// Handle polling results
+	if (pollingQuery.data && state.status === "awaiting_verification") {
+		const data = pollingQuery.data;
 
-		const { requestId } = state;
-		setState({ status: "completing" });
-		console.log("[Signup] completing DC API flow");
-		try {
+		if (data.status === "authorized" && data.sessionId) {
+			console.log("[Signup] authorized!");
+			setStoredMode(data.mode || mode);
+			setState({ status: "success", sessionId: data.sessionId });
+		} else if (data.status === "expired") {
+			setState({ status: "expired" });
+		} else if (data.status === "rejected" || data.status === "error") {
+			setState({ status: "error", message: `Verification ${data.status}` });
+		} else if (data.status === "account_exists") {
+			setState({
+				status: "error",
+				message:
+					"account_exists:An account with this identity already exists. Please sign in instead or delete your existing account first.",
+			});
+		}
+	}
+
+	// Check for timeout
+	if (
+		state.status === "awaiting_verification" &&
+		state.mode === "direct_post" &&
+		Date.now() - pollingStartTime > 5 * 60 * 1000
+	) {
+		setState({ status: "error", message: "Verification timed out" });
+	}
+
+	// Mutation for DC API completion
+	const completeMutation = useMutation({
+		mutationFn: async ({
+			requestId,
+			response,
+		}: {
+			requestId: string;
+			response: Record<string, unknown>;
+		}) => {
 			const res = await apiClient.api.signup.complete[":requestId"].$post({
 				param: { requestId },
 				json: { origin: window.location.origin, dcResponse: response },
 			});
 
 			if (!res.ok) {
-				console.error(
-					"[Signup] complete failed:",
-					res.status,
-					await res.text(),
-				);
-				// Check if it's account exists error
 				if (res.status === 400) {
-					setState({
-						status: "error",
-						message:
-							"account_exists:An account with this identity already exists. Please sign in instead or delete your existing account first.",
-					});
-					return;
+					throw { type: "account_exists" as const };
 				}
 				throw new Error("Completion failed");
 			}
 
-			const data = await res.json();
+			return res.json();
+		},
+		onSuccess: (data) => {
 			console.log("[Signup] DC API complete success!");
 			setStoredMode(data.mode);
 			setState({ status: "success", sessionId: data.sessionId });
-		} catch (err) {
+		},
+		onError: (err) => {
 			console.error("[Signup] complete error:", err);
-			setState({
-				status: "error",
-				message: err instanceof Error ? err.message : "Completion failed",
-			});
-		}
+			if (
+				err &&
+				typeof err === "object" &&
+				"type" in err &&
+				err.type === "account_exists"
+			) {
+				setState({
+					status: "error",
+					message:
+						"account_exists:An account with this identity already exists. Please sign in instead or delete your existing account first.",
+				});
+			} else {
+				setState({
+					status: "error",
+					message: err instanceof Error ? err.message : "Completion failed",
+				});
+			}
+		},
+	});
+
+	const handleDCApiSuccess = (response: Record<string, unknown>) => {
+		if (state.status !== "awaiting_verification") return;
+		completeMutation.mutate({ requestId: state.requestId, response });
 	};
 
 	const handleCancel = () => {
 		setState({ status: "idle" });
-		setElapsedSeconds(0);
 	};
+
+	const elapsedSeconds = Math.floor((Date.now() - pollingStartTime) / 1000);
 
 	return (
 		<div className="min-h-screen flex items-center justify-center p-4 lg:p-8">
@@ -415,11 +408,19 @@ function SignupPage() {
 									<div className="pt-6 space-y-4">
 										<ModeSelector value={mode} onChange={handleModeChange} />
 										<Button
-											onClick={startSignup}
+											onClick={() => requestMutation.mutate()}
+											disabled={requestMutation.isPending}
 											className="w-full h-12 text-base font-semibold shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300"
 											size="lg"
 										>
-											Continue with Wallet →
+											{requestMutation.isPending ? (
+												<>
+													<Loader2 className="mr-2 h-5 w-5 animate-spin" />
+													Creating request...
+												</>
+											) : (
+												"Continue with Wallet →"
+											)}
 										</Button>
 									</div>
 								</div>
@@ -439,19 +440,6 @@ function SignupPage() {
 							</div>
 						</div>
 					</div>
-				)}
-
-				{state.status === "requesting" && (
-					<Card className="w-full max-w-2xl mx-auto animate-fade-in">
-						<CardContent className="flex justify-center py-16">
-							<div className="text-center space-y-4">
-								<Loader2 className="w-12 h-12 animate-spin mx-auto text-primary" />
-								<p className="text-sm text-muted-foreground">
-									Creating authorization request...
-								</p>
-							</div>
-						</CardContent>
-					</Card>
 				)}
 
 				{state.status === "awaiting_verification" &&
@@ -484,22 +472,17 @@ function SignupPage() {
 									onSuccess={handleDCApiSuccess}
 									onError={(msg) => setState({ status: "error", message: msg })}
 								/>
+								{completeMutation.isPending && (
+									<div className="flex items-center justify-center gap-3 py-4 mt-4">
+										<Loader2 className="h-5 w-5 animate-spin text-primary" />
+										<p className="text-muted-foreground">
+											Completing verification...
+										</p>
+									</div>
+								)}
 							</CardContent>
 						</Card>
 					)}
-
-				{state.status === "completing" && (
-					<Card className="w-full max-w-2xl mx-auto animate-fade-in">
-						<CardContent className="flex justify-center py-16">
-							<div className="text-center space-y-4">
-								<Loader2 className="w-12 h-12 animate-spin mx-auto text-primary" />
-								<p className="text-sm text-muted-foreground">
-									Completing verification...
-								</p>
-							</div>
-						</CardContent>
-					</Card>
-				)}
 
 				{state.status === "success" && (
 					<Card className="w-full max-w-2xl mx-auto animate-slide-up">
