@@ -159,8 +159,9 @@ export function Callout({
 }) {
 	const variants = {
 		info: "bg-primary/5 border-primary/20 text-foreground/80",
-		warning: "bg-amber-500/10 border-amber-500/20 text-amber-900",
-		tip: "bg-green-500/10 border-green-500/20 text-green-900",
+		warning:
+			"bg-amber-500/10 border-amber-500/20 text-amber-900 dark:text-amber-200",
+		tip: "bg-green-500/10 border-green-500/20 text-green-900 dark:text-green-200",
 	};
 
 	return (
