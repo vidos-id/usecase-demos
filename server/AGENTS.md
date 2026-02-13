@@ -5,11 +5,12 @@ Hono API server on Bun. JIT package, no build step.
 ## Structure
 
 ```
-src/index.ts    # Hono app, routes, middleware
+src/index.ts    # Hono app entry, middleware
 src/client.ts   # typed hc client export (used by client package)
-src/routes/     # route modules
-src/middleware/ # shared middleware
-src/lib/        # helpers (env, errors)
+src/routes/     # route modules (loan.ts, payment.ts, signin.ts, etc.)
+src/db/         # Drizzle schema + migrations
+src/services/   # Vidos integration
+src/stores/     # in-memory/persistence
 ```
 
 ## Hono + Types

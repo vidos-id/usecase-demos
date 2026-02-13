@@ -14,9 +14,8 @@ No barrel files. Separate modules under `api/` and `types/`:
 
 ```
 src/
-  api/hello.ts     # request/response schemas for /hello
-  api/other.ts     # request/response schemas for /other
-  types/           # shared types (future)
+  api/             # per-endpoint schemas (hello.ts, loan.ts, payment.ts, signin.ts, signup.ts, etc.)
+  types/           # shared types (auth.ts, loan.ts, vidos-errors.ts)
 ```
 
 ## Exports
@@ -25,7 +24,7 @@ Subpath imports only — no bare `"shared"` import:
 
 ```ts
 import { helloRequestSchema } from "shared/api/hello";
-import { otherQuerySchema } from "shared/api/other";
+import { loanRequestSchema } from "shared/api/loan";
 ```
 
 ## Conventions
