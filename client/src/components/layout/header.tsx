@@ -1,6 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { BookOpen, Shield } from "lucide-react";
 import { useEffect, useState } from "react";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { getSessionId, subscribeSession } from "@/lib/auth";
 import { AccountMenu } from "./account-menu";
 
@@ -71,6 +72,9 @@ export function Header() {
 								PID Verified
 							</span>
 						</div>
+
+						{/* Theme toggle */}
+						<ThemeToggle />
 
 						{/* Divider */}
 						<div className="hidden md:block h-6 w-px bg-border/60" />
