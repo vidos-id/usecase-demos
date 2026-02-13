@@ -16,12 +16,12 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { DcApiRequest } from "shared/types/auth";
-
 import { CredentialDisclosure } from "@/components/auth/credential-disclosure";
 import { DCApiHandler } from "@/components/auth/dc-api-handler";
 import { PollingStatus } from "@/components/auth/polling-status";
 import { QRCodeDisplay } from "@/components/auth/qr-code-display";
 import { Button } from "@/components/ui/button";
+import { getStoredMode } from "@/lib/auth-helpers";
 
 import { cn } from "@/lib/utils";
 
@@ -93,12 +93,22 @@ function PaymentConfirmPage() {
 		mutationFn: async () => {
 			if (!search) throw new Error("No search params");
 
+			const mode = getStoredMode();
+			const baseParams = {
+				recipient: search.recipient,
+				amount: search.amount,
+				reference: search.reference,
+			};
+
 			const res = await apiClient.api.payment.request.$post({
-				json: {
-					recipient: search.recipient,
-					amount: search.amount,
-					reference: search.reference,
-				},
+				json:
+					mode === "dc_api"
+						? {
+								...baseParams,
+								mode: "dc_api" as const,
+								origin: window.location.origin,
+							}
+						: { ...baseParams, mode: "direct_post" as const },
 			});
 
 			if (!res.ok) throw new Error("Failed to create payment request");

@@ -30,9 +30,11 @@ function SigninPage() {
 		flowKey: "signin",
 
 		api: {
-			createRequest: async (mode: PresentationMode) => {
+			createRequest: async (
+				params: { mode: "direct_post" } | { mode: "dc_api"; origin: string },
+			) => {
 				const res = await apiClient.api.signin.request.$post({
-					json: { mode },
+					json: params,
 				});
 
 				if (res.status === 404) {

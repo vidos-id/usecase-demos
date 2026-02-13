@@ -5,6 +5,10 @@ import type { paths } from "../generated/authorizer-api";
 
 export type PresentationMode = "direct_post" | "dc_api";
 
+export type ModeParams =
+	| { mode: "direct_post" }
+	| { mode: "dc_api"; origin: string };
+
 // Singleton client instance
 let authorizerClient: ReturnType<typeof createClient<paths>> | null = null;
 
@@ -22,11 +26,10 @@ function getAuthorizerClient() {
 	return authorizerClient;
 }
 
-export interface CreateAuthRequestParams {
-	mode: PresentationMode;
+export type CreateAuthRequestParams = ModeParams & {
 	requestedClaims: readonly string[]; // e.g. ["family_name", "given_name", "birth_date"]
 	purpose: string;
-}
+};
 
 export type CreateAuthRequestResult =
 	| {
@@ -113,7 +116,7 @@ export async function createAuthorizationRequest(
 	// Build DCQL query with proper SD-JWT paths and meta
 	const dcqlQuery = buildPIDDCQLQuery(requestedClaims, purpose);
 
-	if (mode === "direct_post") {
+	if (params.mode === "direct_post") {
 		const { data, error } = await client.POST(
 			"/openid4/vp/v1_0/authorizations",
 			{
@@ -147,7 +150,7 @@ export async function createAuthorizationRequest(
 		};
 	}
 
-	// dc_api mode
+	// dc_api mode - origin is guaranteed by discriminated union type
 	const { data, error } = await client.POST("/openid4/vp/v1_0/authorizations", {
 		body: {
 			query: {
@@ -155,7 +158,8 @@ export async function createAuthorizationRequest(
 				dcql: dcqlQuery,
 			},
 			responseMode: "dc_api.jwt",
-			protocol: "openid4vp-v1-unsigned",
+			protocol: "openid4vp-v1-signed",
+			expectedOrigins: [params.origin],
 		},
 	});
 

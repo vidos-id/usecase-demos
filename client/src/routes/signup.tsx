@@ -23,9 +23,11 @@ function SignupPage() {
 		flowKey: "signup",
 
 		api: {
-			createRequest: async (mode: PresentationMode) => {
+			createRequest: async (
+				params: { mode: "direct_post" } | { mode: "dc_api"; origin: string },
+			) => {
 				const res = await apiClient.api.signup.request.$post({
-					json: { mode },
+					json: params,
 				});
 
 				if (!res.ok) {

@@ -25,10 +25,10 @@ import { getUserByIdentifier } from "../stores/users";
 
 export const signinRouter = new Hono()
 	.post("/request", zValidator("json", signinRequestSchema), async (c) => {
-		const { mode } = c.req.valid("json");
+		const body = c.req.valid("json");
 
 		const result = await createAuthorizationRequest({
-			mode,
+			...body,
 			requestedClaims: SIGNIN_CLAIMS,
 			purpose: SIGNIN_PURPOSE,
 		});
@@ -36,7 +36,7 @@ export const signinRouter = new Hono()
 		const pendingRequest = createPendingRequest({
 			vidosAuthorizationId: result.authorizationId,
 			type: "signin",
-			mode,
+			mode: body.mode,
 			responseUrl: result.mode === "dc_api" ? result.responseUrl : undefined,
 		});
 

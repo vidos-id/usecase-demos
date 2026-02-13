@@ -74,7 +74,9 @@ export type AuthFlowConfig = {
 
 	/** API functions */
 	api: {
-		createRequest: (mode: PresentationMode) => Promise<RequestResult>;
+		createRequest: (
+			params: { mode: "direct_post" } | { mode: "dc_api"; origin: string },
+		) => Promise<RequestResult>;
 		pollStatus: (requestId: string) => Promise<PollingResult>;
 		completeRequest: (
 			requestId: string,
@@ -144,7 +146,12 @@ export function AuthFlow({ config }: { config: AuthFlowConfig }) {
 
 	// Request mutation
 	const requestMutation = useMutation({
-		mutationFn: () => config.api.createRequest(mode),
+		mutationFn: () =>
+			config.api.createRequest(
+				mode === "direct_post"
+					? { mode: "direct_post" }
+					: { mode: "dc_api", origin: window.location.origin },
+			),
 		onSuccess: (data) => {
 			console.log(`[${config.flowKey}] request created:`, data.requestId);
 			if (data.mode === "direct_post") {

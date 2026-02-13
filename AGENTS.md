@@ -58,6 +58,8 @@ Cross-workspace imports use package subpaths: `import { x } from "shared/api/hel
 
 **Naming**: PascalCase for components/types. camelCase for variables/functions. Zod schemas suffixed with `Schema` (e.g. `helloRequestSchema`).
 
+**Zod schemas**: Zod v4, make sure to use v4 API and not v3.
+
 **Validation**: Zod schemas in `shared/`, used by both client and server. Server uses `zValidator()` middleware from `@hono/zod-validator`. Responses validated with Zod before sending.
 
 **Shared package**: No barrel files. One module per endpoint under `shared/src/api/`. Exports map in `package.json` — import via `"shared/api/hello"`. Changes are available immediately (no rebuild).

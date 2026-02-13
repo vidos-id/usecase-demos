@@ -38,13 +38,13 @@ export const paymentRouter = new Hono()
 		const session = getSession(c);
 		if (!session) return c.json({ error: "Unauthorized" }, 401);
 
-		const { recipient, amount, reference } = c.req.valid("json");
+		const { recipient, amount, reference, ...modeParams } = c.req.valid("json");
 
 		// Generate transactionId immediately per spec
 		const transactionId = `txn-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
 		const result = await createAuthorizationRequest({
-			mode: session.mode,
+			...modeParams,
 			requestedClaims: PAYMENT_CLAIMS,
 			purpose: PAYMENT_PURPOSE,
 		});
@@ -52,7 +52,7 @@ export const paymentRouter = new Hono()
 		const pendingRequest = createPendingRequest({
 			vidosAuthorizationId: result.authorizationId,
 			type: "payment",
-			mode: session.mode,
+			mode: modeParams.mode,
 			responseUrl: result.mode === "dc_api" ? result.responseUrl : undefined,
 			metadata: { transactionId, recipient, amount, reference },
 		});

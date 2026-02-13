@@ -6,11 +6,21 @@ export const eurAmountSchema = z.string().regex(/^\d+\.\d{2}$/, {
 	error: "Amount must be in EUR format (e.g., '100.00')",
 });
 
-export const paymentRequestSchema = z.object({
+const paymentRequestBaseSchema = z.object({
 	recipient: z.string().min(1).max(100),
 	amount: eurAmountSchema,
 	reference: z.string().max(200).optional(),
 });
+
+export const paymentRequestSchema = z.discriminatedUnion("mode", [
+	paymentRequestBaseSchema.extend({
+		mode: z.literal("direct_post"),
+	}),
+	paymentRequestBaseSchema.extend({
+		mode: z.literal("dc_api"),
+		origin: z.url(),
+	}),
+]);
 export type PaymentRequest = z.infer<typeof paymentRequestSchema>;
 
 const paymentRequestResponseBaseSchema = z.object({

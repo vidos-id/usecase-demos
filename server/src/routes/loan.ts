@@ -37,10 +37,15 @@ export const loanRouter = new Hono()
 		const session = getSession(c);
 		if (!session) return c.json({ error: "Unauthorized" }, 401);
 
-		const { amount, purpose, term } = c.req.valid("json");
+		const {
+			amount,
+			purpose: loanPurpose,
+			term,
+			...modeParams
+		} = c.req.valid("json");
 
 		const result = await createAuthorizationRequest({
-			mode: session.mode,
+			...modeParams,
 			requestedClaims: LOAN_CLAIMS,
 			purpose: LOAN_PURPOSE,
 		});
@@ -48,9 +53,9 @@ export const loanRouter = new Hono()
 		const pendingRequest = createPendingRequest({
 			vidosAuthorizationId: result.authorizationId,
 			type: "loan",
-			mode: session.mode,
+			mode: modeParams.mode,
 			responseUrl: result.mode === "dc_api" ? result.responseUrl : undefined,
-			metadata: { amount, purpose, term },
+			metadata: { amount, purpose: loanPurpose, term },
 		});
 
 		const response = loanRequestResponseSchema.parse(

@@ -12,11 +12,21 @@ import {
 // Re-export constants for client usage
 export { LOAN_AMOUNTS, LOAN_PURPOSES, LOAN_TERMS };
 
-export const loanRequestSchema = z.object({
+const loanRequestBaseSchema = z.object({
 	amount: loanAmountSchema,
 	purpose: loanPurposeSchema,
 	term: loanTermSchema,
 });
+
+export const loanRequestSchema = z.discriminatedUnion("mode", [
+	loanRequestBaseSchema.extend({
+		mode: z.literal("direct_post"),
+	}),
+	loanRequestBaseSchema.extend({
+		mode: z.literal("dc_api"),
+		origin: z.string().url(),
+	}),
+]);
 export type LoanRequest = z.infer<typeof loanRequestSchema>;
 
 const loanRequestResponseBaseSchema = z.object({

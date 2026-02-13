@@ -1,9 +1,15 @@
 import { z } from "zod";
 import { dcApiRequestSchema, presentationModeSchema } from "../types/auth";
 
-export const signinRequestSchema = z.object({
-	mode: presentationModeSchema,
-});
+export const signinRequestSchema = z.discriminatedUnion("mode", [
+	z.object({
+		mode: z.literal("direct_post"),
+	}),
+	z.object({
+		mode: z.literal("dc_api"),
+		origin: z.url(),
+	}),
+]);
 export type SigninRequest = z.infer<typeof signinRequestSchema>;
 
 const signinRequestResponseBaseSchema = z.object({

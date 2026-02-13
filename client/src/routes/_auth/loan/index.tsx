@@ -28,6 +28,7 @@ import { DCApiHandler } from "@/components/auth/dc-api-handler";
 import { PollingStatus } from "@/components/auth/polling-status";
 import { QRCodeDisplay } from "@/components/auth/qr-code-display";
 import { Button } from "@/components/ui/button";
+import { getStoredMode } from "@/lib/auth-helpers";
 
 import { cn } from "@/lib/utils";
 
@@ -114,16 +115,22 @@ function LoanPage() {
 	// Mutation for submitting loan request
 	const requestMutation = useMutation({
 		mutationFn: async () => {
+			const mode = getStoredMode();
+			const baseParams = {
+				amount: amount as "5000" | "10000" | "25000" | "50000",
+				purpose: purpose as "Car" | "Home Improvement" | "Education" | "Other",
+				term: term as "12" | "24" | "36" | "48",
+			};
+
 			const res = await apiClient.api.loan.request.$post({
-				json: {
-					amount: amount as "5000" | "10000" | "25000" | "50000",
-					purpose: purpose as
-						| "Car"
-						| "Home Improvement"
-						| "Education"
-						| "Other",
-					term: term as "12" | "24" | "36" | "48",
-				},
+				json:
+					mode === "dc_api"
+						? {
+								...baseParams,
+								mode: "dc_api" as const,
+								origin: window.location.origin,
+							}
+						: { ...baseParams, mode: "direct_post" as const },
 			});
 
 			if (!res.ok) throw new Error("Failed to create loan request");
