@@ -4,13 +4,15 @@ import {
 	useNavigate,
 	useRouteContext,
 } from "@tanstack/react-router";
-import { AlertCircle, UserSearch } from "lucide-react";
+import { UserSearch } from "lucide-react";
+import { useMemo } from "react";
 import type { PresentationMode } from "shared/types/auth";
 import {
 	AuthFlow,
 	type AuthFlowConfig,
 	AuthFooter,
 	type AuthState,
+	GenericAuthError,
 	WalletFeatureItem,
 } from "@/components/auth/auth-flow";
 import { Button } from "@/components/ui/button";
@@ -26,216 +28,141 @@ function SigninPage() {
 	const navigate = useNavigate();
 	const { apiClient } = useRouteContext({ from: "__root__" });
 
-	const config: AuthFlowConfig = {
-		flowKey: "signin",
+	const config = useMemo<AuthFlowConfig>(
+		() => ({
+			flowKey: "signin",
 
-		api: {
-			createRequest: async (
-				params: { mode: "direct_post" } | { mode: "dc_api"; origin: string },
-			) => {
-				const res = await apiClient.api.signin.request.$post({
-					json: params,
-				});
+			api: {
+				createRequest: async (
+					params: { mode: "direct_post" } | { mode: "dc_api"; origin: string },
+				) => {
+					const res = await apiClient.api.signin.request.$post({
+						json: params,
+					});
 
-				if (res.status === 404) {
-					throw { type: "not_found" as const };
-				}
+					if (res.status === 404) {
+						throw { type: "not_found" as const };
+					}
 
-				if (!res.ok) {
-					throw new Error("Failed to create signin request");
-				}
+					if (!res.ok) {
+						throw new Error("Failed to create signin request");
+					}
 
-				return res.json();
+					return res.json();
+				},
+
+				pollStatus: async (requestId: string) => {
+					const res = await apiClient.api.signin.status[":requestId"].$get({
+						param: { requestId },
+					});
+
+					if (!res.ok) {
+						throw new Error("Polling failed");
+					}
+
+					return res.json();
+				},
+
+				completeRequest: async (
+					requestId: string,
+					response: Record<string, unknown>,
+					origin: string,
+				) => {
+					const res = await apiClient.api.signin.complete[":requestId"].$post({
+						param: { requestId },
+						json: { origin, dcResponse: response },
+					});
+
+					if (res.status === 404) {
+						throw { type: "not_found" as const };
+					}
+
+					if (!res.ok) {
+						throw new Error("Completion failed");
+					}
+
+					return res.json();
+				},
 			},
 
-			pollStatus: async (requestId: string) => {
-				const res = await apiClient.api.signin.status[":requestId"].$get({
-					param: { requestId },
-				});
-
-				if (!res.ok) {
-					throw new Error("Polling failed");
-				}
-
-				return res.json();
+			onSuccess: (sessionId: string, _mode: PresentationMode) => {
+				setSessionId(sessionId);
+				navigate({ to: "/dashboard" });
 			},
 
-			completeRequest: async (
-				requestId: string,
-				response: Record<string, unknown>,
-				origin: string,
-			) => {
-				const res = await apiClient.api.signin.complete[":requestId"].$post({
-					param: { requestId },
-					json: { origin, dcResponse: response },
-				});
-
-				if (res.status === 404) {
-					throw { type: "not_found" as const };
+			mapRequestError: (err) => mapNotFoundError(err),
+			mapPollingResult: (result) => {
+				if (result.status === "not_found") {
+					return {
+						handled: true,
+						state: {
+							status: "error",
+							message:
+								result.error ||
+								"No account found with this identity. Please sign up.",
+							errorType: "not_found",
+						},
+					};
 				}
-
-				if (!res.ok) {
-					throw new Error("Completion failed");
-				}
-
-				return res.json();
+				return { handled: false };
 			},
-		},
+			mapCompleteError: (err) => mapNotFoundError(err),
 
-		onSuccess: (sessionId: string, _mode: PresentationMode) => {
-			setSessionId(sessionId);
-			navigate({ to: "/dashboard" });
-		},
-
-		mapRequestError: (
-			err,
-		): { handled: true; state: AuthState } | { handled: false } => {
-			if (
-				err &&
-				typeof err === "object" &&
-				"type" in err &&
-				err.type === "not_found"
-			) {
-				return {
-					handled: true,
-					state: {
-						status: "error",
-						message: "No account found with this identity.",
-						errorType: "not_found",
-					},
-				};
-			}
-			return { handled: false };
-		},
-
-		mapPollingResult: (
-			result,
-		): { handled: true; state: AuthState } | { handled: false } => {
-			if (result.status === "not_found") {
-				return {
-					handled: true,
-					state: {
-						status: "error",
-						message:
-							result.error ||
-							"No account found with this identity. Please sign up.",
-						errorType: "not_found",
-					},
-				};
-			}
-			return { handled: false };
-		},
-
-		mapCompleteError: (
-			err,
-		): { handled: true; state: AuthState } | { handled: false } => {
-			if (
-				err &&
-				typeof err === "object" &&
-				"type" in err &&
-				err.type === "not_found"
-			) {
-				return {
-					handled: true,
-					state: {
-						status: "error",
-						message: "No account found with this identity.",
-						errorType: "not_found",
-					},
-				};
-			}
-			return { handled: false };
-		},
-
-		labels: {
-			rightPanelTitle: "Wallet Sign-In",
-			rightPanelDescription:
-				"Sign in instantly with your EU Digital Identity Wallet. No passwords, just secure verification.",
-			buttonText: "Continue with Wallet →",
-			buttonLoadingText: "Creating request...",
-		},
-
-		slots: {
-			leftPanel: <SigninLeftPanel />,
-			walletFeatures: <SigninWalletFeatures />,
-			footer: <AuthFooter />,
-			successContent: undefined, // Navigate away on success
-			errorContent: (message, errorType, onRetry) => {
-				if (errorType === "not_found") {
-					return (
-						<Card className="w-full max-w-2xl mx-auto animate-slide-up">
-							<CardContent className="p-12">
-								<div className="space-y-6 text-center">
-									<div className="flex justify-center">
-										<div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center">
-											<UserSearch className="w-12 h-12 text-muted-foreground" />
-										</div>
-									</div>
-									<div className="space-y-2">
-										<h3 className="text-2xl font-bold text-foreground">
-											Account Not Found
-										</h3>
-										<p className="text-sm text-muted-foreground max-w-md mx-auto">
-											{message}
-										</p>
-									</div>
-									<div className="flex flex-col gap-3 max-w-sm mx-auto">
-										<Button
-											asChild
-											className="w-full h-12 text-base font-semibold"
-											size="lg"
-										>
-											<Link to="/signup">Create Account</Link>
-										</Button>
-										<Button
-											onClick={onRetry}
-											variant="outline"
-											className="w-full"
-										>
-											Try Again
-										</Button>
-									</div>
-								</div>
-							</CardContent>
-						</Card>
-					);
-				}
-
-				// Default error
-				return (
-					<Card className="w-full max-w-2xl mx-auto animate-slide-up">
-						<CardContent className="p-12">
-							<div className="space-y-6 text-center">
-								<div className="flex justify-center">
-									<div className="w-20 h-20 rounded-full bg-destructive/10 flex items-center justify-center">
-										<AlertCircle className="w-12 h-12 text-destructive" />
-									</div>
-								</div>
-								<div className="space-y-2">
-									<h3 className="text-2xl font-bold text-foreground">
-										Something Went Wrong
-									</h3>
-									<p className="text-sm text-muted-foreground max-w-md mx-auto">
-										{message}
-									</p>
-								</div>
-								<Button
-									onClick={onRetry}
-									variant="outline"
-									className="w-full max-w-sm mx-auto"
-								>
-									Try Again
-								</Button>
-							</div>
-						</CardContent>
-					</Card>
-				);
+			labels: {
+				rightPanelTitle: "Wallet Sign-In",
+				rightPanelDescription:
+					"Sign in instantly with your EU Digital Identity Wallet. No passwords, just secure verification.",
+				buttonText: "Continue with Wallet →",
+				buttonLoadingText: "Creating request...",
 			},
-		},
-	};
+
+			slots: {
+				leftPanel: <SigninLeftPanel />,
+				walletFeatures: <SigninWalletFeatures />,
+				footer: <AuthFooter />,
+				successContent: undefined,
+				errorContent: (message, errorType, onRetry) =>
+					errorType === "not_found" ? (
+						<NotFoundError message={message} onRetry={onRetry} />
+					) : (
+						<GenericAuthError message={message} onRetry={onRetry} />
+					),
+			},
+		}),
+		[apiClient, navigate],
+	);
 
 	return <AuthFlow config={config} />;
 }
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+function mapNotFoundError(
+	err: unknown,
+): { handled: true; state: AuthState } | { handled: false } {
+	if (
+		err &&
+		typeof err === "object" &&
+		"type" in err &&
+		err.type === "not_found"
+	) {
+		return {
+			handled: true,
+			state: {
+				status: "error",
+				message: "No account found with this identity.",
+				errorType: "not_found",
+			},
+		};
+	}
+	return { handled: false };
+}
+
+// ============================================================================
+// Slot Components
+// ============================================================================
 
 function SigninLeftPanel() {
 	return (
@@ -321,5 +248,51 @@ function SigninWalletFeatures() {
 				description="Authenticate instantly with a single wallet interaction."
 			/>
 		</>
+	);
+}
+
+// ============================================================================
+// Error Components
+// ============================================================================
+
+function NotFoundError({
+	message,
+	onRetry,
+}: {
+	message: string;
+	onRetry: () => void;
+}) {
+	return (
+		<Card className="w-full max-w-2xl mx-auto animate-slide-up">
+			<CardContent className="p-12">
+				<div className="space-y-6 text-center">
+					<div className="flex justify-center">
+						<div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center">
+							<UserSearch className="w-12 h-12 text-muted-foreground" />
+						</div>
+					</div>
+					<div className="space-y-2">
+						<h3 className="text-2xl font-bold text-foreground">
+							Account Not Found
+						</h3>
+						<p className="text-sm text-muted-foreground max-w-md mx-auto">
+							{message}
+						</p>
+					</div>
+					<div className="flex flex-col gap-3 max-w-sm mx-auto">
+						<Button
+							asChild
+							className="w-full h-12 text-base font-semibold"
+							size="lg"
+						>
+							<Link to="/signup">Create Account</Link>
+						</Button>
+						<Button onClick={onRetry} variant="outline" className="w-full">
+							Try Again
+						</Button>
+					</div>
+				</div>
+			</CardContent>
+		</Card>
 	);
 }

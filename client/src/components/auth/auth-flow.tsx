@@ -522,3 +522,40 @@ export function AuthFooter() {
 		</p>
 	);
 }
+
+export function GenericAuthError({
+	message,
+	onRetry,
+}: {
+	message: string;
+	onRetry: () => void;
+}) {
+	return (
+		<Card className="w-full max-w-2xl mx-auto animate-slide-up">
+			<CardContent className="p-12">
+				<div className="space-y-6 text-center">
+					<div className="flex justify-center">
+						<div className="w-20 h-20 rounded-full bg-destructive/10 flex items-center justify-center">
+							<AlertCircle className="w-12 h-12 text-destructive" />
+						</div>
+					</div>
+					<div className="space-y-2">
+						<h3 className="text-2xl font-bold text-foreground">
+							Something Went Wrong
+						</h3>
+						<p className="text-sm text-muted-foreground max-w-md mx-auto">
+							{message}
+						</p>
+					</div>
+					<Button
+						onClick={onRetry}
+						variant="outline"
+						className="w-full max-w-sm mx-auto"
+					>
+						Try Again
+					</Button>
+				</div>
+			</CardContent>
+		</Card>
+	);
+}

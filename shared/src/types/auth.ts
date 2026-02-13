@@ -4,11 +4,24 @@ export const presentationModeSchema = z.enum(["direct_post", "dc_api"]);
 export type PresentationMode = z.infer<typeof presentationModeSchema>;
 
 /**
+ * DC API protocols supported by Vidos authorizer
+ * - openid4vp-v1-unsigned: Unsigned OpenID4VP request
+ * - openid4vp-v1-signed: Signed OpenID4VP request (JWT)
+ * - openid4vp-v1-multisigned: Multi-signed OpenID4VP request (JWS JSON serialization)
+ */
+export const dcApiProtocolSchema = z.enum([
+	"openid4vp-v1-unsigned",
+	"openid4vp-v1-signed",
+	"openid4vp-v1-multisigned",
+]);
+export type DcApiProtocol = z.infer<typeof dcApiProtocolSchema>;
+
+/**
  * Digital Credentials API request per W3C spec
  * https://www.w3.org/TR/digital-credentials/#the-digitalcredentialrequestoptions-dictionary
  */
 export const dcApiRequestSchema = z.object({
-	protocol: z.string(),
+	protocol: dcApiProtocolSchema,
 	data: z.record(z.string(), z.unknown()),
 });
 export type DcApiRequest = z.infer<typeof dcApiRequestSchema>;

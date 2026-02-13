@@ -1,6 +1,10 @@
 import { AlertCircle, QrCode, Smartphone } from "lucide-react";
 import type { PresentationMode } from "shared/types/auth";
-import { isDCApiSupported, setStoredMode } from "@/lib/auth-helpers";
+import {
+	getDCApiUnsupportedReason,
+	isDCApiSupported,
+	setStoredMode,
+} from "@/lib/auth-helpers";
 import { cn } from "@/lib/utils";
 
 interface ModeSelectorProps {
@@ -8,29 +12,31 @@ interface ModeSelectorProps {
 	onChange: (mode: PresentationMode) => void;
 }
 
-const MODE_OPTIONS = [
-	{
-		id: "direct_post" as const,
-		label: "Mobile Wallet",
-		description: "Scan QR code or open deep link",
-		tech: "OpenID4VP direct_post",
-		Icon: QrCode,
-		alwaysAvailable: true,
-	},
-	{
-		id: "dc_api" as const,
-		label: "Device Wallet",
-		description: "Use your device's built-in wallet",
-		tech: "W3C Digital Credentials API",
-		Icon: Smartphone,
-		alwaysAvailable: false,
-		unavailableReason:
-			"Requires a browser with Digital Credentials API support (Chrome 128+ on Android)",
-	},
-];
-
 export function ModeSelector({ value, onChange }: ModeSelectorProps) {
 	const dcApiAvailable = isDCApiSupported();
+	const dcApiUnavailableReason = getDCApiUnsupportedReason();
+
+	const MODE_OPTIONS = [
+		{
+			id: "direct_post" as const,
+			label: "Mobile Wallet",
+			description: "Scan QR code or open deep link",
+			tech: "OpenID4VP direct_post",
+			Icon: QrCode,
+			alwaysAvailable: true,
+		},
+		{
+			id: "dc_api" as const,
+			label: "Device Wallet",
+			description: "Use your device's built-in wallet",
+			tech: "W3C Digital Credentials API",
+			Icon: Smartphone,
+			alwaysAvailable: false,
+			unavailableReason:
+				dcApiUnavailableReason ||
+				"Requires a browser with Digital Credentials API support (Chrome 128+ on Android)",
+		},
+	];
 
 	const handleSelect = (mode: PresentationMode) => {
 		setStoredMode(mode);

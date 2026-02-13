@@ -2,6 +2,7 @@ import { Loader2, Wallet } from "lucide-react";
 import { useState } from "react";
 import type { DcApiRequest } from "shared/types/auth";
 import { Button } from "@/components/ui/button";
+import { checkDCApiSupport } from "@/lib/auth-helpers";
 
 // DC API types per W3C Digital Credentials spec
 interface DCApiRequestOptions extends CredentialRequestOptions {
@@ -24,61 +25,6 @@ interface DCApiHandlerProps {
 	onError: (error: string) => void;
 }
 
-// Browser global type for DC API feature detection
-interface DigitalCredentialGlobal {
-	userAgentAllowsProtocol: (protocol: string) => boolean;
-}
-
-/**
- * Get the DigitalCredential browser global if available
- */
-function getDigitalCredentialGlobal(): DigitalCredentialGlobal | undefined {
-	return (window as unknown as { DigitalCredential?: DigitalCredentialGlobal })
-		.DigitalCredential;
-}
-
-/**
- * Check DC API browser support
- * Spec: https://www.w3.org/TR/digital-credentials/#feature-detection
- */
-function checkDCAPISupport(protocol?: string): {
-	available: boolean;
-	reason?: string;
-} {
-	if (typeof navigator === "undefined") {
-		return { available: false, reason: "Not in browser environment" };
-	}
-
-	const digitalCredential = getDigitalCredentialGlobal();
-	if (!digitalCredential) {
-		return {
-			available: false,
-			reason: "DigitalCredential interface not available",
-		};
-	}
-
-	// Check if protocol is allowed by user agent
-	if (protocol && !digitalCredential.userAgentAllowsProtocol(protocol)) {
-		return {
-			available: false,
-			reason: `Protocol "${protocol}" not supported by user agent`,
-		};
-	}
-
-	if (!navigator.credentials) {
-		return {
-			available: false,
-			reason: "Credentials API not available in this browser",
-		};
-	}
-
-	if (typeof navigator.credentials.get !== "function") {
-		return { available: false, reason: "credentials.get() not available" };
-	}
-
-	return { available: true };
-}
-
 export function DCApiHandler({
 	dcApiRequest,
 	onSuccess,
@@ -88,8 +34,8 @@ export function DCApiHandler({
 
 	const handleConnect = async () => {
 		// Check browser support with protocol validation
-		const support = checkDCAPISupport(dcApiRequest.protocol);
-		if (!support.available) {
+		const support = checkDCApiSupport(dcApiRequest.protocol);
+		if (!support.supported) {
 			onError(support.reason || "DC API not supported");
 			return;
 		}
