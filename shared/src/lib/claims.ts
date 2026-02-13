@@ -20,7 +20,7 @@ export const SIGNUP_CLAIMS = [
 	"family_name",
 	"given_name",
 	"birthdate",
-	"email",
+	// "email", // Removed because EUDI for some reason doesn't provide email claim even though being requested
 	"place_of_birth",
 	"nationalities",
 	"personal_administrative_number",
