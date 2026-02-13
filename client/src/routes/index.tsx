@@ -139,7 +139,9 @@ function LandingPage() {
 												<Smartphone className="h-4 w-4 text-primary" />
 											</div>
 											<div>
-												<div className="text-sm font-semibold">EUDI Wallet</div>
+												<div className="text-sm font-semibold">
+													Digital Wallet
+												</div>
 												<div className="text-[10px] text-muted-foreground">
 													Person Identification
 												</div>

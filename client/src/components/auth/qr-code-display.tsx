@@ -23,8 +23,7 @@ export function QRCodeDisplay({ url }: QRCodeDisplayProps) {
 			</Button>
 
 			<p className="text-sm text-muted-foreground text-center max-w-xs">
-				Scan the QR code with your EUDI Wallet, or tap the button to open
-				directly.
+				Scan with your wallet app, or tap the button to open directly.
 			</p>
 		</div>
 	);

@@ -151,9 +151,9 @@ function ProfilePage() {
 						<div className="space-y-1">
 							<p className="text-sm font-medium">Verified Identity</p>
 							<p className="text-sm text-muted-foreground leading-relaxed">
-								This information was cryptographically verified from your EUDI
-								Wallet credential. It cannot be edited directly — any changes
-								must be made through your wallet provider.
+								This information was cryptographically verified from your PID
+								credential. It cannot be edited directly — any changes must be
+								made through your wallet provider.
 							</p>
 						</div>
 					</div>

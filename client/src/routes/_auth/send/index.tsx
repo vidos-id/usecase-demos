@@ -169,7 +169,8 @@ function SendMoneyPage() {
 
 				{/* Info */}
 				<p className="text-xs text-center text-muted-foreground">
-					You'll verify this transaction with your EUDI Wallet in the next step
+					You'll verify this transaction with your PID credential in the next
+					step
 				</p>
 			</div>
 		</div>

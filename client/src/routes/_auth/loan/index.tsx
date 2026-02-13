@@ -446,8 +446,8 @@ function LoanPage() {
 								<div className="space-y-1">
 									<p className="text-sm font-medium">Instant Decision</p>
 									<p className="text-xs text-muted-foreground leading-relaxed">
-										Your EUDI Wallet provides verified identity — no documents
-										to upload, no lengthy forms to fill.
+										Your PID credential provides verified identity — no
+										documents to upload, no lengthy forms to fill.
 									</p>
 								</div>
 							</div>
@@ -547,9 +547,8 @@ function LoanPage() {
 
 						{/* Terms notice */}
 						<p className="text-xs text-center text-muted-foreground">
-							By submitting, you agree to verify your identity using your EUDI
-							Wallet. Your PID credentials will be used for identity
-							verification only.
+							By submitting, you agree to verify your identity using your PID
+							credential. Your identity data will be used for verification only.
 						</p>
 					</>
 				)}
@@ -561,7 +560,7 @@ function LoanPage() {
 							<div className="text-center">
 								<h2 className="font-semibold">Verify Your Identity</h2>
 								<p className="text-sm text-muted-foreground">
-									Scan with your EUDI Wallet to complete
+									Scan with your wallet app to complete
 								</p>
 							</div>
 

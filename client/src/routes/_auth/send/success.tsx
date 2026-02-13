@@ -155,7 +155,7 @@ function PaymentSuccessPage() {
 						<div>
 							<p className="text-sm font-medium">Verified Identity</p>
 							<p className="text-xs text-muted-foreground">
-								This payment was confirmed using your EUDI Wallet credentials
+								This payment was confirmed using your PID credential
 							</p>
 						</div>
 					</div>

@@ -19,7 +19,7 @@ export function PollingStatus({
 			<div className="text-center">
 				<p className="font-medium">Waiting for wallet response...</p>
 				<p className="text-sm text-muted-foreground">
-					Complete the verification in your EUDI Wallet
+					Complete the verification in your wallet app
 				</p>
 			</div>
 

@@ -332,28 +332,25 @@ function SigninPage() {
 						</div>
 
 						{/* Divider */}
-						<div className="hidden lg:block absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
-							<div className="relative flex items-center justify-center">
-								<div className="absolute inset-0 bg-background blur-xl" />
-								<div className="relative flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-primary via-primary/90 to-primary/70 shadow-lg border-4 border-background">
-									<span className="text-sm font-bold text-primary-foreground">
-										OR
-									</span>
-								</div>
+						<div className="hidden lg:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 items-center justify-center">
+							<div className="absolute w-24 h-24 bg-background blur-xl" />
+							<div className="relative flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-primary via-primary/90 to-primary/70 shadow-lg border-4 border-background">
+								<span className="text-sm font-bold text-primary-foreground">
+									OR
+								</span>
 							</div>
 						</div>
 
 						{/* Mobile Divider */}
-						<div className="lg:hidden relative py-6 flex items-center">
-							<div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-							<div className="px-4">
+						<div className="lg:hidden relative py-6">
+							<div className="absolute left-0 right-0 top-1/2 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+							<div className="relative flex justify-center">
 								<div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-primary via-primary/90 to-primary/70 shadow-lg">
 									<span className="text-xs font-bold text-primary-foreground">
 										OR
 									</span>
 								</div>
 							</div>
-							<div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
 						</div>
 
 						{/* Wallet Method - Right Panel */}

@@ -467,8 +467,8 @@ function PaymentConfirmPage() {
 				{/* Security info */}
 				{state.status === "idle" && (
 					<p className="text-xs text-center text-muted-foreground">
-						Your identity will be verified using your EUDI Wallet credentials.
-						No passwords are transmitted.
+						Your identity will be verified using your PID credential. No
+						passwords are transmitted.
 					</p>
 				)}
 			</div>
