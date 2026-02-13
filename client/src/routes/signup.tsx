@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { createFileRoute, useRouteContext } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouteContext } from "@tanstack/react-router";
 import { AlertCircle, CheckCircle2, Clock, Loader2, UserX } from "lucide-react";
 import { useState } from "react";
 import type { DcApiRequest, PresentationMode } from "shared/types/auth";
@@ -507,7 +507,7 @@ function SignupPage() {
 									className="w-full max-w-sm mx-auto h-12 text-base font-semibold"
 									size="lg"
 								>
-									<a href="/signin">Sign In to Continue →</a>
+									<Link to="/signin">Sign In to Continue →</Link>
 								</Button>
 							</div>
 						</CardContent>
@@ -538,7 +538,7 @@ function SignupPage() {
 											className="w-full h-12 text-base font-semibold"
 											size="lg"
 										>
-											<a href="/signin">Sign In Instead</a>
+											<Link to="/signin">Sign In Instead</Link>
 										</Button>
 										<Button
 											onClick={handleCancel}
