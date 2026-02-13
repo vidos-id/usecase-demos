@@ -126,7 +126,7 @@ export function DCApiHandler({
 	};
 
 	return (
-		<div className="flex flex-col items-center space-y-4">
+		<div className="flex flex-col items-center space-y-4 pt-6">
 			<Button onClick={handleConnect} disabled={isLoading} size="lg">
 				{isLoading ? (
 					<>

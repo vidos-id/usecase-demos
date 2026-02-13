@@ -203,9 +203,16 @@ function SignupPage() {
 		},
 	});
 
-	const handleDCApiSuccess = (response: Record<string, unknown>) => {
+	const handleDCApiSuccess = (response: {
+		protocol: string;
+		data: Record<string, unknown>;
+	}) => {
 		if (state.status !== "awaiting_verification") return;
-		completeMutation.mutate({ requestId: state.requestId, response });
+		// Pass data (the actual credential response) not the wrapper object
+		completeMutation.mutate({
+			requestId: state.requestId,
+			response: response.data,
+		});
 	};
 
 	const handleCancel = () => {
