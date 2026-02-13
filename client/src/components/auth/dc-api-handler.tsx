@@ -1,16 +1,82 @@
 import { Loader2, Wallet } from "lucide-react";
 import { useState } from "react";
+import type { DcApiRequest } from "shared/types/auth";
 import { Button } from "@/components/ui/button";
 
-// Extend CredentialRequestOptions to include digital property
-interface DigitalCredentialRequestOptions extends CredentialRequestOptions {
-	digital?: Record<string, unknown>;
+// DC API types per W3C Digital Credentials spec
+interface DCApiRequestOptions extends CredentialRequestOptions {
+	digital?: {
+		requests: DcApiRequest[];
+	};
+}
+
+interface DCApiCredential extends Credential {
+	protocol: string;
+	data: Record<string, unknown>;
 }
 
 interface DCApiHandlerProps {
-	dcApiRequest: Record<string, unknown>;
-	onSuccess: (response: Record<string, unknown>) => void;
+	dcApiRequest: DcApiRequest;
+	onSuccess: (response: {
+		protocol: string;
+		data: Record<string, unknown>;
+	}) => void;
 	onError: (error: string) => void;
+}
+
+// Browser global type for DC API feature detection
+interface DigitalCredentialGlobal {
+	userAgentAllowsProtocol: (protocol: string) => boolean;
+}
+
+/**
+ * Get the DigitalCredential browser global if available
+ */
+function getDigitalCredentialGlobal(): DigitalCredentialGlobal | undefined {
+	return (window as unknown as { DigitalCredential?: DigitalCredentialGlobal })
+		.DigitalCredential;
+}
+
+/**
+ * Check DC API browser support
+ * Spec: https://www.w3.org/TR/digital-credentials/#feature-detection
+ */
+function checkDCAPISupport(protocol?: string): {
+	available: boolean;
+	reason?: string;
+} {
+	if (typeof navigator === "undefined") {
+		return { available: false, reason: "Not in browser environment" };
+	}
+
+	const digitalCredential = getDigitalCredentialGlobal();
+	if (!digitalCredential) {
+		return {
+			available: false,
+			reason: "DigitalCredential interface not available",
+		};
+	}
+
+	// Check if protocol is allowed by user agent
+	if (protocol && !digitalCredential.userAgentAllowsProtocol(protocol)) {
+		return {
+			available: false,
+			reason: `Protocol "${protocol}" not supported by user agent`,
+		};
+	}
+
+	if (!navigator.credentials) {
+		return {
+			available: false,
+			reason: "Credentials API not available in this browser",
+		};
+	}
+
+	if (typeof navigator.credentials.get !== "function") {
+		return { available: false, reason: "credentials.get() not available" };
+	}
+
+	return { available: true };
 }
 
 export function DCApiHandler({
@@ -21,26 +87,29 @@ export function DCApiHandler({
 	const [isLoading, setIsLoading] = useState(false);
 
 	const handleConnect = async () => {
-		if (!("credentials" in navigator)) {
-			onError("Digital Credentials API not supported in this browser");
+		// Check browser support with protocol validation
+		const support = checkDCAPISupport(dcApiRequest.protocol);
+		if (!support.available) {
+			onError(support.reason || "DC API not supported");
 			return;
 		}
 
 		setIsLoading(true);
 		try {
 			const credential = await navigator.credentials.get({
-				digital: dcApiRequest,
-			} as DigitalCredentialRequestOptions);
+				digital: { requests: [dcApiRequest] },
+			} as DCApiRequestOptions);
 
 			if (!credential) {
 				throw new Error("No credential returned");
 			}
 
-			// Extract the response from the credential
-			const response = (
-				credential as unknown as { response: Record<string, unknown> }
-			).response;
-			onSuccess(response);
+			// Cast to DCApiCredential per spec
+			const digitalCredential = credential as DCApiCredential;
+			onSuccess({
+				protocol: digitalCredential.protocol,
+				data: digitalCredential.data,
+			});
 		} catch (err) {
 			if (err instanceof Error) {
 				if (err.name === "AbortError") {

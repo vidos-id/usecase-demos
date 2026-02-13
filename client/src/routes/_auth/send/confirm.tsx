@@ -15,13 +15,14 @@ import {
 	ShieldCheck,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import type { DcApiRequest } from "shared/types/auth";
 
 import { CredentialDisclosure } from "@/components/auth/credential-disclosure";
 import { DCApiHandler } from "@/components/auth/dc-api-handler";
 import { PollingStatus } from "@/components/auth/polling-status";
 import { QRCodeDisplay } from "@/components/auth/qr-code-display";
 import { Button } from "@/components/ui/button";
-import { getStoredMode } from "@/lib/auth-helpers";
+
 import { cn } from "@/lib/utils";
 
 interface ConfirmSearchParams {
@@ -55,9 +56,17 @@ type PaymentState =
 	| { status: "requesting" }
 	| {
 			status: "awaiting_verification";
+			mode: "direct_post";
 			requestId: string;
-			authorizeUrl?: string;
-			dcApiRequest?: Record<string, unknown>;
+			authorizeUrl: string;
+			requestedClaims: string[];
+			purpose: string;
+	  }
+	| {
+			status: "awaiting_verification";
+			mode: "dc_api";
+			requestId: string;
+			dcApiRequest: DcApiRequest;
 			requestedClaims: string[];
 			purpose: string;
 	  }
@@ -74,11 +83,12 @@ function PaymentConfirmPage() {
 	const [state, setState] = useState<PaymentState>({ status: "idle" });
 	const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
-	const mode = getStoredMode();
-
 	// Polling for direct_post mode
 	useEffect(() => {
-		if (state.status !== "awaiting_verification" || mode !== "direct_post")
+		if (
+			state.status !== "awaiting_verification" ||
+			state.mode !== "direct_post"
+		)
 			return;
 
 		let interval = 1000;
@@ -143,7 +153,7 @@ function PaymentConfirmPage() {
 
 		poll();
 		return () => clearTimeout(timeoutId);
-	}, [state, mode, navigate, search, queryClient, apiClient]);
+	}, [state, navigate, search, queryClient, apiClient]);
 
 	// Redirect if no search params
 	useEffect(() => {
@@ -169,15 +179,25 @@ function PaymentConfirmPage() {
 			if (!res.ok) throw new Error("Failed to create payment request");
 
 			const data = await res.json();
-			setState({
-				status: "awaiting_verification",
-				requestId: data.requestId,
-				authorizeUrl:
-					data.mode === "direct_post" ? data.authorizeUrl : undefined,
-				dcApiRequest: data.mode === "dc_api" ? data.dcApiRequest : undefined,
-				requestedClaims: data.requestedClaims,
-				purpose: data.purpose,
-			});
+			if (data.mode === "direct_post") {
+				setState({
+					status: "awaiting_verification",
+					mode: "direct_post",
+					requestId: data.requestId,
+					authorizeUrl: data.authorizeUrl,
+					requestedClaims: data.requestedClaims,
+					purpose: data.purpose,
+				});
+			} else {
+				setState({
+					status: "awaiting_verification",
+					mode: "dc_api",
+					requestId: data.requestId,
+					dcApiRequest: data.dcApiRequest,
+					requestedClaims: data.requestedClaims,
+					purpose: data.purpose,
+				});
+			}
 		} catch (err) {
 			setState({
 				status: "error",
@@ -189,10 +209,11 @@ function PaymentConfirmPage() {
 	const handleDCApiSuccess = async (response: Record<string, unknown>) => {
 		if (state.status !== "awaiting_verification") return;
 
+		const { requestId } = state;
 		setState({ status: "completing" });
 		try {
 			const res = await apiClient.api.payment.complete[":requestId"].$post({
-				param: { requestId: state.requestId },
+				param: { requestId },
 				json: { origin: window.location.origin, dcResponse: response },
 			});
 
@@ -303,8 +324,7 @@ function PaymentConfirmPage() {
 
 						{/* Awaiting Verification - Direct Post Mode */}
 						{state.status === "awaiting_verification" &&
-							mode === "direct_post" &&
-							state.authorizeUrl && (
+							state.mode === "direct_post" && (
 								<div className="space-y-4">
 									<CredentialDisclosure
 										requestedClaims={state.requestedClaims}
@@ -320,8 +340,7 @@ function PaymentConfirmPage() {
 
 						{/* Awaiting Verification - DC API Mode */}
 						{state.status === "awaiting_verification" &&
-							mode === "dc_api" &&
-							state.dcApiRequest && (
+							state.mode === "dc_api" && (
 								<div className="space-y-4">
 									<CredentialDisclosure
 										requestedClaims={state.requestedClaims}

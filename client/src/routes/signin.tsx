@@ -6,7 +6,7 @@ import {
 } from "@tanstack/react-router";
 import { AlertCircle, Clock, Loader2, UserSearch } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { PresentationMode } from "shared/types/auth";
+import type { DcApiRequest, PresentationMode } from "shared/types/auth";
 import { CredentialDisclosure } from "@/components/auth/credential-disclosure";
 import { DCApiHandler } from "@/components/auth/dc-api-handler";
 import { ModeSelector } from "@/components/auth/mode-selector";
@@ -27,9 +27,17 @@ type AuthState =
 	| { status: "requesting" }
 	| {
 			status: "awaiting_verification";
+			mode: "direct_post";
 			requestId: string;
-			authorizeUrl?: string;
-			dcApiRequest?: Record<string, unknown>;
+			authorizeUrl: string;
+			requestedClaims: string[];
+			purpose: string;
+	  }
+	| {
+			status: "awaiting_verification";
+			mode: "dc_api";
+			requestId: string;
+			dcApiRequest: DcApiRequest;
 			requestedClaims: string[];
 			purpose: string;
 	  }
@@ -74,15 +82,25 @@ function SigninPage() {
 
 			const data = await res.json();
 			console.log("[Signin] request created:", data.requestId);
-			setState({
-				status: "awaiting_verification",
-				requestId: data.requestId,
-				authorizeUrl:
-					data.mode === "direct_post" ? data.authorizeUrl : undefined,
-				dcApiRequest: data.mode === "dc_api" ? data.dcApiRequest : undefined,
-				requestedClaims: data.requestedClaims,
-				purpose: data.purpose,
-			});
+			if (data.mode === "direct_post") {
+				setState({
+					status: "awaiting_verification",
+					mode: "direct_post",
+					requestId: data.requestId,
+					authorizeUrl: data.authorizeUrl,
+					requestedClaims: data.requestedClaims,
+					purpose: data.purpose,
+				});
+			} else {
+				setState({
+					status: "awaiting_verification",
+					mode: "dc_api",
+					requestId: data.requestId,
+					dcApiRequest: data.dcApiRequest,
+					requestedClaims: data.requestedClaims,
+					purpose: data.purpose,
+				});
+			}
 		} catch (err) {
 			console.error("[Signin] error:", err);
 			setState({
@@ -94,7 +112,10 @@ function SigninPage() {
 
 	// Polling for direct_post mode
 	useEffect(() => {
-		if (state.status !== "awaiting_verification" || mode !== "direct_post")
+		if (
+			state.status !== "awaiting_verification" ||
+			state.mode !== "direct_post"
+		)
 			return;
 
 		let interval = 1000;
@@ -180,11 +201,12 @@ function SigninPage() {
 	const handleDCApiSuccess = async (response: Record<string, unknown>) => {
 		if (state.status !== "awaiting_verification") return;
 
+		const { requestId } = state;
 		setState({ status: "completing" });
 		console.log("[Signin] completing DC API flow");
 		try {
 			const res = await apiClient.api.signin.complete[":requestId"].$post({
-				param: { requestId: state.requestId },
+				param: { requestId },
 				json: { origin: window.location.origin, dcResponse: response },
 			});
 
@@ -429,8 +451,7 @@ function SigninPage() {
 				)}
 
 				{state.status === "awaiting_verification" &&
-					mode === "direct_post" &&
-					state.authorizeUrl && (
+					state.mode === "direct_post" && (
 						<Card className="w-full max-w-2xl mx-auto animate-fade-in">
 							<CardContent className="p-8">
 								<CredentialDisclosure
@@ -447,8 +468,7 @@ function SigninPage() {
 					)}
 
 				{state.status === "awaiting_verification" &&
-					mode === "dc_api" &&
-					state.dcApiRequest && (
+					state.mode === "dc_api" && (
 						<Card className="w-full max-w-2xl mx-auto animate-fade-in">
 							<CardContent className="p-8">
 								<CredentialDisclosure

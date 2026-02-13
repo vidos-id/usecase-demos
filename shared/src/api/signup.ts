@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { presentationModeSchema } from "../types/auth";
+import { dcApiRequestSchema, presentationModeSchema } from "../types/auth";
 
 export const signupRequestSchema = z.object({
 	mode: presentationModeSchema,
@@ -20,7 +20,7 @@ export const signupRequestResponseSchema = z.discriminatedUnion("mode", [
 	}),
 	signupRequestResponseBaseSchema.extend({
 		mode: z.literal("dc_api"),
-		dcApiRequest: z.record(z.string(), z.unknown()),
+		dcApiRequest: dcApiRequestSchema,
 		responseUrl: z.url(),
 		requestedClaims: z.array(z.string()),
 		purpose: z.string(),

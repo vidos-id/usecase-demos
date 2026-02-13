@@ -22,12 +22,13 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { LOAN_AMOUNTS, LOAN_PURPOSES, LOAN_TERMS } from "shared/api/loan";
+import type { DcApiRequest } from "shared/types/auth";
 import { CredentialDisclosure } from "@/components/auth/credential-disclosure";
 import { DCApiHandler } from "@/components/auth/dc-api-handler";
 import { PollingStatus } from "@/components/auth/polling-status";
 import { QRCodeDisplay } from "@/components/auth/qr-code-display";
 import { Button } from "@/components/ui/button";
-import { getStoredMode } from "@/lib/auth-helpers";
+
 import { cn } from "@/lib/utils";
 
 // Purpose icons mapping
@@ -48,9 +49,17 @@ type FlowState =
 	| { status: "requesting" }
 	| {
 			status: "verifying";
+			mode: "direct_post";
 			requestId: string;
-			authorizeUrl?: string;
-			dcApiRequest?: Record<string, unknown>;
+			authorizeUrl: string;
+			requestedClaims: string[];
+			purpose: string;
+	  }
+	| {
+			status: "verifying";
+			mode: "dc_api";
+			requestId: string;
+			dcApiRequest: DcApiRequest;
 			requestedClaims: string[];
 			purpose: string;
 	  }
@@ -83,7 +92,6 @@ function LoanPage() {
 	const [state, setState] = useState<FlowState>({ status: "form" });
 	const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
-	const mode = getStoredMode();
 	const isFormValid = amount && purpose && term;
 
 	// Calculate loan details
@@ -123,15 +131,25 @@ function LoanPage() {
 			if (!res.ok) throw new Error("Failed to create loan request");
 
 			const data = await res.json();
-			setState({
-				status: "verifying",
-				requestId: data.requestId,
-				authorizeUrl:
-					data.mode === "direct_post" ? data.authorizeUrl : undefined,
-				dcApiRequest: data.mode === "dc_api" ? data.dcApiRequest : undefined,
-				requestedClaims: data.requestedClaims,
-				purpose: data.purpose,
-			});
+			if (data.mode === "direct_post") {
+				setState({
+					status: "verifying",
+					mode: "direct_post",
+					requestId: data.requestId,
+					authorizeUrl: data.authorizeUrl,
+					requestedClaims: data.requestedClaims,
+					purpose: data.purpose,
+				});
+			} else {
+				setState({
+					status: "verifying",
+					mode: "dc_api",
+					requestId: data.requestId,
+					dcApiRequest: data.dcApiRequest,
+					requestedClaims: data.requestedClaims,
+					purpose: data.purpose,
+				});
+			}
 		} catch (err) {
 			setState({
 				status: "error",
@@ -142,7 +160,7 @@ function LoanPage() {
 
 	// Polling for direct_post mode
 	useEffect(() => {
-		if (state.status !== "verifying" || mode !== "direct_post") return;
+		if (state.status !== "verifying" || state.mode !== "direct_post") return;
 
 		let interval = 1000;
 		const maxInterval = 5000;
@@ -194,14 +212,15 @@ function LoanPage() {
 
 		poll();
 		return () => clearTimeout(timeoutId);
-	}, [state, mode, navigate, queryClient, apiClient]);
+	}, [state, navigate, queryClient, apiClient]);
 
 	const handleDCApiSuccess = async (response: Record<string, unknown>) => {
 		if (state.status !== "verifying") return;
 
+		const { requestId } = state;
 		try {
 			const res = await apiClient.api.loan.complete[":requestId"].$post({
-				param: { requestId: state.requestId },
+				param: { requestId },
 				json: { origin: window.location.origin, dcResponse: response },
 			});
 
@@ -518,76 +537,72 @@ function LoanPage() {
 				)}
 
 				{/* Verifying state - Direct Post */}
-				{state.status === "verifying" &&
-					mode === "direct_post" &&
-					state.authorizeUrl && (
-						<div className="rounded-2xl border border-border/60 bg-background overflow-hidden">
-							<div className="p-6 space-y-4">
-								<div className="text-center">
-									<h2 className="font-semibold">Verify Your Identity</h2>
-									<p className="text-sm text-muted-foreground">
-										Scan with your EUDI Wallet to complete
-									</p>
-								</div>
-
-								{/* Loan summary reminder */}
-								<div className="flex items-center justify-between py-3 px-4 bg-muted/30 rounded-lg">
-									<span className="text-sm text-muted-foreground">
-										Loan Amount
-									</span>
-									<span className="font-bold font-mono">
-										€{loanAmount.toLocaleString()}
-									</span>
-								</div>
-
-								<CredentialDisclosure
-									requestedClaims={state.requestedClaims}
-									purpose={state.purpose}
-								/>
-								<QRCodeDisplay url={state.authorizeUrl} />
-								<PollingStatus
-									elapsedSeconds={elapsedSeconds}
-									onCancel={handleReset}
-								/>
+				{state.status === "verifying" && state.mode === "direct_post" && (
+					<div className="rounded-2xl border border-border/60 bg-background overflow-hidden">
+						<div className="p-6 space-y-4">
+							<div className="text-center">
+								<h2 className="font-semibold">Verify Your Identity</h2>
+								<p className="text-sm text-muted-foreground">
+									Scan with your EUDI Wallet to complete
+								</p>
 							</div>
+
+							{/* Loan summary reminder */}
+							<div className="flex items-center justify-between py-3 px-4 bg-muted/30 rounded-lg">
+								<span className="text-sm text-muted-foreground">
+									Loan Amount
+								</span>
+								<span className="font-bold font-mono">
+									€{loanAmount.toLocaleString()}
+								</span>
+							</div>
+
+							<CredentialDisclosure
+								requestedClaims={state.requestedClaims}
+								purpose={state.purpose}
+							/>
+							<QRCodeDisplay url={state.authorizeUrl} />
+							<PollingStatus
+								elapsedSeconds={elapsedSeconds}
+								onCancel={handleReset}
+							/>
 						</div>
-					)}
+					</div>
+				)}
 
 				{/* Verifying state - DC API */}
-				{state.status === "verifying" &&
-					mode === "dc_api" &&
-					state.dcApiRequest && (
-						<div className="rounded-2xl border border-border/60 bg-background overflow-hidden">
-							<div className="p-6 space-y-4">
-								<div className="text-center">
-									<h2 className="font-semibold">Verify Your Identity</h2>
-									<p className="text-sm text-muted-foreground">
-										Confirm with your browser wallet
-									</p>
-								</div>
-
-								{/* Loan summary reminder */}
-								<div className="flex items-center justify-between py-3 px-4 bg-muted/30 rounded-lg">
-									<span className="text-sm text-muted-foreground">
-										Loan Amount
-									</span>
-									<span className="font-bold font-mono">
-										€{loanAmount.toLocaleString()}
-									</span>
-								</div>
-
-								<CredentialDisclosure
-									requestedClaims={state.requestedClaims}
-									purpose={state.purpose}
-								/>
-								<DCApiHandler
-									dcApiRequest={state.dcApiRequest}
-									onSuccess={handleDCApiSuccess}
-									onError={(msg) => setState({ status: "error", message: msg })}
-								/>
+				{state.status === "verifying" && state.mode === "dc_api" && (
+					<div className="rounded-2xl border border-border/60 bg-background overflow-hidden">
+						<div className="p-6 space-y-4">
+							<div className="text-center">
+								<h2 className="font-semibold">Verify Your Identity</h2>
+								<p className="text-sm text-muted-foreground">
+									Confirm with your browser wallet
+								</p>
 							</div>
+
+							{/* Loan summary reminder */}
+							<div className="flex items-center justify-between py-3 px-4 bg-muted/30 rounded-lg">
+								<span className="text-sm text-muted-foreground">
+									Loan Amount
+								</span>
+								<span className="font-bold font-mono">
+									€{loanAmount.toLocaleString()}
+								</span>
+							</div>
+
+							<CredentialDisclosure
+								requestedClaims={state.requestedClaims}
+								purpose={state.purpose}
+							/>
+							<DCApiHandler
+								dcApiRequest={state.dcApiRequest}
+								onSuccess={handleDCApiSuccess}
+								onError={(msg) => setState({ status: "error", message: msg })}
+							/>
 						</div>
-					)}
+					</div>
+				)}
 
 				{/* Error state */}
 				{state.status === "error" && (

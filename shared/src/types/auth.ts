@@ -4,6 +4,16 @@ export const presentationModeSchema = z.enum(["direct_post", "dc_api"]);
 export type PresentationMode = z.infer<typeof presentationModeSchema>;
 
 /**
+ * Digital Credentials API request per W3C spec
+ * https://www.w3.org/TR/digital-credentials/#the-digitalcredentialrequestoptions-dictionary
+ */
+export const dcApiRequestSchema = z.object({
+	protocol: z.string(),
+	data: z.record(z.string(), z.unknown()),
+});
+export type DcApiRequest = z.infer<typeof dcApiRequestSchema>;
+
+/**
  * Place of birth as per EUDI PID Rulebook - object with locality and/or country
  */
 export const placeOfBirthSchema = z.object({

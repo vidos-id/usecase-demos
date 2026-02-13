@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { dcApiRequestSchema } from "../types/auth";
 import {
 	LOAN_AMOUNTS,
 	LOAN_PURPOSES,
@@ -31,7 +32,7 @@ export const loanRequestResponseSchema = z.discriminatedUnion("mode", [
 	}),
 	loanRequestResponseBaseSchema.extend({
 		mode: z.literal("dc_api"),
-		dcApiRequest: z.record(z.string(), z.unknown()),
+		dcApiRequest: dcApiRequestSchema,
 		requestedClaims: z.array(z.string()),
 		purpose: z.string(),
 	}),
