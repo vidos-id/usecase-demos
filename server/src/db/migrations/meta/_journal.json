@@ -1,13 +1,13 @@
 {
-  "version": "7",
-  "dialect": "sqlite",
-  "entries": [
-    {
-      "idx": 0,
-      "version": "6",
-      "when": 1771002115347,
-      "tag": "0000_chilly_oracle",
-      "breakpoints": true
-    }
-  ]
+	"version": "7",
+	"dialect": "sqlite",
+	"entries": [
+		{
+			"idx": 0,
+			"version": "6",
+			"when": 1771002115347,
+			"tag": "0000_chilly_oracle",
+			"breakpoints": true
+		}
+	]
 }

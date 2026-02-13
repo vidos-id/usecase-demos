@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Shield } from "lucide-react";
+import { BookOpen, Shield } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getSessionId, subscribeSession } from "@/lib/auth";
 import { AccountMenu } from "./account-menu";
@@ -49,6 +49,21 @@ export function Header() {
 
 					{/* Right side */}
 					<div className="flex items-center gap-2 sm:gap-4">
+						{/* Guide link - subtle attention-grabber for new visitors */}
+						<Link
+							to="/guide"
+							className="group relative hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/5 border border-primary/20 hover:bg-primary/10 hover:border-primary/30 transition-all duration-300"
+						>
+							<BookOpen className="h-4 w-4 text-primary" />
+							<span className="text-sm font-medium text-primary">Guide</span>
+
+							{/* Gentle glowing dot indicator */}
+							<span className="relative flex h-2 w-2">
+								<span className="absolute inline-flex h-full w-full rounded-full bg-primary/40 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]" />
+								<span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+							</span>
+						</Link>
+
 						{/* Trust badge - always visible */}
 						<div className="hidden md:flex items-center gap-1.5 text-muted-foreground/60">
 							<Shield className="h-3.5 w-3.5" />
