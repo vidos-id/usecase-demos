@@ -7,13 +7,23 @@ import {
 	Smartphone,
 	Zap,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { getSessionId, subscribeSession } from "@/lib/auth";
 
 export const Route = createFileRoute("/")({
 	component: LandingPage,
 });
 
 function LandingPage() {
+	const [isAuthenticated, setIsAuthenticated] = useState(!!getSessionId());
+
+	useEffect(() => {
+		return subscribeSession(() => {
+			setIsAuthenticated(!!getSessionId());
+		});
+	}, []);
+
 	return (
 		<div className="flex flex-col min-h-[calc(100vh-4rem)]">
 			{/* Hero Section */}
@@ -48,20 +58,39 @@ function LandingPage() {
 
 							{/* CTAs */}
 							<div className="flex flex-col sm:flex-row gap-3">
-								<Button asChild size="lg" className="text-base px-6 h-12 group">
-									<Link to="/signup">
-										Create Account
-										<ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-									</Link>
-								</Button>
-								<Button
-									asChild
-									variant="outline"
-									size="lg"
-									className="text-base px-6 h-12"
-								>
-									<Link to="/signin">Sign In</Link>
-								</Button>
+								{isAuthenticated ? (
+									<Button
+										asChild
+										size="lg"
+										className="text-base px-6 h-12 group"
+									>
+										<Link to="/dashboard">
+											Continue to Dashboard
+											<ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+										</Link>
+									</Button>
+								) : (
+									<>
+										<Button
+											asChild
+											size="lg"
+											className="text-base px-6 h-12 group"
+										>
+											<Link to="/signup">
+												Create Account
+												<ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+											</Link>
+										</Button>
+										<Button
+											asChild
+											variant="outline"
+											size="lg"
+											className="text-base px-6 h-12"
+										>
+											<Link to="/signin">Sign In</Link>
+										</Button>
+									</>
+								)}
 							</div>
 
 							{/* Trust bar */}
