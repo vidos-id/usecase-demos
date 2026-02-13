@@ -147,6 +147,7 @@ export const loanRouter = new Hono()
 
 		const response = loanStatusResponseSchema.parse({
 			status: statusResult.status,
+			errorInfo: statusResult.errorInfo,
 		});
 
 		return c.json(response);
@@ -175,7 +176,13 @@ export const loanRouter = new Hono()
 			});
 
 			if (result.status !== "authorized") {
-				return c.json({ error: "Verification failed" }, 400);
+				return c.json(
+					{
+						error: "Verification failed",
+						errorInfo: result.errorInfo,
+					},
+					400,
+				);
 			}
 
 			const claims = await getExtractedCredentials(

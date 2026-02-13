@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { dcApiRequestSchema, presentationModeSchema } from "../types/auth";
+import { authorizationErrorInfoSchema } from "../types/vidos-errors";
 
 export const signinRequestSchema = z.discriminatedUnion("mode", [
 	z.object({
@@ -51,6 +52,8 @@ export const signinStatusResponseSchema = z.object({
 		.optional(),
 	mode: presentationModeSchema.optional(),
 	error: z.string().optional(),
+	/** Detailed error information when status is rejected/error */
+	errorInfo: authorizationErrorInfoSchema.optional(),
 });
 export type SigninStatusResponse = z.infer<typeof signinStatusResponseSchema>;
 

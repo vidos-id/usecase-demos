@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { dcApiRequestSchema } from "../types/auth";
+import { authorizationErrorInfoSchema } from "../types/vidos-errors";
 
 // EUR amount format: digits with exactly 2 decimal places
 export const eurAmountSchema = z.string().regex(/^\d+\.\d{2}$/, {
@@ -56,6 +57,8 @@ export const paymentStatusResponseSchema = z.object({
 			identifier: z.string(),
 		})
 		.optional(),
+	/** Detailed error information when status is rejected/error */
+	errorInfo: authorizationErrorInfoSchema.optional(),
 });
 export type PaymentStatusResponse = z.infer<typeof paymentStatusResponseSchema>;
 

@@ -148,6 +148,7 @@ export const paymentRouter = new Hono()
 
 		const response = paymentStatusResponseSchema.parse({
 			status: statusResult.status,
+			errorInfo: statusResult.errorInfo,
 		});
 
 		return c.json(response);
@@ -176,7 +177,13 @@ export const paymentRouter = new Hono()
 			});
 
 			if (result.status !== "authorized") {
-				return c.json({ error: "Verification failed" }, 400);
+				return c.json(
+					{
+						error: "Verification failed",
+						errorInfo: result.errorInfo,
+					},
+					400,
+				);
 			}
 
 			const claims = await getExtractedCredentials(

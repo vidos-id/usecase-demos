@@ -1,4 +1,8 @@
 import createClient from "openapi-fetch";
+import {
+	type AuthorizationErrorInfo,
+	parseVidosError,
+} from "shared/types/vidos-errors";
 import type { z } from "zod";
 import { env } from "../env";
 import type { paths } from "../generated/authorizer-api";
@@ -54,6 +58,7 @@ export type AuthorizationStatus =
 export interface PollStatusResult {
 	status: AuthorizationStatus;
 	error?: string;
+	errorInfo?: AuthorizationErrorInfo;
 }
 
 export interface ForwardDCAPIParams {
@@ -64,6 +69,7 @@ export interface ForwardDCAPIParams {
 
 export interface ForwardDCAPIResult {
 	status: AuthorizationStatus;
+	errorInfo?: AuthorizationErrorInfo;
 }
 
 export async function vidosAuthorizerHealthCheck(): Promise<boolean> {
@@ -186,6 +192,46 @@ export async function createAuthorizationRequest(
 }
 
 /**
+ * Fetches policy response errors for a rejected/error authorization.
+ * Returns the first error found or null if no errors.
+ */
+async function getPolicyErrors(
+	authorizationId: string,
+): Promise<AuthorizationErrorInfo | undefined> {
+	const client = getAuthorizerClient();
+
+	try {
+		const { data, error } = await client.GET(
+			"/openid4/vp/v1_0/authorizations/{authorizationId}/policy-response",
+			{
+				params: { path: { authorizationId } },
+			},
+		);
+
+		if (error || !data?.data) {
+			console.error("[Vidos] getPolicyErrors error:", error);
+			return undefined;
+		}
+
+		// Find first policy with an error
+		for (const policyResult of data.data) {
+			if (policyResult.error && typeof policyResult.error === "object") {
+				const parsed = parseVidosError(policyResult);
+				if (parsed) {
+					console.log("[Vidos] parsed policy error:", parsed);
+					return parsed;
+				}
+			}
+		}
+
+		return undefined;
+	} catch (err) {
+		console.error("[Vidos] getPolicyErrors exception:", err);
+		return undefined;
+	}
+}
+
+/**
  * Polls the authorization status from the Vidos Authorizer API.
  * Used to check if the user has completed the verification flow.
  */
@@ -226,6 +272,16 @@ export async function pollAuthorizationStatus(
 		"->",
 		mappedStatus,
 	);
+
+	// For rejected/error status, fetch detailed error info
+	if (mappedStatus === "rejected" || mappedStatus === "error") {
+		const errorInfo = await getPolicyErrors(authorizationId);
+		return {
+			status: mappedStatus,
+			errorInfo,
+		};
+	}
+
 	return {
 		status: mappedStatus,
 	};
@@ -267,6 +323,13 @@ export async function forwardDCAPIResponse(
 		}
 
 		console.log("[Vidos] forwardDCAPIResponse result:", data.status);
+
+		// Fetch error info for rejected/error status
+		if (data.status === "rejected" || data.status === "error") {
+			const errorInfo = await getPolicyErrors(authorizationId);
+			return { status: data.status, errorInfo };
+		}
+
 		return { status: data.status };
 	}
 
@@ -299,6 +362,13 @@ export async function forwardDCAPIResponse(
 	}
 
 	console.log("[Vidos] forwardDCAPIResponse result:", data.status);
+
+	// Fetch error info for rejected/error status
+	if (data.status === "rejected" || data.status === "error") {
+		const errorInfo = await getPolicyErrors(authorizationId);
+		return { status: data.status, errorInfo };
+	}
+
 	return { status: data.status };
 }
 

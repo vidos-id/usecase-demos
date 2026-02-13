@@ -2,12 +2,12 @@ import { createFileRoute, Link, useRouteContext } from "@tanstack/react-router";
 import { CheckCircle2, UserX } from "lucide-react";
 import { useMemo } from "react";
 import type { PresentationMode } from "shared/types/auth";
+import type { AuthorizationErrorInfo } from "shared/types/vidos-errors";
 import {
 	AuthFlow,
 	type AuthFlowConfig,
 	AuthFooter,
 	type AuthState,
-	GenericAuthError,
 	WalletFeatureItem,
 } from "@/components/auth/auth-flow";
 import { Button } from "@/components/ui/button";
@@ -64,6 +64,21 @@ function SignupPage() {
 
 					if (!res.ok) {
 						if (res.status === 400) {
+							// Try to parse error response with errorInfo
+							try {
+								const errorBody = (await res.json()) as {
+									error?: string;
+									errorInfo?: unknown;
+								};
+								if (errorBody.errorInfo) {
+									throw {
+										type: "vidos_error" as const,
+										errorInfo: errorBody.errorInfo,
+									};
+								}
+							} catch {
+								// If parsing fails, throw generic account exists error
+							}
 							throw { type: "account_exists" as const };
 						}
 						throw new Error("Completion failed");
@@ -109,9 +124,7 @@ function SignupPage() {
 				errorContent: (message, errorType, onRetry) =>
 					errorType === "account_exists" ? (
 						<AccountExistsError message={message} onRetry={onRetry} />
-					) : (
-						<GenericAuthError message={message} onRetry={onRetry} />
-					),
+					) : null, // Return null to let AuthFlow handle Vidos errors with VidosErrorDisplay
 			},
 		}),
 		[apiClient],
@@ -127,21 +140,36 @@ function SignupPage() {
 function mapAccountExistsError(
 	err: unknown,
 ): { handled: true; state: AuthState } | { handled: false } {
-	if (
-		err &&
-		typeof err === "object" &&
-		"type" in err &&
-		err.type === "account_exists"
-	) {
-		return {
-			handled: true,
-			state: {
-				status: "error",
-				message:
-					"An account with this identity already exists. Please sign in instead or delete your existing account first.",
-				errorType: "account_exists",
-			},
+	if (err && typeof err === "object" && "type" in err) {
+		const typedErr = err as {
+			type: string;
+			errorInfo?: AuthorizationErrorInfo;
 		};
+
+		// Handle Vidos validation errors
+		if (typedErr.type === "vidos_error" && typedErr.errorInfo) {
+			return {
+				handled: true,
+				state: {
+					status: "error",
+					message: "Verification failed",
+					errorInfo: typedErr.errorInfo,
+				},
+			};
+		}
+
+		// Handle account exists error
+		if (typedErr.type === "account_exists") {
+			return {
+				handled: true,
+				state: {
+					status: "error",
+					message:
+						"An account with this identity already exists. Please sign in instead or delete your existing account first.",
+					errorType: "account_exists",
+				},
+			};
+		}
 	}
 	return { handled: false };
 }

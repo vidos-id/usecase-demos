@@ -7,12 +7,12 @@ import {
 import { UserSearch } from "lucide-react";
 import { useMemo } from "react";
 import type { PresentationMode } from "shared/types/auth";
+import type { AuthorizationErrorInfo } from "shared/types/vidos-errors";
 import {
 	AuthFlow,
 	type AuthFlowConfig,
 	AuthFooter,
 	type AuthState,
-	GenericAuthError,
 	WalletFeatureItem,
 } from "@/components/auth/auth-flow";
 import { Button } from "@/components/ui/button";
@@ -78,6 +78,23 @@ function SigninPage() {
 					}
 
 					if (!res.ok) {
+						// Try to parse error response with errorInfo
+						if (res.status === 400) {
+							try {
+								const errorBody = (await res.json()) as {
+									error?: string;
+									errorInfo?: unknown;
+								};
+								if (errorBody.errorInfo) {
+									throw {
+										type: "vidos_error" as const,
+										errorInfo: errorBody.errorInfo,
+									};
+								}
+							} catch {
+								// If parsing fails, throw generic error
+							}
+						}
 						throw new Error("Completion failed");
 					}
 
@@ -124,9 +141,7 @@ function SigninPage() {
 				errorContent: (message, errorType, onRetry) =>
 					errorType === "not_found" ? (
 						<NotFoundError message={message} onRetry={onRetry} />
-					) : (
-						<GenericAuthError message={message} onRetry={onRetry} />
-					),
+					) : null, // Return null to let AuthFlow handle Vidos errors with VidosErrorDisplay
 			},
 		}),
 		[apiClient, navigate],
@@ -142,20 +157,35 @@ function SigninPage() {
 function mapNotFoundError(
 	err: unknown,
 ): { handled: true; state: AuthState } | { handled: false } {
-	if (
-		err &&
-		typeof err === "object" &&
-		"type" in err &&
-		err.type === "not_found"
-	) {
-		return {
-			handled: true,
-			state: {
-				status: "error",
-				message: "No account found with this identity.",
-				errorType: "not_found",
-			},
+	if (err && typeof err === "object" && "type" in err) {
+		const typedErr = err as {
+			type: string;
+			errorInfo?: AuthorizationErrorInfo;
 		};
+
+		// Handle Vidos validation errors
+		if (typedErr.type === "vidos_error" && typedErr.errorInfo) {
+			return {
+				handled: true,
+				state: {
+					status: "error",
+					message: "Verification failed",
+					errorInfo: typedErr.errorInfo,
+				},
+			};
+		}
+
+		// Handle not found error
+		if (typedErr.type === "not_found") {
+			return {
+				handled: true,
+				state: {
+					status: "error",
+					message: "No account found with this identity.",
+					errorType: "not_found",
+				},
+			};
+		}
 	}
 	return { handled: false };
 }

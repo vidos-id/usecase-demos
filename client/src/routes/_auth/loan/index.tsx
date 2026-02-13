@@ -23,10 +23,12 @@ import {
 import { useState } from "react";
 import { LOAN_AMOUNTS, LOAN_PURPOSES, LOAN_TERMS } from "shared/api/loan";
 import type { DcApiRequest } from "shared/types/auth";
+import type { AuthorizationErrorInfo } from "shared/types/vidos-errors";
 import { CredentialDisclosure } from "@/components/auth/credential-disclosure";
 import { DCApiHandler } from "@/components/auth/dc-api-handler";
 import { PollingStatus } from "@/components/auth/polling-status";
 import { QRCodeDisplay } from "@/components/auth/qr-code-display";
+import { VidosErrorDisplay } from "@/components/auth/vidos-error-display";
 import { Button } from "@/components/ui/button";
 import { getStoredMode } from "@/lib/auth-helpers";
 
@@ -63,7 +65,7 @@ type FlowState =
 			requestedClaims: string[];
 			purpose: string;
 	  }
-	| { status: "error"; message: string }
+	| { status: "error"; message: string; errorInfo?: AuthorizationErrorInfo }
 	| { status: "expired" };
 
 // Simple interest rate for demo (5.9% APR)
@@ -90,7 +92,7 @@ function LoanPage() {
 	const [purpose, setPurpose] = useState<string>("");
 	const [term, setTerm] = useState<string>("");
 	const [state, setState] = useState<FlowState>({ status: "form" });
-	const [pollingStartTime] = useState(() => Date.now());
+	const [pollingStartTime, setPollingStartTime] = useState<number | null>(null);
 
 	const isFormValid = amount && purpose && term;
 
@@ -138,6 +140,7 @@ function LoanPage() {
 			return res.json();
 		},
 		onSuccess: (data) => {
+			setPollingStartTime(Date.now());
 			if (data.mode === "direct_post") {
 				setState({
 					status: "verifying",
@@ -187,6 +190,7 @@ function LoanPage() {
 		},
 		enabled: !!currentRequestId,
 		refetchInterval: (query) => {
+			if (!pollingStartTime) return false;
 			// Stop polling after 5 minutes
 			if (Date.now() - pollingStartTime > 5 * 60 * 1000) {
 				return false;
@@ -207,7 +211,11 @@ function LoanPage() {
 		} else if (data.status === "expired") {
 			setState({ status: "expired" });
 		} else if (data.status === "rejected" || data.status === "error") {
-			setState({ status: "error", message: `Verification ${data.status}` });
+			setState({
+				status: "error",
+				message: `Verification ${data.status}`,
+				errorInfo: data.errorInfo,
+			});
 		}
 	}
 
@@ -215,6 +223,7 @@ function LoanPage() {
 	if (
 		state.status === "verifying" &&
 		state.mode === "direct_post" &&
+		pollingStartTime &&
 		Date.now() - pollingStartTime > 5 * 60 * 1000
 	) {
 		setState({ status: "error", message: "Verification timed out" });
@@ -234,7 +243,26 @@ function LoanPage() {
 				json: { origin: window.location.origin, dcResponse: response },
 			});
 
-			if (!res.ok) throw new Error("Completion failed");
+			if (!res.ok) {
+				// Try to parse error response with errorInfo
+				if (res.status === 400) {
+					try {
+						const errorBody = (await res.json()) as {
+							error?: string;
+							errorInfo?: AuthorizationErrorInfo;
+						};
+						if (errorBody.errorInfo) {
+							throw {
+								type: "vidos_error" as const,
+								errorInfo: errorBody.errorInfo,
+							};
+						}
+					} catch (e) {
+						if (e && typeof e === "object" && "type" in e) throw e;
+					}
+				}
+				throw new Error("Completion failed");
+			}
 
 			return res.json();
 		},
@@ -243,6 +271,21 @@ function LoanPage() {
 			navigate({ to: "/loan/success" });
 		},
 		onError: (err) => {
+			// Handle Vidos error
+			if (err && typeof err === "object" && "type" in err) {
+				const typedErr = err as {
+					type: string;
+					errorInfo?: AuthorizationErrorInfo;
+				};
+				if (typedErr.type === "vidos_error" && typedErr.errorInfo) {
+					setState({
+						status: "error",
+						message: "Verification failed",
+						errorInfo: typedErr.errorInfo,
+					});
+					return;
+				}
+			}
 			setState({
 				status: "error",
 				message: err instanceof Error ? err.message : "Completion failed",
@@ -266,7 +309,9 @@ function LoanPage() {
 		setState({ status: "form" });
 	};
 
-	const elapsedSeconds = Math.floor((Date.now() - pollingStartTime) / 1000);
+	const elapsedSeconds = pollingStartTime
+		? Math.floor((Date.now() - pollingStartTime) / 1000)
+		: 0;
 
 	return (
 		<div className="min-h-[calc(100vh-4rem)] py-8 px-4 sm:px-6 lg:px-8">
@@ -637,42 +682,48 @@ function LoanPage() {
 				)}
 
 				{/* Error state */}
-				{state.status === "error" && (
-					<div className="space-y-4">
-						<div
-							className={cn(
-								"flex items-start gap-3 p-4 rounded-xl",
-								"bg-destructive/10 border border-destructive/20 text-destructive",
-							)}
-						>
-							<AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
-							<div className="space-y-1">
-								<p className="font-medium">Application Failed</p>
-								<p className="text-sm opacity-80">{state.message}</p>
+				{state.status === "error" &&
+					(state.errorInfo ? (
+						<VidosErrorDisplay
+							errorInfo={state.errorInfo}
+							onRetry={() => setState({ status: "form" })}
+						/>
+					) : (
+						<div className="space-y-4">
+							<div
+								className={cn(
+									"flex items-start gap-3 p-4 rounded-xl",
+									"bg-destructive/10 border border-destructive/20 text-destructive",
+								)}
+							>
+								<AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+								<div className="space-y-1">
+									<p className="font-medium">Application Failed</p>
+									<p className="text-sm opacity-80">{state.message}</p>
+								</div>
+							</div>
+							<div className="flex gap-2">
+								<Button
+									onClick={() => setState({ status: "form" })}
+									variant="outline"
+									className="flex-1"
+								>
+									Start Over
+								</Button>
+								<Button
+									onClick={() => requestMutation.mutate()}
+									disabled={requestMutation.isPending}
+									className="flex-1"
+								>
+									{requestMutation.isPending ? (
+										<Loader2 className="h-4 w-4 animate-spin" />
+									) : (
+										"Retry"
+									)}
+								</Button>
 							</div>
 						</div>
-						<div className="flex gap-2">
-							<Button
-								onClick={() => setState({ status: "form" })}
-								variant="outline"
-								className="flex-1"
-							>
-								Start Over
-							</Button>
-							<Button
-								onClick={() => requestMutation.mutate()}
-								disabled={requestMutation.isPending}
-								className="flex-1"
-							>
-								{requestMutation.isPending ? (
-									<Loader2 className="h-4 w-4 animate-spin" />
-								) : (
-									"Retry"
-								)}
-							</Button>
-						</div>
-					</div>
-				)}
+					))}
 
 				{/* Expired state */}
 				{state.status === "expired" && (

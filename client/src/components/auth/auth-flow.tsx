@@ -3,11 +3,13 @@ import { AlertCircle, Clock, Loader2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import type { DcApiRequest, PresentationMode } from "shared/types/auth";
+import type { AuthorizationErrorInfo } from "shared/types/vidos-errors";
 import { CredentialDisclosure } from "@/components/auth/credential-disclosure";
 import { DCApiHandler } from "@/components/auth/dc-api-handler";
 import { ModeSelector } from "@/components/auth/mode-selector";
 import { PollingStatus } from "@/components/auth/polling-status";
 import { QRCodeDisplay } from "@/components/auth/qr-code-display";
+import { VidosErrorDisplay } from "@/components/auth/vidos-error-display";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getStoredMode, setStoredMode } from "@/lib/auth-helpers";
@@ -35,7 +37,12 @@ export type AuthState =
 			purpose: string;
 	  }
 	| { status: "success"; sessionId: string }
-	| { status: "error"; message: string; errorType?: string }
+	| {
+			status: "error";
+			message: string;
+			errorType?: string;
+			errorInfo?: AuthorizationErrorInfo;
+	  }
 	| { status: "expired" };
 
 type DirectPostRequestResult = {
@@ -61,6 +68,7 @@ type PollingResult = {
 	sessionId?: string;
 	mode?: PresentationMode;
 	error?: string;
+	errorInfo?: AuthorizationErrorInfo;
 } & Record<string, unknown>;
 
 type CompleteResult = {
@@ -137,7 +145,7 @@ export type AuthFlowConfig = {
 export function AuthFlow({ config }: { config: AuthFlowConfig }) {
 	const [mode, setMode] = useState<PresentationMode>(getStoredMode);
 	const [state, setState] = useState<AuthState>({ status: "idle" });
-	const [pollingStartTime] = useState(() => Date.now());
+	const [pollingStartTime, setPollingStartTime] = useState<number | null>(null);
 
 	const handleModeChange = (newMode: PresentationMode) => {
 		setMode(newMode);
@@ -154,6 +162,7 @@ export function AuthFlow({ config }: { config: AuthFlowConfig }) {
 			),
 		onSuccess: (data) => {
 			console.log(`[${config.flowKey}] request created:`, data.requestId);
+			setPollingStartTime(Date.now());
 			if (data.mode === "direct_post") {
 				setState({
 					status: "awaiting_verification",
@@ -202,6 +211,7 @@ export function AuthFlow({ config }: { config: AuthFlowConfig }) {
 		},
 		enabled: !!currentRequestId,
 		refetchInterval: (query) => {
+			if (!pollingStartTime) return false;
 			if (Date.now() - pollingStartTime > 5 * 60 * 1000) return false;
 			const count = query.state.dataUpdateCount;
 			return Math.min(1000 * 1.5 ** count, 5000);
@@ -227,6 +237,7 @@ export function AuthFlow({ config }: { config: AuthFlowConfig }) {
 			setState({
 				status: "error",
 				message: data.error || `Verification ${data.status}`,
+				errorInfo: data.errorInfo,
 			});
 		}
 	}
@@ -235,6 +246,7 @@ export function AuthFlow({ config }: { config: AuthFlowConfig }) {
 	if (
 		state.status === "awaiting_verification" &&
 		state.mode === "direct_post" &&
+		pollingStartTime &&
 		Date.now() - pollingStartTime > 5 * 60 * 1000
 	) {
 		setState({ status: "error", message: "Verification timed out" });
@@ -285,7 +297,9 @@ export function AuthFlow({ config }: { config: AuthFlowConfig }) {
 		setState({ status: "idle" });
 	};
 
-	const elapsedSeconds = Math.floor((Date.now() - pollingStartTime) / 1000);
+	const elapsedSeconds = pollingStartTime
+		? Math.floor((Date.now() - pollingStartTime) / 1000)
+		: 0;
 
 	// ============================================================================
 	// Render
@@ -418,13 +432,18 @@ export function AuthFlow({ config }: { config: AuthFlowConfig }) {
 				{state.status === "success" &&
 					config.slots.successContent?.(state.sessionId)}
 
-				{state.status === "error" && (
-					<>
-						{config.slots.errorContent?.(
-							state.message,
-							state.errorType,
-							handleCancel,
-						) ?? (
+				{state.status === "error" &&
+					(config.slots.errorContent?.(
+						state.message,
+						state.errorType,
+						handleCancel,
+					) ??
+						(state.errorInfo ? (
+							<VidosErrorDisplay
+								errorInfo={state.errorInfo}
+								onRetry={handleCancel}
+							/>
+						) : (
 							<Card className="w-full max-w-2xl mx-auto animate-slide-up">
 								<CardContent className="p-12">
 									<div className="space-y-6 text-center">
@@ -451,9 +470,7 @@ export function AuthFlow({ config }: { config: AuthFlowConfig }) {
 									</div>
 								</CardContent>
 							</Card>
-						)}
-					</>
-				)}
+						)))}
 
 				{state.status === "expired" && (
 					<Card className="w-full max-w-2xl mx-auto animate-slide-up">

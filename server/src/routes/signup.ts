@@ -134,6 +134,7 @@ export const signupRouter = new Hono()
 
 		const response = signupStatusResponseSchema.parse({
 			status: statusResult.status,
+			errorInfo: statusResult.errorInfo,
 		});
 
 		return c.json(response);
@@ -160,7 +161,13 @@ export const signupRouter = new Hono()
 			});
 
 			if (result.status !== "authorized") {
-				return c.json({ error: "Verification failed" }, 400);
+				return c.json(
+					{
+						error: "Verification failed",
+						errorInfo: result.errorInfo,
+					},
+					400,
+				);
 			}
 
 			// Get credentials validated for signup flow
