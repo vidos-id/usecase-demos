@@ -39,8 +39,9 @@ function GuidePage() {
 							</span>
 						</h1>
 						<p className="text-lg text-muted-foreground max-w-2xl leading-relaxed">
-							Follow these guides to set up a compatible EU Digital Identity
-							wallet and experience seamless, privacy-preserving authentication.
+							Set up an EUDI-compatible wallet and experience PID-based
+							identification — the same flow banks will use for KYC and Strong
+							Customer Authentication under eIDAS 2.0.
 						</p>
 					</div>
 
@@ -95,14 +96,14 @@ function GuidePage() {
 				<section className="space-y-6">
 					<SectionHeader
 						icon={<FileText className="h-5 w-5" />}
-						title="Protocol Reference"
-						description="Learn more about the underlying standards."
+						title="Protocol & Regulatory Reference"
+						description="Standards and regulations behind EUDI Wallet verification."
 					/>
 
 					<div className="grid sm:grid-cols-2 gap-4">
 						<ProtocolCard
 							title="OID4VP"
-							description="OpenID for Verifiable Presentations - the standard for presenting credentials"
+							description="OpenID for Verifiable Presentations - credential presentation standard"
 							href="https://openid.net/specs/openid-4-verifiable-presentations-1_0.html"
 						/>
 						<ProtocolCard
@@ -110,6 +111,44 @@ function GuidePage() {
 							description="Digital Credentials API - browser-native credential exchange"
 							href="https://wicg.github.io/digital-credentials/"
 						/>
+						<ProtocolCard
+							title="PID Rulebook"
+							description="Official EU specification for Person Identification Data attributes and encoding"
+							href="https://eudi.dev/latest/annexes/annex-3/annex-3.01-pid-rulebook/"
+						/>
+						<ProtocolCard
+							title="ARF Documentation"
+							description="Architecture and Reference Framework for EUDI Wallet ecosystem"
+							href="https://eudi.dev/latest/"
+						/>
+					</div>
+
+					{/* Regulatory context */}
+					<div className="rounded-xl bg-muted/30 border border-border/40 p-5 space-y-3">
+						<h3 className="font-semibold text-sm">
+							eIDAS 2.0 Compliance Timeline
+						</h3>
+						<div className="grid sm:grid-cols-2 gap-4 text-sm text-muted-foreground">
+							<div className="space-y-1">
+								<p className="font-medium text-foreground">
+									Dec 2026 - Public Sector
+								</p>
+								<p>Government services must accept EUDI Wallet credentials</p>
+							</div>
+							<div className="space-y-1">
+								<p className="font-medium text-foreground">
+									Dec 2027 - Private Sector
+								</p>
+								<p>
+									Banks and major platforms must accept wallet credentials for
+									SCA
+								</p>
+							</div>
+						</div>
+						<p className="text-xs text-muted-foreground/70">
+							Non-compliance: up to 5M EUR or 1% annual turnover (Article 16,
+							Regulation EU 2024/1183)
+						</p>
 					</div>
 				</section>
 

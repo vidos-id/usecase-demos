@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
 	ArrowRight,
+	BookOpen,
 	Fingerprint,
 	Lock,
 	Shield,
@@ -36,7 +37,7 @@ function LandingPage() {
 							<div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
 								<div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
 								<span className="text-xs font-medium text-primary">
-									EU Digital Identity Wallet Demo
+									PID Credential Verification Demo
 								</span>
 							</div>
 
@@ -97,15 +98,15 @@ function LandingPage() {
 							<div className="flex items-center gap-6 pt-4 text-muted-foreground/70">
 								<div className="flex items-center gap-1.5">
 									<Shield className="h-4 w-4" />
-									<span className="text-sm">PID Verified</span>
+									<span className="text-sm">eIDAS 2.0</span>
 								</div>
 								<div className="flex items-center gap-1.5">
 									<Lock className="h-4 w-4" />
-									<span className="text-sm">Privacy-first</span>
+									<span className="text-sm">OID4VP</span>
 								</div>
 								<div className="flex items-center gap-1.5">
 									<Zap className="h-4 w-4" />
-									<span className="text-sm">Instant</span>
+									<span className="text-sm">Instant KYC</span>
 								</div>
 							</div>
 						</div>
@@ -195,18 +196,66 @@ function LandingPage() {
 						<FeatureCard
 							icon={<Fingerprint className="h-5 w-5" />}
 							title="What is PID?"
-							description="Person Identification Data is your government-verified digital identity. Name, birthdate, nationality — cryptographically signed and stored in your wallet."
+							description="Person Identification Data (PID) is the core credential in EUDI Wallets. Government-verified attributes like name, birth date, and nationality — cryptographically signed per EU standards (ISO 18013-5, SD-JWT VC)."
 						/>
 						<FeatureCard
 							icon={<Smartphone className="h-5 w-5" />}
-							title="Your Wallet, Your Data"
-							description="Your credentials stay on your device. You choose what to share, when to share it, and with whom. No central database, no tracking."
+							title="Selective Disclosure"
+							description="Share only what's needed. Prove you're over 18 without revealing your birth date. Your credentials stay on-device — no central database, full GDPR compliance."
 						/>
 						<FeatureCard
 							icon={<Shield className="h-5 w-5" />}
-							title="Why It Matters"
-							description="No more password resets. No identity theft. No form fatigue. Just tap your wallet and go — verified in seconds."
+							title="eIDAS 2.0 Ready"
+							description="By Dec 2027, banks must accept EUDI Wallet credentials for Strong Customer Authentication (SCA). This demo shows how PID-based identification streamlines KYC and payments."
 						/>
+					</div>
+				</div>
+			</section>
+
+			{/* Powered by Vidos Section */}
+			<section className="py-10 border-t border-border/40 bg-muted/10">
+				<div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+					<div className="flex flex-col items-center gap-6">
+						{/* Powered by Vidos - Prominent */}
+						<a
+							href="https://vidos.id"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="group flex flex-col items-center gap-2 hover:opacity-90 transition-opacity"
+						>
+							<span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+								Verification infrastructure by
+							</span>
+							<img
+								src={"/usecase-demos/vidos-logo.svg"}
+								alt="Vidos"
+								className="h-8 dark:invert"
+							/>
+						</a>
+
+						{/* Resource Links */}
+						<div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm pt-4 border-t border-border/30 w-full max-w-xl">
+							<ResourceLink
+								href="https://vidos.id/docs"
+								icon={<BookOpen className="h-3.5 w-3.5" />}
+								label="Vidos Docs"
+							/>
+							<ResourceLink
+								href="https://authorizer.demo.vidos.id"
+								icon={<Zap className="h-3.5 w-3.5" />}
+								label="Authorizer Tester"
+							/>
+							<ResourceLink
+								href="https://eudi.dev/latest/"
+								icon={<Shield className="h-3.5 w-3.5" />}
+								label="EUDI ARF"
+							/>
+							<ResourceLink
+								href="https://eudi.dev/latest/annexes/annex-3/annex-3.01-pid-rulebook/"
+								icon={<Fingerprint className="h-3.5 w-3.5" />}
+								label="PID Rulebook"
+							/>
+						</div>
 					</div>
 				</div>
 			</section>
@@ -233,5 +282,27 @@ function FeatureCard({
 				{description}
 			</p>
 		</div>
+	);
+}
+
+function ResourceLink({
+	href,
+	icon,
+	label,
+}: {
+	href: string;
+	icon: React.ReactNode;
+	label: string;
+}) {
+	return (
+		<a
+			href={href}
+			target="_blank"
+			rel="noopener noreferrer"
+			className="group flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors"
+		>
+			{icon}
+			<span className="font-medium">{label}</span>
+		</a>
 	);
 }

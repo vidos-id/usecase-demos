@@ -266,16 +266,16 @@ function SigninWalletFeatures() {
 	return (
 		<>
 			<WalletFeatureItem
-				title="Passwordless"
-				description="No passwords to remember or manage. Your wallet is your key."
+				title="Passwordless & Phishing-Proof"
+				description="Cryptographic verification via OID4VP. No passwords to steal or phish."
 			/>
 			<WalletFeatureItem
-				title="Phishing Resistant"
-				description="Cryptographic authentication prevents phishing attacks."
+				title="PID-based Identity"
+				description="Government-verified attributes (name, birth date, nationality) per EU PID Rulebook."
 			/>
 			<WalletFeatureItem
-				title="One Tap Access"
-				description="Authenticate instantly with a single wallet interaction."
+				title="eIDAS 2.0 Compliant"
+				description="Same flow banks must support for Strong Customer Authentication by Dec 2027."
 			/>
 		</>
 	);

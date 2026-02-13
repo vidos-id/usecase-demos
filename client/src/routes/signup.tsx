@@ -282,16 +282,16 @@ function SignupWalletFeatures() {
 	return (
 		<>
 			<WalletFeatureItem
-				title="Instant Verification"
-				description="No manual data entry. Your wallet provides verified credentials automatically."
+				title="Instant KYC"
+				description="PID credentials replace manual document upload. Verified identity in seconds."
 			/>
 			<WalletFeatureItem
-				title="Privacy First"
-				description="Selective disclosure—share only what's needed, nothing more."
+				title="Selective Disclosure"
+				description="Share only required attributes. GDPR-compliant data minimization built in."
 			/>
 			<WalletFeatureItem
-				title="EU Compliant"
-				description="Built on eIDAS 2.0 standards for cross-border interoperability."
+				title="Cross-Border Ready"
+				description="Works with any EU Member State wallet. One integration, 27 countries."
 			/>
 		</>
 	);
@@ -316,8 +316,8 @@ function SuccessCard() {
 							Account Created Successfully!
 						</h3>
 						<p className="text-sm text-muted-foreground max-w-md mx-auto">
-							Your online banking account has been created. Please sign in to
-							start using your account.
+							Your identity was verified via PID credential. No forms, no
+							document uploads — just your EUDI Wallet.
 						</p>
 					</div>
 					<Button
