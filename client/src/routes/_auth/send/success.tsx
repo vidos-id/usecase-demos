@@ -60,118 +60,126 @@ function PaymentSuccessPage() {
 
 	return (
 		<div className="min-h-[calc(100vh-4rem)] py-8 px-4 sm:px-6 lg:px-8">
-			<div className="max-w-lg mx-auto space-y-8">
-				{/* Success animation */}
+			<div className="max-w-4xl mx-auto space-y-8">
+				{/* Success header - full width */}
 				<div className="text-center space-y-4 pt-8 animate-slide-up">
-					<div className="inline-flex items-center justify-center h-20 w-20 rounded-full bg-green-500/10 mb-2">
-						<CheckCircle2 className="h-10 w-10 text-green-500" />
+					<div className="inline-flex items-center justify-center h-20 w-20 lg:h-24 lg:w-24 rounded-full bg-green-500/10 mb-2">
+						<CheckCircle2 className="h-10 w-10 lg:h-12 lg:w-12 text-green-500" />
 					</div>
 					<div>
-						<h1 className="text-2xl font-bold tracking-tight">
+						<h1 className="text-2xl lg:text-3xl font-bold tracking-tight">
 							Payment Confirmed
 						</h1>
-						<p className="text-muted-foreground mt-1">
+						<p className="text-muted-foreground mt-1 lg:text-lg">
 							Your transaction has been verified and processed
 						</p>
 					</div>
 				</div>
 
 				{/* Amount display */}
-				<div className="text-center py-4">
-					<p className="text-5xl font-bold font-mono tracking-tight">
+				<div className="text-center py-4 lg:py-6">
+					<p className="text-5xl lg:text-6xl font-bold font-mono tracking-tight">
 						€{search.amount}
 					</p>
-					<p className="text-muted-foreground mt-2">
+					<p className="text-muted-foreground mt-2 lg:text-lg">
 						sent to {search.recipient}
 					</p>
 				</div>
 
-				{/* Transaction details */}
-				<div className="rounded-2xl border border-border/60 bg-background overflow-hidden">
-					<div className="p-6 space-y-4">
-						<h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-							Transaction Details
-						</h2>
+				{/* 2-col layout for details */}
+				<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+					{/* Transaction details */}
+					<div className="rounded-2xl border border-border/60 bg-background overflow-hidden">
+						<div className="p-6 lg:p-8 space-y-4">
+							<h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+								Transaction Details
+							</h2>
 
-						<div className="space-y-3">
-							<DetailRow label="Recipient" value={search.recipient} />
-							<DetailRow label="Amount" value={`€${search.amount}`} mono />
-							{search.reference && (
-								<DetailRow label="Reference" value={search.reference} />
-							)}
-							<DetailRow
-								label="Confirmed"
-								value={confirmedDate.toLocaleDateString("en-GB", {
-									day: "numeric",
-									month: "short",
-									year: "numeric",
-									hour: "2-digit",
-									minute: "2-digit",
-								})}
-							/>
+							<div className="space-y-3">
+								<DetailRow label="Recipient" value={search.recipient} />
+								<DetailRow label="Amount" value={`€${search.amount}`} mono />
+								{search.reference && (
+									<DetailRow label="Reference" value={search.reference} />
+								)}
+								<DetailRow
+									label="Confirmed"
+									value={confirmedDate.toLocaleDateString("en-GB", {
+										day: "numeric",
+										month: "short",
+										year: "numeric",
+										hour: "2-digit",
+										minute: "2-digit",
+									})}
+								/>
 
-							{/* Transaction ID */}
-							<div className="flex justify-between items-start pt-2 border-t border-border/40">
-								<span className="text-sm text-muted-foreground">
-									Transaction ID
-								</span>
-								<div className="flex items-center gap-2">
-									<span className="text-xs font-mono text-muted-foreground max-w-[140px] truncate">
-										{search.transactionId}
+								{/* Transaction ID */}
+								<div className="flex justify-between items-start pt-2 border-t border-border/40">
+									<span className="text-sm text-muted-foreground">
+										Transaction ID
 									</span>
-									<button
-										type="button"
-										onClick={copyTransactionId}
-										className="p-1 rounded hover:bg-muted transition-colors"
-										title="Copy ID"
-									>
-										{copied ? (
-											<CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
-										) : (
-											<Copy className="h-3.5 w-3.5 text-muted-foreground" />
-										)}
-									</button>
+									<div className="flex items-center gap-2">
+										<span className="text-xs font-mono text-muted-foreground max-w-[180px] lg:max-w-[200px] truncate">
+											{search.transactionId}
+										</span>
+										<button
+											type="button"
+											onClick={copyTransactionId}
+											className="p-1 rounded hover:bg-muted transition-colors"
+											title="Copy ID"
+										>
+											{copied ? (
+												<CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+											) : (
+												<Copy className="h-3.5 w-3.5 text-muted-foreground" />
+											)}
+										</button>
+									</div>
 								</div>
 							</div>
 						</div>
 					</div>
 
-					{/* Demo notice */}
-					<div className="px-6 py-4 bg-primary/5 border-t border-primary/20">
-						<p className="text-sm text-primary">
-							<span className="font-medium">Demo Mode:</span> Your balance and
-							activity list have been updated to reflect this payment. No real
-							funds were transferred.
-						</p>
-					</div>
-				</div>
-
-				{/* Verification badge */}
-				<div className="rounded-xl bg-primary/5 border border-primary/20 p-4">
-					<div className="flex items-center gap-3">
-						<div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-							<ExternalLink className="h-5 w-5 text-primary" />
+					{/* Info panel */}
+					<div className="space-y-6">
+						{/* Verification badge */}
+						<div className="rounded-xl bg-primary/5 border border-primary/20 p-4 lg:p-6">
+							<div className="flex items-center gap-3 lg:gap-4">
+								<div className="h-10 w-10 lg:h-12 lg:w-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+									<ExternalLink className="h-5 w-5 lg:h-6 lg:w-6 text-primary" />
+								</div>
+								<div>
+									<p className="text-sm lg:text-base font-medium">
+										Verified Identity
+									</p>
+									<p className="text-xs lg:text-sm text-muted-foreground">
+										This payment was confirmed using your PID credential
+									</p>
+								</div>
+							</div>
 						</div>
-						<div>
-							<p className="text-sm font-medium">Verified Identity</p>
-							<p className="text-xs text-muted-foreground">
-								This payment was confirmed using your PID credential
+
+						{/* Demo notice */}
+						<div className="rounded-xl bg-primary/5 border border-primary/20 p-4 lg:p-6">
+							<p className="text-sm text-primary">
+								<span className="font-medium">Demo Mode:</span> Your balance and
+								activity list have been updated to reflect this payment. No real
+								funds were transferred.
 							</p>
 						</div>
-					</div>
-				</div>
 
-				{/* Actions */}
-				<div className="flex gap-3">
-					<Button asChild variant="outline" className="flex-1">
-						<Link to="/send">
-							<ArrowLeft className="mr-2 h-4 w-4" />
-							Send Another
-						</Link>
-					</Button>
-					<Button asChild className="flex-1">
-						<Link to="/dashboard">Back to Dashboard</Link>
-					</Button>
+						{/* Actions */}
+						<div className="flex gap-3">
+							<Button asChild variant="outline" className="flex-1 h-12">
+								<Link to="/send">
+									<ArrowLeft className="mr-2 h-4 w-4" />
+									Send Another
+								</Link>
+							</Button>
+							<Button asChild className="flex-1 h-12">
+								<Link to="/dashboard">Dashboard</Link>
+							</Button>
+						</div>
+					</div>
 				</div>
 			</div>
 		</div>

@@ -319,13 +319,13 @@ function PaymentConfirmPage() {
 
 	return (
 		<div className="min-h-[calc(100vh-4rem)] py-8 px-4 sm:px-6 lg:px-8">
-			<div className="max-w-lg mx-auto space-y-8">
+			<div className="max-w-4xl mx-auto space-y-8">
 				{/* Header */}
 				<div className="flex items-center justify-between">
-					<Button asChild variant="ghost" size="sm" className="gap-2">
+					<Button asChild variant="ghost" size="sm" className="gap-2 shrink-0">
 						<Link to="/send">
 							<ArrowLeft className="h-4 w-4" />
-							Back
+							<span>Back</span>
 						</Link>
 					</Button>
 					<div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -336,174 +336,160 @@ function PaymentConfirmPage() {
 					</div>
 				</div>
 
-				{/* Transaction summary card */}
-				<div className="rounded-2xl border border-border/60 bg-background overflow-hidden">
-					<div className="p-6 space-y-4">
-						<h2 className="text-lg font-semibold">Payment Summary</h2>
+				{/* Idle & verification states use 2-col layout */}
+				{(state.status === "idle" ||
+					state.status === "awaiting_verification") && (
+					<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+						{/* Transaction summary card */}
+						<div className="rounded-2xl border border-border/60 bg-background overflow-hidden">
+							<div className="p-6 lg:p-8 space-y-4">
+								<h2 className="text-lg lg:text-xl font-semibold">
+									Payment Summary
+								</h2>
 
-						{/* Amount - large display */}
-						<div className="py-4 text-center">
-							<p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
-								Amount
-							</p>
-							<p className="text-4xl font-bold font-mono tracking-tight">
-								€{search.amount}
-							</p>
-						</div>
-
-						{/* Details */}
-						<div className="space-y-3 pt-4 border-t border-border/40">
-							<div className="flex justify-between items-center">
-								<span className="text-sm text-muted-foreground">Recipient</span>
-								<span className="font-medium">{search.recipient}</span>
-							</div>
-							{search.reference && (
-								<div className="flex justify-between items-center">
-									<span className="text-sm text-muted-foreground">
-										Reference
-									</span>
-									<span className="font-medium">{search.reference}</span>
+								{/* Amount - large display */}
+								<div className="py-6 lg:py-8 text-center">
+									<p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
+										Amount
+									</p>
+									<p className="text-4xl lg:text-5xl font-bold font-mono tracking-tight">
+										€{search.amount}
+									</p>
 								</div>
-							)}
-						</div>
-					</div>
 
-					{/* Action area */}
-					<div className="p-6 bg-muted/30 border-t border-border/40">
-						{/* Idle State */}
-						{state.status === "idle" && (
-							<Button
-								onClick={() => requestMutation.mutate()}
-								disabled={requestMutation.isPending}
-								className="w-full h-12 text-base group"
-							>
-								{requestMutation.isPending ? (
-									<>
-										<Loader2 className="mr-2 h-5 w-5 animate-spin" />
-										Creating request...
-									</>
-								) : (
-									<>
-										<Fingerprint className="mr-2 h-5 w-5" />
-										Verify with Wallet
-									</>
-								)}
-							</Button>
-						)}
-
-						{/* Awaiting Verification - Direct Post Mode */}
-						{state.status === "awaiting_verification" &&
-							state.mode === "direct_post" && (
-								<div className="space-y-4">
-									<CredentialDisclosure
-										requestedClaims={state.requestedClaims}
-										purpose={state.purpose}
-									/>
-									<QRCodeDisplay url={state.authorizeUrl} />
-									<PollingStatus
-										elapsedSeconds={elapsedSeconds}
-										onCancel={handleCancel}
-									/>
-								</div>
-							)}
-
-						{/* Awaiting Verification - DC API Mode */}
-						{state.status === "awaiting_verification" &&
-							state.mode === "dc_api" && (
-								<div className="space-y-4">
-									<CredentialDisclosure
-										requestedClaims={state.requestedClaims}
-										purpose={state.purpose}
-									/>
-									<DCApiHandler
-										dcApiRequest={state.dcApiRequest}
-										onSuccess={handleDCApiSuccess}
-										onError={handleDCApiError}
-									/>
-									{completeMutation.isPending && (
-										<div className="flex items-center justify-center gap-3 py-4">
-											<Loader2 className="h-5 w-5 animate-spin text-primary" />
-											<p className="text-muted-foreground">
-												Processing payment...
-											</p>
+								{/* Details */}
+								<div className="space-y-3 pt-4 border-t border-border/40">
+									<div className="flex justify-between items-center">
+										<span className="text-sm text-muted-foreground">
+											Recipient
+										</span>
+										<span className="font-medium">{search.recipient}</span>
+									</div>
+									{search.reference && (
+										<div className="flex justify-between items-center">
+											<span className="text-sm text-muted-foreground">
+												Reference
+											</span>
+											<span className="font-medium">{search.reference}</span>
 										</div>
 									)}
 								</div>
-							)}
+							</div>
+						</div>
 
-						{/* Error State */}
-						{state.status === "error" &&
-							(state.errorInfo ? (
-								<VidosErrorDisplay
-									errorInfo={state.errorInfo}
-									onRetry={() => navigate({ to: "/send" })}
-								/>
-							) : (
-								<div className="space-y-4">
-									<div
-										className={cn(
-											"flex items-start gap-3 p-4 rounded-xl",
-											"bg-destructive/10 border border-destructive/20 text-destructive",
-										)}
-									>
-										<AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
-										<div className="space-y-1">
-											<p className="font-medium">Payment Failed</p>
-											<p className="text-sm opacity-80">{state.message}</p>
+						{/* Action card */}
+						<div className="rounded-2xl border border-border/60 bg-background overflow-hidden">
+							<div className="p-6 lg:p-8 space-y-4">
+								{/* Idle State */}
+								{state.status === "idle" && (
+									<>
+										<div>
+											<h3 className="text-lg font-semibold mb-2">
+												Verify Payment
+											</h3>
+											<p className="text-sm text-muted-foreground">
+												Your identity will be verified using your PID
+												credential. No passwords are transmitted.
+											</p>
 										</div>
-									</div>
-									<div className="flex gap-2">
-										<Button
-											onClick={() => navigate({ to: "/send" })}
-											variant="outline"
-											className="flex-1"
-										>
-											Start Over
-										</Button>
 										<Button
 											onClick={() => requestMutation.mutate()}
 											disabled={requestMutation.isPending}
-											className="flex-1"
+											className="w-full h-12 text-base group"
 										>
 											{requestMutation.isPending ? (
-												<Loader2 className="h-4 w-4 animate-spin" />
+												<>
+													<Loader2 className="mr-2 h-5 w-5 animate-spin" />
+													Creating request...
+												</>
 											) : (
-												"Retry"
+												<>
+													<Fingerprint className="mr-2 h-5 w-5" />
+													Verify with Wallet
+												</>
 											)}
 										</Button>
-									</div>
-								</div>
-							))}
+									</>
+								)}
 
-						{/* Expired State */}
-						{state.status === "expired" && (
+								{/* Awaiting Verification - Direct Post Mode */}
+								{state.status === "awaiting_verification" &&
+									state.mode === "direct_post" && (
+										<div className="space-y-4">
+											<CredentialDisclosure
+												requestedClaims={state.requestedClaims}
+												purpose={state.purpose}
+											/>
+											<QRCodeDisplay url={state.authorizeUrl} />
+											<PollingStatus
+												elapsedSeconds={elapsedSeconds}
+												onCancel={handleCancel}
+											/>
+										</div>
+									)}
+
+								{/* Awaiting Verification - DC API Mode */}
+								{state.status === "awaiting_verification" &&
+									state.mode === "dc_api" && (
+										<div className="space-y-4">
+											<CredentialDisclosure
+												requestedClaims={state.requestedClaims}
+												purpose={state.purpose}
+											/>
+											<DCApiHandler
+												dcApiRequest={state.dcApiRequest}
+												onSuccess={handleDCApiSuccess}
+												onError={handleDCApiError}
+											/>
+											{completeMutation.isPending && (
+												<div className="flex items-center justify-center gap-3 py-4">
+													<Loader2 className="h-5 w-5 animate-spin text-primary" />
+													<p className="text-muted-foreground">
+														Processing payment...
+													</p>
+												</div>
+											)}
+										</div>
+									)}
+							</div>
+						</div>
+					</div>
+				)}
+
+				{/* Error State */}
+				{state.status === "error" && (
+					<div className="max-w-2xl mx-auto">
+						{state.errorInfo ? (
+							<VidosErrorDisplay
+								errorInfo={state.errorInfo}
+								onRetry={() => navigate({ to: "/send" })}
+							/>
+						) : (
 							<div className="space-y-4">
 								<div
 									className={cn(
-										"flex items-start gap-3 p-4 rounded-xl",
-										"bg-amber-500/10 border border-amber-500/20 text-amber-700",
+										"flex items-start gap-3 p-4 lg:p-6 rounded-xl",
+										"bg-destructive/10 border border-destructive/20 text-destructive",
 									)}
 								>
-									<Clock className="h-5 w-5 flex-shrink-0 mt-0.5" />
+									<AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
 									<div className="space-y-1">
-										<p className="font-medium">Request Expired</p>
-										<p className="text-sm opacity-80">
-											The verification request has expired. Please try again.
-										</p>
+										<p className="font-medium">Payment Failed</p>
+										<p className="text-sm opacity-80">{state.message}</p>
 									</div>
 								</div>
-								<div className="flex gap-2">
+								<div className="flex gap-3">
 									<Button
 										onClick={() => navigate({ to: "/send" })}
 										variant="outline"
-										className="flex-1"
+										className="flex-1 h-12"
 									>
 										Start Over
 									</Button>
 									<Button
 										onClick={() => requestMutation.mutate()}
 										disabled={requestMutation.isPending}
-										className="flex-1"
+										className="flex-1 h-12"
 									>
 										{requestMutation.isPending ? (
 											<Loader2 className="h-4 w-4 animate-spin" />
@@ -514,23 +500,57 @@ function PaymentConfirmPage() {
 								</div>
 							</div>
 						)}
-
-						{/* Success State */}
-						{state.status === "success" && (
-							<div className="flex items-center justify-center gap-3 py-4 text-green-600">
-								<CheckCircle2 className="h-6 w-6" />
-								<p className="font-medium">Payment Verified</p>
-							</div>
-						)}
 					</div>
-				</div>
+				)}
 
-				{/* Security info */}
-				{state.status === "idle" && (
-					<p className="text-xs text-center text-muted-foreground">
-						Your identity will be verified using your PID credential. No
-						passwords are transmitted.
-					</p>
+				{/* Expired State */}
+				{state.status === "expired" && (
+					<div className="max-w-2xl mx-auto space-y-4">
+						<div
+							className={cn(
+								"flex items-start gap-3 p-4 lg:p-6 rounded-xl",
+								"bg-amber-500/10 border border-amber-500/20 text-amber-700",
+							)}
+						>
+							<Clock className="h-5 w-5 flex-shrink-0 mt-0.5" />
+							<div className="space-y-1">
+								<p className="font-medium">Request Expired</p>
+								<p className="text-sm opacity-80">
+									The verification request has expired. Please try again.
+								</p>
+							</div>
+						</div>
+						<div className="flex gap-3">
+							<Button
+								onClick={() => navigate({ to: "/send" })}
+								variant="outline"
+								className="flex-1 h-12"
+							>
+								Start Over
+							</Button>
+							<Button
+								onClick={() => requestMutation.mutate()}
+								disabled={requestMutation.isPending}
+								className="flex-1 h-12"
+							>
+								{requestMutation.isPending ? (
+									<Loader2 className="h-4 w-4 animate-spin" />
+								) : (
+									"Retry"
+								)}
+							</Button>
+						</div>
+					</div>
+				)}
+
+				{/* Success State */}
+				{state.status === "success" && (
+					<div className="max-w-2xl mx-auto rounded-2xl border border-border/60 bg-background p-8">
+						<div className="flex items-center justify-center gap-3 py-4 text-green-600">
+							<CheckCircle2 className="h-6 w-6" />
+							<p className="font-medium">Payment Verified</p>
+						</div>
+					</div>
 				)}
 			</div>
 		</div>

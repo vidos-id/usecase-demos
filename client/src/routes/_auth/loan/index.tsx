@@ -1,13 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
 	createFileRoute,
-	Link,
 	useNavigate,
 	useRouteContext,
 } from "@tanstack/react-router";
 import {
 	AlertCircle,
-	ArrowLeft,
 	Briefcase,
 	Calculator,
 	Car,
@@ -29,6 +27,7 @@ import { DCApiHandler } from "@/components/auth/dc-api-handler";
 import { PollingStatus } from "@/components/auth/polling-status";
 import { QRCodeDisplay } from "@/components/auth/qr-code-display";
 import { VidosErrorDisplay } from "@/components/auth/vidos-error-display";
+import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { getStoredMode } from "@/lib/auth-helpers";
 
@@ -315,49 +314,30 @@ function LoanPage() {
 
 	return (
 		<div className="min-h-[calc(100vh-4rem)] py-8 px-4 sm:px-6 lg:px-8">
-			<div className="max-w-lg mx-auto space-y-6">
-				{/* Header */}
-				<div className="flex items-center justify-between">
-					<Button
-						asChild={state.status === "form"}
-						variant="ghost"
-						size="sm"
-						className="gap-2"
-						onClick={state.status === "review" ? handleBack : undefined}
-					>
-						{state.status === "form" ? (
-							<Link to="/dashboard">
-								<ArrowLeft className="h-4 w-4" />
-								Dashboard
-							</Link>
-						) : state.status === "review" ? (
-							<>
-								<ArrowLeft className="h-4 w-4" />
-								Edit
-							</>
-						) : (
-							<Link to="/dashboard">
-								<ArrowLeft className="h-4 w-4" />
-								Dashboard
-							</Link>
-						)}
-					</Button>
-					<div className="flex items-center gap-2 text-xs text-muted-foreground">
-						<ShieldCheck className="h-4 w-4 text-primary" />
-						<span className="font-mono uppercase tracking-wider">
-							Personal Loan
-						</span>
-					</div>
-				</div>
+			<div className="max-w-4xl mx-auto space-y-6">
+				<PageHeader
+					backLabel={state.status === "review" ? "Edit" : "Dashboard"}
+					onBack={state.status === "review" ? handleBack : undefined}
+					rightContent={
+						<div className="flex items-center gap-2 text-xs text-muted-foreground">
+							<ShieldCheck className="h-4 w-4 text-primary" />
+							<span className="font-mono uppercase tracking-wider">
+								Personal Loan
+							</span>
+						</div>
+					}
+				/>
 
 				{/* Form state */}
 				{state.status === "form" && (
-					<>
+					<div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
 						{/* Loan configurator card */}
-						<div className="rounded-2xl border border-border/60 bg-background overflow-hidden">
-							<div className="p-6 space-y-6">
+						<div className="lg:col-span-3 rounded-2xl border border-border/60 bg-background overflow-hidden">
+							<div className="p-6 lg:p-8 space-y-6">
 								<div className="space-y-1">
-									<h1 className="text-xl font-semibold">Configure Your Loan</h1>
+									<h1 className="text-xl lg:text-2xl font-semibold">
+										Configure Your Loan
+									</h1>
 									<p className="text-sm text-muted-foreground">
 										Select the loan parameters that work for you
 									</p>
@@ -369,7 +349,7 @@ function LoanPage() {
 										<Euro className="h-3.5 w-3.5" />
 										Loan Amount
 									</span>
-									<div className="grid grid-cols-2 gap-3">
+									<div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
 										{LOAN_AMOUNTS.map((a) => (
 											<button
 												key={a}
@@ -399,7 +379,7 @@ function LoanPage() {
 									<span className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2 font-medium">
 										What's it for?
 									</span>
-									<div className="grid grid-cols-2 gap-3">
+									<div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
 										{LOAN_PURPOSES.map((p) => {
 											const Icon = PURPOSE_ICONS[p] || Briefcase;
 											return (
@@ -460,86 +440,124 @@ function LoanPage() {
 									</div>
 								</div>
 							</div>
+						</div>
 
+						{/* Right sidebar - calculator preview & info */}
+						<div className="lg:col-span-2 space-y-6">
 							{/* Calculator preview */}
-							{isFormValid && (
-								<div className="px-6 py-4 bg-muted/30 border-t border-border/40">
-									<div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+							<div className="rounded-2xl border border-border/60 bg-background overflow-hidden">
+								<div className="p-6 lg:p-8">
+									<div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
 										<Calculator className="h-4 w-4" />
 										<span className="font-medium">Estimated Payment</span>
 									</div>
-									<div className="flex items-baseline gap-1">
-										<span className="text-3xl font-bold font-mono">
-											€{monthlyPayment.toFixed(2)}
-										</span>
-										<span className="text-muted-foreground">/month</span>
+									{isFormValid ? (
+										<>
+											<div className="flex items-baseline gap-1">
+												<span className="text-4xl lg:text-5xl font-bold font-mono">
+													€{monthlyPayment.toFixed(2)}
+												</span>
+												<span className="text-muted-foreground">/month</span>
+											</div>
+											<p className="text-sm text-muted-foreground mt-3">
+												{DEMO_APR}% APR representative
+											</p>
+											<div className="mt-6 pt-4 border-t border-border/40 space-y-2">
+												<div className="flex justify-between text-sm">
+													<span className="text-muted-foreground">
+														Total Interest
+													</span>
+													<span className="font-mono">
+														€{totalInterest.toFixed(2)}
+													</span>
+												</div>
+												<div className="flex justify-between text-sm">
+													<span className="text-muted-foreground">
+														Total Repayment
+													</span>
+													<span className="font-mono font-medium">
+														€{totalPayment.toFixed(2)}
+													</span>
+												</div>
+											</div>
+										</>
+									) : (
+										<div className="py-8 text-center text-muted-foreground">
+											<p className="text-sm">
+												Select loan options to see estimate
+											</p>
+										</div>
+									)}
+								</div>
+								<div className="px-6 lg:px-8 pb-6 lg:pb-8">
+									<Button
+										onClick={handleContinue}
+										className="w-full h-12 text-base"
+										disabled={!isFormValid}
+									>
+										Review Application
+									</Button>
+								</div>
+							</div>
+
+							{/* Info */}
+							<div className="rounded-xl bg-primary/5 border border-primary/20 p-4 lg:p-6">
+								<div className="flex items-start gap-3">
+									<div className="h-8 w-8 lg:h-10 lg:w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+										<Fingerprint className="h-4 w-4 lg:h-5 lg:w-5 text-primary" />
 									</div>
-									<p className="text-xs text-muted-foreground mt-2">
-										{DEMO_APR}% APR representative
-									</p>
-								</div>
-							)}
-						</div>
-
-						<Button
-							onClick={handleContinue}
-							className="w-full h-12 text-base"
-							disabled={!isFormValid}
-						>
-							Review Application
-						</Button>
-
-						{/* Info */}
-						<div className="rounded-xl bg-primary/5 border border-primary/20 p-4">
-							<div className="flex items-start gap-3">
-								<div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-									<Fingerprint className="h-4 w-4 text-primary" />
-								</div>
-								<div className="space-y-1">
-									<p className="text-sm font-medium">Instant Decision</p>
-									<p className="text-xs text-muted-foreground leading-relaxed">
-										Your PID credential provides verified identity — no
-										documents to upload, no lengthy forms to fill.
-									</p>
+									<div className="space-y-1">
+										<p className="text-sm lg:text-base font-medium">
+											Instant Decision
+										</p>
+										<p className="text-xs lg:text-sm text-muted-foreground leading-relaxed">
+											Your PID credential provides verified identity — no
+											documents to upload, no lengthy forms to fill.
+										</p>
+									</div>
 								</div>
 							</div>
 						</div>
-					</>
+					</div>
 				)}
 
 				{/* Review state */}
 				{state.status === "review" && (
-					<>
+					<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
 						{/* Loan summary card */}
 						<div className="rounded-2xl border border-border/60 bg-background overflow-hidden">
-							<div className="p-6 space-y-4">
-								<h2 className="text-lg font-semibold">Loan Summary</h2>
+							<div className="p-6 lg:p-8 space-y-4">
+								<h2 className="text-lg lg:text-xl font-semibold">
+									Loan Summary
+								</h2>
 
 								{/* Principal amount - large display */}
-								<div className="py-4 text-center">
+								<div className="py-6 lg:py-8 text-center">
 									<p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
 										Loan Amount
 									</p>
-									<p className="text-4xl font-bold font-mono tracking-tight">
+									<p className="text-4xl lg:text-5xl font-bold font-mono tracking-tight">
 										€{loanAmount.toLocaleString()}
 									</p>
 								</div>
 
 								{/* Details grid */}
 								<div className="grid grid-cols-2 gap-4 py-4 border-t border-border/40">
-									<div className="text-center p-3 rounded-lg bg-muted/30">
+									<div className="text-center p-4 rounded-lg bg-muted/30">
 										<p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
 											Monthly
 										</p>
-										<p className="text-xl font-bold font-mono">
+										<p className="text-xl lg:text-2xl font-bold font-mono">
 											€{monthlyPayment.toFixed(2)}
 										</p>
 									</div>
-									<div className="text-center p-3 rounded-lg bg-muted/30">
+									<div className="text-center p-4 rounded-lg bg-muted/30">
 										<p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
 											Term
 										</p>
-										<p className="text-xl font-bold font-mono">{loanTerm} mo</p>
+										<p className="text-xl lg:text-2xl font-bold font-mono">
+											{loanTerm} mo
+										</p>
 									</div>
 								</div>
 
@@ -574,109 +592,137 @@ function LoanPage() {
 									</div>
 								</div>
 							</div>
-
-							{/* Action area */}
-							<div className="p-6 bg-muted/30 border-t border-border/40">
-								<Button
-									onClick={() => requestMutation.mutate()}
-									disabled={requestMutation.isPending}
-									className="w-full h-12 text-base group"
-								>
-									{requestMutation.isPending ? (
-										<>
-											<Loader2 className="mr-2 h-5 w-5 animate-spin" />
-											Creating application...
-										</>
-									) : (
-										<>
-											<Fingerprint className="mr-2 h-5 w-5" />
-											Verify & Submit
-										</>
-									)}
-								</Button>
-							</div>
 						</div>
 
-						{/* Terms notice */}
-						<p className="text-xs text-center text-muted-foreground">
-							By submitting, you agree to verify your identity using your PID
-							credential. Your identity data will be used for verification only.
-						</p>
-					</>
+						{/* Action card */}
+						<div className="space-y-6">
+							<div className="rounded-2xl border border-border/60 bg-background overflow-hidden">
+								<div className="p-6 lg:p-8">
+									<h3 className="text-lg font-semibold mb-4">
+										Ready to Submit
+									</h3>
+									<p className="text-sm text-muted-foreground mb-6">
+										Verify your identity using your PID credential to complete
+										the application. No documents needed.
+									</p>
+									<Button
+										onClick={() => requestMutation.mutate()}
+										disabled={requestMutation.isPending}
+										className="w-full h-12 text-base group"
+									>
+										{requestMutation.isPending ? (
+											<>
+												<Loader2 className="mr-2 h-5 w-5 animate-spin" />
+												Creating application...
+											</>
+										) : (
+											<>
+												<Fingerprint className="mr-2 h-5 w-5" />
+												Verify & Submit
+											</>
+										)}
+									</Button>
+								</div>
+							</div>
+
+							{/* Terms notice */}
+							<p className="text-xs text-center text-muted-foreground">
+								By submitting, you agree to verify your identity using your PID
+								credential. Your identity data will be used for verification
+								only.
+							</p>
+						</div>
+					</div>
 				)}
 
 				{/* Verifying state - Direct Post */}
 				{state.status === "verifying" && state.mode === "direct_post" && (
-					<div className="rounded-2xl border border-border/60 bg-background overflow-hidden">
-						<div className="p-6 space-y-4">
-							<div className="text-center">
-								<h2 className="font-semibold">Verify Your Identity</h2>
-								<p className="text-sm text-muted-foreground">
-									Scan with your wallet app to complete
-								</p>
-							</div>
+					<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+						<div className="rounded-2xl border border-border/60 bg-background overflow-hidden">
+							<div className="p-6 lg:p-8 space-y-4">
+								<div className="text-center lg:text-left">
+									<h2 className="text-lg font-semibold">
+										Verify Your Identity
+									</h2>
+									<p className="text-sm text-muted-foreground">
+										Scan with your wallet app to complete
+									</p>
+								</div>
 
-							{/* Loan summary reminder */}
-							<div className="flex items-center justify-between py-3 px-4 bg-muted/30 rounded-lg">
-								<span className="text-sm text-muted-foreground">
-									Loan Amount
-								</span>
-								<span className="font-bold font-mono">
-									€{loanAmount.toLocaleString()}
-								</span>
-							</div>
+								{/* Loan summary reminder */}
+								<div className="flex items-center justify-between py-3 px-4 bg-muted/30 rounded-lg">
+									<span className="text-sm text-muted-foreground">
+										Loan Amount
+									</span>
+									<span className="font-bold font-mono">
+										€{loanAmount.toLocaleString()}
+									</span>
+								</div>
 
-							<CredentialDisclosure
-								requestedClaims={state.requestedClaims}
-								purpose={state.purpose}
-							/>
-							<QRCodeDisplay url={state.authorizeUrl} />
-							<PollingStatus
-								elapsedSeconds={elapsedSeconds}
-								onCancel={handleReset}
-							/>
+								<CredentialDisclosure
+									requestedClaims={state.requestedClaims}
+									purpose={state.purpose}
+								/>
+							</div>
+						</div>
+						<div className="rounded-2xl border border-border/60 bg-background overflow-hidden">
+							<div className="p-6 lg:p-8 space-y-4">
+								<QRCodeDisplay url={state.authorizeUrl} />
+								<PollingStatus
+									elapsedSeconds={elapsedSeconds}
+									onCancel={handleReset}
+								/>
+							</div>
 						</div>
 					</div>
 				)}
 
 				{/* Verifying state - DC API */}
 				{state.status === "verifying" && state.mode === "dc_api" && (
-					<div className="rounded-2xl border border-border/60 bg-background overflow-hidden">
-						<div className="p-6 space-y-4">
-							<div className="text-center">
-								<h2 className="font-semibold">Verify Your Identity</h2>
-								<p className="text-sm text-muted-foreground">
-									Confirm with your browser wallet
-								</p>
-							</div>
-
-							{/* Loan summary reminder */}
-							<div className="flex items-center justify-between py-3 px-4 bg-muted/30 rounded-lg">
-								<span className="text-sm text-muted-foreground">
-									Loan Amount
-								</span>
-								<span className="font-bold font-mono">
-									€{loanAmount.toLocaleString()}
-								</span>
-							</div>
-
-							<CredentialDisclosure
-								requestedClaims={state.requestedClaims}
-								purpose={state.purpose}
-							/>
-							<DCApiHandler
-								dcApiRequest={state.dcApiRequest}
-								onSuccess={handleDCApiSuccess}
-								onError={(msg) => setState({ status: "error", message: msg })}
-							/>
-							{completeMutation.isPending && (
-								<div className="flex items-center justify-center gap-3 py-4">
-									<Loader2 className="h-5 w-5 animate-spin text-primary" />
-									<p className="text-muted-foreground">
-										Processing application...
+					<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+						<div className="rounded-2xl border border-border/60 bg-background overflow-hidden">
+							<div className="p-6 lg:p-8 space-y-4">
+								<div className="text-center lg:text-left">
+									<h2 className="text-lg font-semibold">
+										Verify Your Identity
+									</h2>
+									<p className="text-sm text-muted-foreground">
+										Confirm with your browser wallet
 									</p>
 								</div>
-							)}
+
+								{/* Loan summary reminder */}
+								<div className="flex items-center justify-between py-3 px-4 bg-muted/30 rounded-lg">
+									<span className="text-sm text-muted-foreground">
+										Loan Amount
+									</span>
+									<span className="font-bold font-mono">
+										€{loanAmount.toLocaleString()}
+									</span>
+								</div>
+
+								<CredentialDisclosure
+									requestedClaims={state.requestedClaims}
+									purpose={state.purpose}
+								/>
+							</div>
+						</div>
+						<div className="rounded-2xl border border-border/60 bg-background overflow-hidden">
+							<div className="p-6 lg:p-8 space-y-4">
+								<DCApiHandler
+									dcApiRequest={state.dcApiRequest}
+									onSuccess={handleDCApiSuccess}
+									onError={(msg) => setState({ status: "error", message: msg })}
+								/>
+								{completeMutation.isPending && (
+									<div className="flex items-center justify-center gap-3 py-4">
+										<Loader2 className="h-5 w-5 animate-spin text-primary" />
+										<p className="text-muted-foreground">
+											Processing application...
+										</p>
+									</div>
+								)}
+							</div>
 						</div>
 					</div>
 				)}
@@ -684,15 +730,17 @@ function LoanPage() {
 				{/* Error state */}
 				{state.status === "error" &&
 					(state.errorInfo ? (
-						<VidosErrorDisplay
-							errorInfo={state.errorInfo}
-							onRetry={() => setState({ status: "form" })}
-						/>
+						<div className="max-w-2xl mx-auto">
+							<VidosErrorDisplay
+								errorInfo={state.errorInfo}
+								onRetry={() => setState({ status: "form" })}
+							/>
+						</div>
 					) : (
-						<div className="space-y-4">
+						<div className="max-w-2xl mx-auto space-y-4">
 							<div
 								className={cn(
-									"flex items-start gap-3 p-4 rounded-xl",
+									"flex items-start gap-3 p-4 lg:p-6 rounded-xl",
 									"bg-destructive/10 border border-destructive/20 text-destructive",
 								)}
 							>
@@ -702,18 +750,18 @@ function LoanPage() {
 									<p className="text-sm opacity-80">{state.message}</p>
 								</div>
 							</div>
-							<div className="flex gap-2">
+							<div className="flex gap-3">
 								<Button
 									onClick={() => setState({ status: "form" })}
 									variant="outline"
-									className="flex-1"
+									className="flex-1 h-12"
 								>
 									Start Over
 								</Button>
 								<Button
 									onClick={() => requestMutation.mutate()}
 									disabled={requestMutation.isPending}
-									className="flex-1"
+									className="flex-1 h-12"
 								>
 									{requestMutation.isPending ? (
 										<Loader2 className="h-4 w-4 animate-spin" />
@@ -727,10 +775,10 @@ function LoanPage() {
 
 				{/* Expired state */}
 				{state.status === "expired" && (
-					<div className="space-y-4">
+					<div className="max-w-2xl mx-auto space-y-4">
 						<div
 							className={cn(
-								"flex items-start gap-3 p-4 rounded-xl",
+								"flex items-start gap-3 p-4 lg:p-6 rounded-xl",
 								"bg-amber-500/10 border border-amber-500/20 text-amber-700",
 							)}
 						>
@@ -742,18 +790,18 @@ function LoanPage() {
 								</p>
 							</div>
 						</div>
-						<div className="flex gap-2">
+						<div className="flex gap-3">
 							<Button
 								onClick={() => setState({ status: "form" })}
 								variant="outline"
-								className="flex-1"
+								className="flex-1 h-12"
 							>
 								Start Over
 							</Button>
 							<Button
 								onClick={() => requestMutation.mutate()}
 								disabled={requestMutation.isPending}
-								className="flex-1"
+								className="flex-1 h-12"
 							>
 								{requestMutation.isPending ? (
 									<Loader2 className="h-4 w-4 animate-spin" />

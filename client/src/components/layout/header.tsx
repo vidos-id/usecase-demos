@@ -53,7 +53,7 @@ export function Header() {
 						{/* Guide link - subtle attention-grabber for new visitors */}
 						<Link
 							to="/guide"
-							className="group relative hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/5 border border-primary/20 hover:bg-primary/10 hover:border-primary/30 transition-all duration-300"
+							className="group relative flex items-center gap-2 px-2 sm:px-3 py-1.5 rounded-lg bg-primary/5 border border-primary/20 hover:bg-primary/10 hover:border-primary/30 transition-all duration-300"
 						>
 							<BookOpen className="h-4 w-4 text-primary" />
 							<span className="text-sm font-medium text-primary">Guide</span>
