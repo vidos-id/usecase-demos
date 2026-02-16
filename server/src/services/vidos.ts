@@ -1,5 +1,12 @@
 import createClient from "openapi-fetch";
 import {
+	PID_ATTRIBUTE_MAPPINGS,
+	PID_MDOC_DOCTYPE,
+	PID_MDOC_NAMESPACE,
+	PID_SDJWT_VCT,
+	type PIDAttributeMapping,
+} from "shared/lib/pid-attributes";
+import {
 	type AuthorizationErrorInfo,
 	parseVidosError,
 } from "shared/types/vidos-errors";
@@ -31,7 +38,7 @@ function getAuthorizerClient() {
 }
 
 export type CreateAuthRequestParams = ModeParams & {
-	requestedClaims: readonly string[]; // e.g. ["family_name", "given_name", "birth_date"]
+	requestedClaims: readonly string[]; // Canonical attribute IDs from pid-attributes.ts
 	purpose: string;
 };
 
@@ -84,24 +91,74 @@ export async function vidosAuthorizerHealthCheck(): Promise<boolean> {
 	return response.status === 204;
 }
 
-const PID_VCT = "urn:eudi:pid:1";
+/**
+ * Gets PID attribute mappings for requested canonical claim IDs.
+ * Falls back to a generic mapping if attribute not found.
+ */
+function getAttributeMappings(
+	requestedClaims: readonly string[],
+): PIDAttributeMapping[] {
+	return requestedClaims.map((claimId) => {
+		const mapping = PID_ATTRIBUTE_MAPPINGS.find((attr) => attr.id === claimId);
+		if (mapping) {
+			return mapping;
+		}
+		// Fallback for unknown claims - use same path for both formats
+		console.warn(
+			`[Vidos] Unknown claim ID: ${claimId}, using fallback mapping`,
+		);
+		return {
+			id: claimId,
+			displayName: claimId,
+			mdocPath: [claimId],
+			sdJwtPath: [claimId],
+		};
+	});
+}
 
 /**
- * Builds a DCQL query for SD-JWT PID credentials.
- * Claims should use actual SD-JWT names (e.g. "birthdate", "nationalities", "picture").
+ * Builds a DCQL query supporting both SD-JWT and mDoc PID credentials.
+ * Uses credential_sets to allow the wallet to satisfy the request with either format.
+ *
+ * The query structure follows OpenID4VP DCQL specification:
+ * - Two credential queries: one for SD-JWT, one for mDoc
+ * - credential_sets with options array allowing either credential to satisfy the request
+ *
+ * @param requestedClaims Canonical attribute IDs (e.g., "family_name", "birth_date")
+ * @param purpose Human-readable purpose for the credential request
  */
 function buildPIDDCQLQuery(
 	requestedClaims: readonly string[],
 	purpose?: string,
 ) {
+	const attributeMappings = getAttributeMappings(requestedClaims);
+
+	// Build SD-JWT credential query
+	const sdJwtCredential = {
+		id: "pid_sd_jwt",
+		format: "dc+sd-jwt",
+		meta: { vct_values: [PID_SDJWT_VCT] },
+		claims: attributeMappings.map((attr) => ({ path: attr.sdJwtPath })),
+	};
+
+	// Build mDoc credential query with namespaced paths
+	const mdocCredential = {
+		id: "pid_mdoc",
+		format: "mso_mdoc",
+		meta: { doctype_value: PID_MDOC_DOCTYPE },
+		claims: attributeMappings.map((attr) => ({
+			path: [PID_MDOC_NAMESPACE, ...attr.mdocPath],
+		})),
+	};
+
 	return {
 		purpose,
-		credentials: [
+		credentials: [sdJwtCredential, mdocCredential],
+		// credential_sets allows wallet to satisfy request with EITHER format
+		credential_sets: [
 			{
-				id: "pid",
-				format: "dc+sd-jwt",
-				meta: { vct_values: [PID_VCT] },
-				claims: requestedClaims.map((claim) => ({ path: [claim] })),
+				// One option per format - wallet picks based on what it has
+				options: [["pid_sd_jwt"], ["pid_mdoc"]],
 			},
 		],
 	};

@@ -5,6 +5,7 @@ A demo banking application showcasing **EU Digital Identity (EUDI) Wallet** inte
 ## What This Demo Shows
 
 - **PID-based Identification**: Verify users via Person Identification Data (PID) credentials from EUDI Wallets
+- **Multi-Format Support**: Accept credentials in both SD-JWT VC and ISO mDoc formats
 - **Passwordless Authentication**: Sign in/up using wallet credentials instead of email/password
 - **Selective Disclosure**: Request only the attributes needed (name, birth date, nationality)
 - **eIDAS 2.0 Compliance**: Demonstrates the authentication flow banks must support by Dec 2027
@@ -13,6 +14,11 @@ A demo banking application showcasing **EU Digital Identity (EUDI) Wallet** inte
 
 - **OID4VP** (OpenID for Verifiable Presentations) via QR code
 - **DC API** (Digital Credentials API) for browser-native flow
+
+### Supported Credential Formats
+
+- **SD-JWT VC** (`dc+sd-jwt`) - IETF SD-JWT Verifiable Credentials
+- **mDoc** (`mso_mdoc`) - ISO/IEC 18013-5 mobile document format
 
 ### Compatible Wallets
 

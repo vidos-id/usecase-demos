@@ -36,18 +36,23 @@ export const placeOfBirthSchema = z.object({
 export type PlaceOfBirth = z.infer<typeof placeOfBirthSchema>;
 
 /**
- * Base PID claims schema - all optional since presentation may include subset.
- * Claims are only "required" at issuance, not presentation.
+ * Base PID claims schema - supports claims from both SD-JWT and mDoc formats.
+ * Vidos Authorizer normalizes claim names, but some fields may vary by format.
+ *
+ * The system now requests credentials in BOTH formats via DCQL credential_sets,
+ * allowing wallets to respond with whichever format they have available.
+ *
+ * SD-JWT claim names are used as the canonical schema (Vidos normalizes mDoc to these).
  */
 export const pidClaimsSchema = z.object({
 	// Identity
 	family_name: z.string().optional(),
 	given_name: z.string().optional(),
-	birthdate: z.string().optional(),
-	email: z.string().optional(),
-	nationalities: z.array(z.string()).optional(),
+	birthdate: z.string().optional(), // SD-JWT: "birthdate", mDoc: "birth_date" (normalized)
+	email: z.string().optional(), // SD-JWT: "email", mDoc: "email_address" (normalized)
+	nationalities: z.array(z.string()).optional(), // SD-JWT: "nationalities", mDoc: "nationality" (normalized to array)
 	place_of_birth: placeOfBirthSchema.optional(),
-	picture: z.string().optional(),
+	picture: z.string().optional(), // SD-JWT: "picture", mDoc: "portrait" (normalized)
 	// Identifiers
 	personal_administrative_number: z.string().optional(),
 	document_number: z.string().optional(),

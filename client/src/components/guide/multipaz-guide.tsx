@@ -31,7 +31,7 @@ export function MultipazGuide() {
 						<>
 							<p>
 								Multipaz includes a built-in document store for issuing test
-								credentials.
+								credentials in both SD-JWT and mDoc formats.
 							</p>
 							<ol className="space-y-3 mt-4">
 								<StepItem number={1}>Open the Multipaz app</StepItem>
@@ -39,7 +39,8 @@ export function MultipazGuide() {
 									Navigate to the <strong>Document Store</strong>
 								</StepItem>
 								<StepItem number={3}>
-									Issue a PID credential following the in-app prompts
+									Issue a PID credential following the in-app prompts (SD-JWT or
+									mDoc format)
 								</StepItem>
 							</ol>
 						</>

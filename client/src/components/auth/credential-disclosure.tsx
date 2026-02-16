@@ -29,10 +29,15 @@ export function CredentialDisclosure({
 			{/* Requested credentials */}
 			<Card>
 				<CardContent>
-					<div className="flex items-center gap-2 mb-4">
-						<FileText className="w-4 h-4 text-muted-foreground" />
-						<div className="text-xs uppercase tracking-wider text-muted-foreground font-mono">
-							Requested Credentials
+					<div className="flex items-center justify-between mb-4">
+						<div className="flex items-center gap-2">
+							<FileText className="w-4 h-4 text-muted-foreground" />
+							<div className="text-xs uppercase tracking-wider text-muted-foreground font-mono">
+								Requested Attributes
+							</div>
+						</div>
+						<div className="text-xs text-muted-foreground font-mono">
+							SD-JWT / mDoc
 						</div>
 					</div>
 

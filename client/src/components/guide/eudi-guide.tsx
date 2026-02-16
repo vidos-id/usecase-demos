@@ -34,7 +34,8 @@ export function EudiGuide() {
 						<>
 							<p>
 								Navigate to the EU issuer portal and request a Person
-								Identification Data (PID) credential.
+								Identification Data (PID) credential in either SD-JWT or mDoc
+								format.
 							</p>
 							<div className="space-y-3">
 								<LinkButton
@@ -63,7 +64,12 @@ export function EudiGuide() {
 					content: (
 						<ol className="space-y-3">
 							<StepItem number={1}>
-								Select <strong>PID (SD-JWT VC)</strong> as the credential type
+								Select <strong>PID (SD-JWT VC)</strong> or{" "}
+								<strong>PID (MSO Mdoc) </strong> as the credential type
+								<span className="block text-sm text-muted-foreground mt-1">
+									VidosDemoBank accepts both formats - choose based on your
+									preference
+								</span>
 							</StepItem>
 							<StepItem number={2}>
 								Scroll down and choose{" "}
