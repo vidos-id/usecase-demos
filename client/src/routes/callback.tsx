@@ -296,8 +296,9 @@ function ResultDisplay({ result }: { result: CallbackResolveResponse }) {
 				<div className="rounded-xl bg-primary/5 border border-primary/20 p-4">
 					<p className="text-sm text-primary">
 						<span className="font-medium">Wallet Callback:</span> This page is
-						shown on the device that scanned the QR code. The main application
-						on your other device has the full context of this verification.
+						shown on the device that submitted the credential. The main
+						application has the full context of this verification and will
+						handle the rest of the flow.
 					</p>
 				</div>
 
