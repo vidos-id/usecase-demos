@@ -10,6 +10,7 @@ import {
 } from "shared/api/loan";
 import { LOAN_CLAIMS, LOAN_PURPOSE } from "shared/lib/claims";
 import { loanClaimsSchema } from "shared/types/auth";
+import { vidosErrorTypes } from "shared/types/vidos-errors";
 import {
 	createAuthorizationRequest,
 	forwardDCAPIResponse,
@@ -120,7 +121,16 @@ export const loanRouter = new Hono()
 			const user = getUserById(session.userId);
 
 			if (!user || user.identifier !== claims.personal_administrative_number) {
-				return c.json({ error: "Identity mismatch" }, 403);
+				deletePendingRequest(pendingRequest.id);
+				return c.json({
+					status: "rejected" as const,
+					errorInfo: {
+						errorType: vidosErrorTypes.identityMismatch,
+						title: "Identity Mismatch",
+						detail:
+							"The credential used for verification does not match your account identity.",
+					},
+				});
 			}
 
 			const loanRequestId = `loan-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -211,7 +221,19 @@ export const loanRouter = new Hono()
 			const user = getUserById(session.userId);
 
 			if (!user || user.identifier !== claims.personal_administrative_number) {
-				return c.json({ error: "Identity mismatch" }, 403);
+				deletePendingRequest(pendingRequest.id);
+				return c.json(
+					{
+						error: "Identity mismatch",
+						errorInfo: {
+							errorType: vidosErrorTypes.identityMismatch,
+							title: "Identity Mismatch",
+							detail:
+								"The credential used for verification does not match your account identity.",
+						},
+					},
+					400,
+				);
 			}
 
 			const loanRequestId = `loan-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;

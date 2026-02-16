@@ -10,6 +10,7 @@ import {
 } from "shared/api/payment";
 import { PAYMENT_CLAIMS, PAYMENT_PURPOSE } from "shared/lib/claims";
 import { paymentClaimsSchema } from "shared/types/auth";
+import { vidosErrorTypes } from "shared/types/vidos-errors";
 import {
 	createAuthorizationRequest,
 	forwardDCAPIResponse,
@@ -123,7 +124,16 @@ export const paymentRouter = new Hono()
 			const user = getUserById(session.userId);
 
 			if (!user || user.identifier !== claims.personal_administrative_number) {
-				return c.json({ error: "Identity mismatch" }, 403);
+				deletePendingRequest(pendingRequest.id);
+				return c.json({
+					status: "rejected" as const,
+					errorInfo: {
+						errorType: vidosErrorTypes.identityMismatch,
+						title: "Identity Mismatch",
+						detail:
+							"The credential used for verification does not match your account identity.",
+					},
+				});
 			}
 
 			// Use transactionId from stored metadata
@@ -213,7 +223,19 @@ export const paymentRouter = new Hono()
 			const user = getUserById(session.userId);
 
 			if (!user || user.identifier !== claims.personal_administrative_number) {
-				return c.json({ error: "Identity mismatch" }, 403);
+				deletePendingRequest(pendingRequest.id);
+				return c.json(
+					{
+						error: "Identity mismatch",
+						errorInfo: {
+							errorType: vidosErrorTypes.identityMismatch,
+							title: "Identity Mismatch",
+							detail:
+								"The credential used for verification does not match your account identity.",
+						},
+					},
+					400,
+				);
 			}
 
 			// Use transactionId from stored metadata

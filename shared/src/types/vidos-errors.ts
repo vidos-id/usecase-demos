@@ -32,6 +32,7 @@ export type VidosPolicyError = z.infer<typeof vidosPolicyErrorSchema>;
 export const vidosErrorTypes = {
 	credentialQuery: "credential-query-evaluation",
 	trustedIssuer: "trusted-issuer-untrusted",
+	identityMismatch: "identity-mismatch",
 } as const;
 export type VidosErrorType =
 	(typeof vidosErrorTypes)[keyof typeof vidosErrorTypes];
@@ -110,6 +111,15 @@ export function getErrorUserMessage(errorInfo: AuthorizationErrorInfo): {
 				title: "Credential Issuer Not Trusted",
 				description: errorInfo.detail,
 				actionHint: "Please use a credential from a recognized issuer.",
+				technicalDetails,
+			};
+
+		case vidosErrorTypes.identityMismatch:
+			return {
+				title: "Identity Mismatch",
+				description: errorInfo.detail,
+				actionHint:
+					"Please try again using the same credential you used to sign in.",
 				technicalDetails,
 			};
 

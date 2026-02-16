@@ -12,6 +12,7 @@ import {
 	PROFILE_UPDATE_PURPOSE,
 } from "shared/lib/claims";
 import { profileUpdateClaimsSchema } from "shared/types/profile-update";
+import { vidosErrorTypes } from "shared/types/vidos-errors";
 import { z } from "zod";
 import {
 	createAuthorizationRequest,
@@ -251,7 +252,15 @@ export const profileUpdateRouter = new Hono()
 				claims.personal_administrative_number !== user.identifier
 			) {
 				deletePendingRequest(pendingRequest.id);
-				return c.json({ error: "Identity mismatch" }, 403);
+				return c.json({
+					status: "rejected" as const,
+					errorInfo: {
+						errorType: vidosErrorTypes.identityMismatch,
+						title: "Identity Mismatch",
+						detail:
+							"The credential used for verification does not match your account identity.",
+					},
+				});
 			}
 
 			const { updates, updatedFields } = buildProfileUpdate(
@@ -330,7 +339,18 @@ export const profileUpdateRouter = new Hono()
 				claims.personal_administrative_number !== user.identifier
 			) {
 				deletePendingRequest(pendingRequest.id);
-				return c.json({ error: "Identity mismatch" }, 403);
+				return c.json(
+					{
+						error: "Identity mismatch",
+						errorInfo: {
+							errorType: vidosErrorTypes.identityMismatch,
+							title: "Identity Mismatch",
+							detail:
+								"The credential used for verification does not match your account identity.",
+						},
+					},
+					400,
+				);
 			}
 
 			const { updates, updatedFields } = buildProfileUpdate(
