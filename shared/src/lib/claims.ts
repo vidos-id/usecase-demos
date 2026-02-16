@@ -40,6 +40,16 @@ export const LOAN_CLAIMS = [
 	"given_name",
 ] as const;
 
+export const PROFILE_UPDATE_CLAIMS = [
+	"family_name",
+	"given_name",
+	"birth_date",
+	"nationality",
+	"email_address",
+	"resident_address",
+	"portrait",
+] as const;
+
 /**
  * Flow-specific purpose strings
  */
@@ -47,3 +57,4 @@ export const SIGNUP_PURPOSE = "Verify your identity for signup";
 export const SIGNIN_PURPOSE = "Verify your identity for signin";
 export const PAYMENT_PURPOSE = "Confirm your identity for payment";
 export const LOAN_PURPOSE = "Verify your identity for loan application";
+export const PROFILE_UPDATE_PURPOSE = "Verify your identity for profile update";

@@ -1,23 +1,92 @@
-import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, useRouteContext } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+	createFileRoute,
+	Link,
+	useNavigate,
+	useRouteContext,
+} from "@tanstack/react-router";
+import {
+	AlertCircle,
 	ArrowLeft,
 	Calendar,
+	CheckCircle2,
+	Clock,
 	Flag,
+	IdCard,
+	Loader2,
 	Mail,
 	MapPin,
 	ShieldCheck,
 	User,
 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CLAIM_LABELS, PROFILE_UPDATE_CLAIMS } from "shared/lib/claims";
 import { getImageDataUrl } from "shared/lib/image";
+import type { DcApiRequest } from "shared/types/auth";
+import type { AuthorizationErrorInfo } from "shared/types/vidos-errors";
+import { CredentialDisclosure } from "@/components/auth/credential-disclosure";
+import { DCApiHandler } from "@/components/auth/dc-api-handler";
+import { PollingStatus } from "@/components/auth/polling-status";
+import { QRCodeDisplay } from "@/components/auth/qr-code-display";
+import { VidosErrorDisplay } from "@/components/auth/vidos-error-display";
 import { Button } from "@/components/ui/button";
+import { getStoredMode } from "@/lib/auth-helpers";
+import { useProfileUpdate } from "@/lib/use-profile-update";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_auth/profile")({
+	validateSearch: (search: Record<string, unknown>) => ({
+		edit: search.edit === true || search.edit === "true" || search.edit === "1",
+	}),
 	component: ProfilePage,
 });
 
+type ProfileUpdateState =
+	| { status: "idle" }
+	| { status: "selecting" }
+	| {
+			status: "awaiting_verification";
+			mode: "direct_post";
+			requestId: string;
+			authorizeUrl: string;
+			requestedClaims: string[];
+			purpose: string;
+	  }
+	| {
+			status: "awaiting_verification";
+			mode: "dc_api";
+			requestId: string;
+			dcApiRequest: DcApiRequest;
+			requestedClaims: string[];
+			purpose: string;
+	  }
+	| {
+			status: "success";
+			updatedFields: string[];
+			requestedClaims: string[];
+	  }
+	| { status: "error"; message: string; errorInfo?: AuthorizationErrorInfo }
+	| { status: "expired" };
+
+const UPDATED_FIELD_TO_CLAIM: Record<string, string> = {
+	familyName: "family_name",
+	givenName: "given_name",
+	birthDate: "birth_date",
+	nationality: "nationality",
+	email: "email_address",
+	address: "resident_address",
+	portrait: "portrait",
+};
+
 function ProfilePage() {
 	const { apiClient } = useRouteContext({ from: "__root__" });
+	const navigate = useNavigate();
+	const search = Route.useSearch();
+	const queryClient = useQueryClient();
+	const [isUpdateOpen, setIsUpdateOpen] = useState(false);
+	const [selectedClaims, setSelectedClaims] = useState<string[]>([]);
+	const [state, setState] = useState<ProfileUpdateState>({ status: "idle" });
+	const [pollingStartTime, setPollingStartTime] = useState<number | null>(null);
 
 	const { data: user, isLoading } = useQuery({
 		queryKey: ["user", "me"],
@@ -27,6 +96,231 @@ function ProfilePage() {
 			return res.json();
 		},
 	});
+
+	const requestMutation = useProfileUpdate({
+		onSuccess: (data) => {
+			setPollingStartTime(Date.now());
+			if (data.mode === "direct_post") {
+				setState({
+					status: "awaiting_verification",
+					mode: "direct_post",
+					requestId: data.requestId,
+					authorizeUrl: data.authorizeUrl,
+					requestedClaims: data.requestedClaims,
+					purpose: data.purpose,
+				});
+			} else {
+				setState({
+					status: "awaiting_verification",
+					mode: "dc_api",
+					requestId: data.requestId,
+					dcApiRequest: data.dcApiRequest,
+					requestedClaims: data.requestedClaims,
+					purpose: data.purpose,
+				});
+			}
+		},
+		onError: (err) => {
+			setState({
+				status: "error",
+				message: err instanceof Error ? err.message : "Unknown error",
+			});
+		},
+	});
+
+	const currentRequestId =
+		state.status === "awaiting_verification" && state.mode === "direct_post"
+			? state.requestId
+			: null;
+
+	const pollingQuery = useQuery({
+		queryKey: ["profile-update", "status", currentRequestId, apiClient],
+		queryFn: async () => {
+			if (!currentRequestId) throw new Error("No request ID");
+			const res = await apiClient.api.profile.update.status[":requestId"].$get({
+				param: { requestId: currentRequestId },
+			});
+			if (!res.ok) throw new Error("Polling failed");
+			return res.json();
+		},
+		enabled: !!currentRequestId,
+		refetchInterval: (query) => {
+			if (!pollingStartTime) return false;
+			if (Date.now() - pollingStartTime > 5 * 60 * 1000) return false;
+			const count = query.state.dataUpdateCount;
+			return Math.min(1000 * 1.5 ** count, 5000);
+		},
+	});
+
+	useEffect(() => {
+		if (!pollingQuery.data || state.status !== "awaiting_verification") return;
+		const data = pollingQuery.data;
+		if (data.status === "authorized") {
+			queryClient.invalidateQueries({ queryKey: ["user", "me"] });
+			setState({
+				status: "success",
+				updatedFields: data.updatedFields || [],
+				requestedClaims: state.requestedClaims,
+			});
+			setIsUpdateOpen(false);
+			return;
+		}
+		if (data.status === "expired") {
+			setState({ status: "expired" });
+			return;
+		}
+		if (data.status === "rejected" || data.status === "error") {
+			setState({
+				status: "error",
+				message: `Verification ${data.status}`,
+				errorInfo: data.errorInfo,
+			});
+		}
+	}, [pollingQuery.data, queryClient, state]);
+
+	useEffect(() => {
+		if (
+			state.status !== "awaiting_verification" ||
+			state.mode !== "direct_post" ||
+			!pollingStartTime
+		) {
+			return;
+		}
+		const timeoutMs = 5 * 60 * 1000;
+		const elapsedMs = Date.now() - pollingStartTime;
+		if (elapsedMs >= timeoutMs) {
+			setState({ status: "error", message: "Verification timed out" });
+			return;
+		}
+		const timeoutId = window.setTimeout(() => {
+			setState({ status: "error", message: "Verification timed out" });
+		}, timeoutMs - elapsedMs);
+		return () => window.clearTimeout(timeoutId);
+	}, [pollingStartTime, state]);
+
+	const completeMutation = useMutation({
+		mutationFn: async ({
+			requestId,
+			response,
+		}: {
+			requestId: string;
+			response: Record<string, unknown>;
+		}) => {
+			const res = await apiClient.api.profile.update.complete[
+				":requestId"
+			].$post({
+				param: { requestId },
+				json: { origin: window.location.origin, dcResponse: response },
+			});
+
+			if (!res.ok) {
+				if (res.status === 400) {
+					try {
+						const errorBody = (await res.json()) as {
+							error?: string;
+							errorInfo?: AuthorizationErrorInfo;
+						};
+						if (errorBody.errorInfo) {
+							throw {
+								type: "vidos_error" as const,
+								errorInfo: errorBody.errorInfo,
+							};
+						}
+					} catch (e) {
+						if (e && typeof e === "object" && "type" in e) throw e;
+					}
+				}
+				throw new Error("Completion failed");
+			}
+
+			return res.json();
+		},
+		onSuccess: (data) => {
+			queryClient.invalidateQueries({ queryKey: ["user", "me"] });
+			setState({
+				status: "success",
+				updatedFields: data.updatedFields,
+				requestedClaims:
+					state.status === "awaiting_verification"
+						? state.requestedClaims
+						: selectedClaims,
+			});
+			setIsUpdateOpen(false);
+		},
+		onError: (err) => {
+			if (err && typeof err === "object" && "type" in err) {
+				const typedErr = err as {
+					type: string;
+					errorInfo?: AuthorizationErrorInfo;
+				};
+				if (typedErr.type === "vidos_error" && typedErr.errorInfo) {
+					setState({
+						status: "error",
+						message: "Verification failed",
+						errorInfo: typedErr.errorInfo,
+					});
+					return;
+				}
+			}
+			setState({
+				status: "error",
+				message: err instanceof Error ? err.message : "Completion failed",
+			});
+		},
+	});
+
+	const handleDCApiSuccess = (response: {
+		protocol: string;
+		data: Record<string, unknown>;
+	}) => {
+		if (state.status !== "awaiting_verification") return;
+		completeMutation.mutate({
+			requestId: state.requestId,
+			response: response.data,
+		});
+	};
+
+	const handleRequestStart = () => {
+		const mode = getStoredMode();
+		setState({ status: "selecting" });
+		requestMutation.mutate({
+			requestedClaims: selectedClaims,
+			mode,
+		});
+	};
+
+	const handleCancel = () => {
+		setState({ status: "idle" });
+		setPollingStartTime(null);
+	};
+
+	const handleResetSelection = () => {
+		setSelectedClaims([]);
+		setState({ status: "idle" });
+		setIsUpdateOpen(false);
+		setPollingStartTime(null);
+	};
+
+	const handleRetry = () => {
+		setState({ status: "idle" });
+	};
+
+	const isSelectionValid = selectedClaims.length > 0;
+	const isRequesting = requestMutation.isPending;
+	const elapsedSeconds = pollingStartTime
+		? Math.floor((Date.now() - pollingStartTime) / 1000)
+		: 0;
+
+	useEffect(() => {
+		if (!search.edit) return;
+		setIsUpdateOpen(true);
+		setState((prev) =>
+			prev.status === "idle" || prev.status === "success"
+				? { status: "idle" }
+				: prev,
+		);
+		navigate({ to: "/profile", search: { edit: false }, replace: true });
+	}, [navigate, search.edit]);
 
 	if (isLoading) {
 		return (
@@ -40,6 +334,17 @@ function ProfilePage() {
 	}
 
 	const portraitUrl = getImageDataUrl(user?.portrait);
+	const updateRequestedClaims =
+		state.status === "awaiting_verification"
+			? state.requestedClaims
+			: selectedClaims;
+	const updatedFieldLabels =
+		state.status === "success"
+			? state.updatedFields.map((field) => {
+					const claim = UPDATED_FIELD_TO_CLAIM[field] ?? field;
+					return CLAIM_LABELS[claim] || field;
+				})
+			: [];
 
 	return (
 		<div className="min-h-[calc(100vh-4rem)] py-8 px-4 sm:px-6 lg:px-8">
@@ -139,6 +444,243 @@ function ProfilePage() {
 								label="Address"
 								value={user.address}
 							/>
+						)}
+					</div>
+				</div>
+
+				{/* Profile update section */}
+				<div className="rounded-2xl border border-border/60 bg-background overflow-hidden">
+					<div className="p-6 lg:p-8 space-y-6">
+						<div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+							<div className="space-y-1">
+								<h2 className="text-xl font-semibold">Update Profile</h2>
+								<p className="text-sm text-muted-foreground">
+									Request updated fields from your wallet and refresh your
+									profile.
+								</p>
+							</div>
+							<Button
+								onClick={() => {
+									setIsUpdateOpen((prev) => !prev);
+									if (!isUpdateOpen) setState({ status: "idle" });
+								}}
+								variant={isUpdateOpen ? "secondary" : "default"}
+								className="h-11"
+								disabled={state.status === "awaiting_verification"}
+							>
+								{isUpdateOpen ? "Close" : "Update Profile"}
+							</Button>
+						</div>
+
+						{state.status === "success" && (
+							<div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 lg:p-5">
+								<div className="flex items-start gap-3">
+									<div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+										<CheckCircle2 className="h-5 w-5 text-emerald-600" />
+									</div>
+									<div className="space-y-1">
+										<p className="text-sm font-medium text-foreground">
+											Profile updated
+										</p>
+										<p className="text-sm text-muted-foreground">
+											Updated fields:{" "}
+											{updatedFieldLabels.length
+												? updatedFieldLabels.join(", ")
+												: "No changes returned"}
+										</p>
+									</div>
+								</div>
+							</div>
+						)}
+
+						{isUpdateOpen && (
+							<div className="space-y-6">
+								{(state.status === "idle" || state.status === "selecting") && (
+									<div className="rounded-xl border border-border/60 bg-muted/20 p-4 lg:p-6 space-y-4">
+										<div className="flex items-center gap-2 text-xs text-muted-foreground font-mono uppercase tracking-wider">
+											<IdCard className="h-3.5 w-3.5" />
+											Select fields to update from PID
+										</div>
+										<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+											{PROFILE_UPDATE_CLAIMS.map((claim) => {
+												const isSelected = selectedClaims.includes(claim);
+												return (
+													<button
+														key={claim}
+														type="button"
+														onClick={() => {
+															setSelectedClaims((prev) =>
+																prev.includes(claim)
+																	? prev.filter((item) => item !== claim)
+																	: [...prev, claim],
+															);
+														}}
+														className={cn(
+															"flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition-all",
+															"hover:border-primary/40 hover:bg-primary/5",
+															isSelected
+																? "border-primary bg-primary/5 ring-2 ring-primary/20"
+																: "border-border/60 bg-background",
+														)}
+													>
+														<span className="text-sm font-medium">
+															{CLAIM_LABELS[claim] || claim}
+														</span>
+														<span
+															className={cn(
+																"text-xs font-mono uppercase tracking-wider",
+																isSelected
+																	? "text-primary"
+																	: "text-muted-foreground",
+															)}
+														>
+															{isSelected ? "Selected" : "Select"}
+														</span>
+													</button>
+												);
+											})}
+										</div>
+										<div className="flex flex-col sm:flex-row gap-3">
+											<Button
+												onClick={handleRequestStart}
+												disabled={!isSelectionValid || isRequesting}
+												className="h-12 flex-1"
+											>
+												{isRequesting ? "Starting update..." : "Continue"}
+											</Button>
+											<Button
+												onClick={handleResetSelection}
+												variant="outline"
+												className="h-12 flex-1"
+												disabled={isRequesting}
+											>
+												Cancel
+											</Button>
+										</div>
+									</div>
+								)}
+
+								{state.status === "awaiting_verification" && (
+									<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+										<div className="rounded-xl border border-border/60 bg-background p-4 lg:p-6 space-y-4">
+											<h3 className="text-lg font-semibold">Verify update</h3>
+											<CredentialDisclosure
+												requestedClaims={updateRequestedClaims}
+												purpose={state.purpose}
+											/>
+										</div>
+										<div className="rounded-xl border border-border/60 bg-background p-4 lg:p-6 space-y-4">
+											{state.mode === "direct_post" ? (
+												<>
+													<QRCodeDisplay url={state.authorizeUrl} />
+													<PollingStatus
+														elapsedSeconds={elapsedSeconds}
+														onCancel={handleCancel}
+													/>
+												</>
+											) : (
+												<>
+													<DCApiHandler
+														dcApiRequest={state.dcApiRequest}
+														onSuccess={handleDCApiSuccess}
+														onError={(msg) =>
+															setState({ status: "error", message: msg })
+														}
+													/>
+													{completeMutation.isPending && (
+														<div className="flex items-center justify-center gap-3 py-4">
+															<Loader2 className="h-5 w-5 animate-spin text-primary" />
+															<p className="text-muted-foreground">
+																Completing update...
+															</p>
+														</div>
+													)}
+												</>
+											)}
+										</div>
+									</div>
+								)}
+
+								{state.status === "error" && (
+									<div className="space-y-4">
+										{state.errorInfo ? (
+											<VidosErrorDisplay
+												errorInfo={state.errorInfo}
+												onRetry={handleRetry}
+											/>
+										) : (
+											<div
+												className={cn(
+													"flex items-start gap-3 p-4 lg:p-6 rounded-xl",
+													"bg-destructive/10 border border-destructive/20 text-destructive",
+												)}
+											>
+												<AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+												<div className="space-y-1">
+													<p className="font-medium">Update Failed</p>
+													<p className="text-sm opacity-80">{state.message}</p>
+												</div>
+											</div>
+										)}
+										<div className="flex flex-col sm:flex-row gap-3">
+											<Button
+												onClick={handleResetSelection}
+												variant="outline"
+												className="h-12 flex-1"
+											>
+												Start Over
+											</Button>
+											<Button
+												onClick={() => {
+													if (state.status === "error") {
+														setState({ status: "idle" });
+													}
+													handleRequestStart();
+												}}
+												disabled={!isSelectionValid || isRequesting}
+												className="h-12 flex-1"
+											>
+												{isRequesting ? "Retrying..." : "Retry"}
+											</Button>
+										</div>
+									</div>
+								)}
+
+								{state.status === "expired" && (
+									<div className="space-y-4">
+										<div
+											className={cn(
+												"flex items-start gap-3 p-4 lg:p-6 rounded-xl",
+												"bg-amber-500/10 border border-amber-500/20 text-amber-700",
+											)}
+										>
+											<Clock className="h-5 w-5 flex-shrink-0 mt-0.5" />
+											<div className="space-y-1">
+												<p className="font-medium">Request Expired</p>
+												<p className="text-sm opacity-80">
+													The verification request expired. Please try again.
+												</p>
+											</div>
+										</div>
+										<div className="flex flex-col sm:flex-row gap-3">
+											<Button
+												onClick={handleResetSelection}
+												variant="outline"
+												className="h-12 flex-1"
+											>
+												Start Over
+											</Button>
+											<Button
+												onClick={handleRequestStart}
+												disabled={!isSelectionValid || isRequesting}
+												className="h-12 flex-1"
+											>
+												{isRequesting ? "Retrying..." : "Retry"}
+											</Button>
+										</div>
+									</div>
+								)}
+							</div>
 						)}
 					</div>
 				</div>

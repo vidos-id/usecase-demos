@@ -11,6 +11,7 @@ import { helloRouter } from "./routes/hello";
 import { loanRouter } from "./routes/loan";
 import { otherRouter } from "./routes/other";
 import { paymentRouter } from "./routes/payment";
+import { profileUpdateRouter } from "./routes/profile-update";
 import { signinRouter } from "./routes/signin";
 import { signupRouter } from "./routes/signup";
 import { vidosAuthorizerHealthCheck } from "./services/vidos";
@@ -30,6 +31,7 @@ export const app = new Hono()
 	.route("/api/signin", signinRouter)
 	.route("/api/payment", paymentRouter)
 	.route("/api/loan", loanRouter)
+	.route("/api/profile/update", profileUpdateRouter)
 	.get("/api/session", (c) => {
 		const authHeader = c.req.header("Authorization");
 		if (!authHeader?.startsWith("Bearer ")) {

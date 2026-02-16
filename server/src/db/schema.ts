@@ -50,7 +50,7 @@ export const pendingAuthResultSchema = z.object({
 export const pendingAuthRequestSchema = z.object({
 	id: z.string(),
 	vidosAuthorizationId: z.string(),
-	type: z.enum(["signup", "signin", "payment", "loan"]),
+	type: z.enum(["signup", "signin", "payment", "loan", "profile_update"]),
 	mode: z.enum(["direct_post", "dc_api"]),
 	status: z.enum(["pending", "completed", "failed", "expired"]),
 	responseUrl: z.string().optional(),

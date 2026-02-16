@@ -4,6 +4,7 @@ import {
 	ChevronDown,
 	Loader2,
 	LogOut,
+	Pencil,
 	RotateCcw,
 	ShieldCheck,
 	User,
@@ -79,6 +80,19 @@ export function AccountMenu() {
 		signOutMutation.mutate();
 	};
 
+	const handleViewProfile = () => {
+		setMenuOpen(false);
+		navigate({ to: "/profile", search: { edit: false } });
+	};
+
+	const handleUpdateProfile = () => {
+		setMenuOpen(false);
+		navigate({
+			to: "/profile",
+			search: { edit: true },
+		});
+	};
+
 	const handleResetClick = () => {
 		setMenuOpen(false);
 		setResetDialogOpen(true);
@@ -113,8 +127,6 @@ export function AccountMenu() {
 									<User className="h-4 w-4 text-muted-foreground" />
 								</div>
 							)}
-							{/* Online indicator */}
-							<div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-green-500 border-2 border-background" />
 						</div>
 
 						{/* Name (hidden on mobile) */}
@@ -147,6 +159,24 @@ export function AccountMenu() {
 					)}
 
 					{/* Menu items */}
+					<DropdownMenuItem
+						onClick={handleViewProfile}
+						className="cursor-pointer"
+					>
+						<User className="mr-2 h-4 w-4" />
+						View Profile
+					</DropdownMenuItem>
+
+					<DropdownMenuItem
+						onClick={handleUpdateProfile}
+						className="cursor-pointer"
+					>
+						<Pencil className="mr-2 h-4 w-4" />
+						Update Profile
+					</DropdownMenuItem>
+
+					<DropdownMenuSeparator />
+
 					<DropdownMenuItem
 						onClick={handleSignOut}
 						disabled={signOutMutation.isPending}
