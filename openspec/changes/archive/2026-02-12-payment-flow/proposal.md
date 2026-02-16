@@ -40,7 +40,7 @@ DemoBank needs to demonstrate secure money transfers using PID-based identity co
 
 **Dependencies:**
 - Requires auth-flows change (session management, mode storage)
-- Requires core-infrastructure change (Vidos service, session storage)
+- Requires core-infrastructure change (Vidos service, local storage)
 - Shared Zod schemas for payment transaction data
 
 **Code Areas:**

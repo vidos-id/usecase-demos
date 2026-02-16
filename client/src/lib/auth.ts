@@ -18,25 +18,25 @@ export function subscribeSession(listener: SessionListener): () => void {
 }
 
 export async function checkSession(): Promise<boolean> {
-	// Check sessionStorage for session ID
-	const sessionId = sessionStorage.getItem("sessionId");
+	// Check localStorage for session ID
+	const sessionId = localStorage.getItem("sessionId");
 	return !!sessionId;
 }
 
 // Get stored session ID
 export function getSessionId(): string | null {
-	return sessionStorage.getItem("sessionId");
+	return localStorage.getItem("sessionId");
 }
 
 // Store session ID
 export function setSessionId(sessionId: string): void {
-	sessionStorage.setItem("sessionId", sessionId);
+	localStorage.setItem("sessionId", sessionId);
 	notifySessionChange();
 }
 
 // Clear session
 export function clearSession(): void {
-	sessionStorage.removeItem("sessionId");
-	sessionStorage.removeItem("authMode");
+	localStorage.removeItem("sessionId");
+	localStorage.removeItem("authMode");
 	notifySessionChange();
 }

@@ -42,7 +42,7 @@
 ## 6. Sign-Out Flow
 
 - [x] 6.1 Create API call to DELETE /api/session with Authorization header
-- [x] 6.2 Clear sessionStorage ("sessionId" and "authMode") on success
+- [x] 6.2 Clear localStorage ("sessionId" and "authMode") on success
 - [x] 6.3 Navigate to "/" using TanStack Router after session cleanup
 - [x] 6.4 Verify landing page shows unauthenticated state
 
@@ -51,7 +51,7 @@
 - [x] 7.1 Implement confirmation dialog state management in account menu
 - [x] 7.2 Create API call to DELETE /api/admin/reset on confirmation
 - [x] 7.3 Display toast notification "Demo data has been reset" on success
-- [x] 7.4 Clear sessionStorage ("sessionId" and "authMode") after reset
+- [x] 7.4 Clear localStorage ("sessionId" and "authMode") after reset
 - [x] 7.5 Navigate to "/" using TanStack Router after reset completion
 
 ## 8. Manual Verification

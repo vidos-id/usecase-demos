@@ -16,7 +16,7 @@ The DemoBank application needs session management and demo data reset capabiliti
 ## Capabilities
 
 ### New Capabilities
-- `sign-out`: User logout functionality that destroys the current session, clears client session storage, and redirects to landing page
+- `sign-out`: User logout functionality that destroys the current session, clears client local storage, and redirects to landing page
 - `sign-out-endpoint`: DELETE /api/session server endpoint that destroys only the current user's session
 - `reset-demo-data`: Full demo state purge functionality accessible from account menu
 - `reset-confirmation-dialog`: Client-side confirmation dialog requiring user approval before executing reset operation

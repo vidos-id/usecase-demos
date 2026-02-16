@@ -171,17 +171,17 @@ export const clearAllSessions = () => {
 - Server destroys session, but client must forget session ID
 - Redirect prevents showing authenticated UI with invalid session
 - Landing page (`/`) is natural post-logout destination
-- sessionStorage is current storage mechanism (established pattern)
+- localStorage is current storage mechanism (established pattern)
 
 **Alternatives considered:**
 - Redirect to `/login`: Assumes user wants to immediately re-authenticate (likely not)
 - No redirect: Leaves user on protected route, causes error state
-- Cookie clearing: Not applicable (session in sessionStorage, not cookies)
+- Cookie clearing: Not applicable (session in localStorage, not cookies)
 
 **Implementation flow:**
 1. User clicks "Sign Out" in account menu
 2. Client calls `DELETE /api/session` with current session ID in Authorization header
-3. On success, `sessionStorage.removeItem("sessionId")` and `sessionStorage.removeItem("authMode")`
+3. On success, `localStorage.removeItem("sessionId")` and `localStorage.removeItem("authMode")`
 4. Navigate to `/` using TanStack Router
 5. Landing page shows unauthenticated state
 
@@ -207,7 +207,7 @@ export const clearAllSessions = () => {
 const handleReset = async () => {
   await client.admin.reset.$delete(); // Hono RPC call
   toast.success("Demo data has been reset");
-  sessionStorage.removeItem("sessionId");
+  localStorage.removeItem("sessionId");
   navigate({ to: "/" });
 };
 ```
@@ -218,7 +218,7 @@ const handleReset = async () => {
 **→ Mitigation:** Acceptable for demo context. Client confirmation prevents accidents. Add auth if deploying publicly.
 
 **[Risk]** Sign-out doesn't invalidate session on client → Replaying session ID could restore access  
-**→ Mitigation:** Client clears sessionStorage. Replay only possible if user manually saved session ID. Server-side session is destroyed regardless.
+**→ Mitigation:** Client clears localStorage. Replay only possible if user manually saved session ID. Server-side session is destroyed regardless.
 
 **[Risk]** No confirmation for sign-out → User might accidentally click  
 **→ Mitigation:** Acceptable UX trade-off. Sign-out is low-risk (user can re-authenticate). Confirmation dialog would slow down common action.
@@ -229,7 +229,7 @@ const handleReset = async () => {
 **[Trade-off]** No soft delete or audit trail → Can't recover from accidental reset  
 **→ Mitigation:** Demo data is ephemeral anyway. Real apps would add audit logging.
 
-**[Trade-off]** Clearing sessionStorage on sign-out doesn't clear session from other tabs  
+**[Trade-off]** Clearing localStorage on sign-out doesn't clear session from other tabs  
 **→ Mitigation:** Browser storage events could sync across tabs. Defer unless user feedback indicates issue.
 
 ## Migration Plan

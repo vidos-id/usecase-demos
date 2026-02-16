@@ -19,12 +19,12 @@ The system SHALL provide UI for selecting between direct_post and dc_api present
 #### Scenario: User selects dc_api mode
 - **WHEN** user clicks "Browser Wallet" radio option
 - **THEN** system updates selected mode to dc_api
-- **THEN** system stores mode in sessionStorage
+- **THEN** system stores mode in localStorage
 
 #### Scenario: User selects direct_post mode
 - **WHEN** user clicks "QR Code / Deep Link" radio option
 - **THEN** system updates selected mode to direct_post
-- **THEN** system stores mode in sessionStorage
+- **THEN** system stores mode in localStorage
 
 ### Requirement: Detect Digital Credentials API support
 The system SHALL detect browser support for Digital Credentials API at component mount.
@@ -40,17 +40,17 @@ The system SHALL detect browser support for Digital Credentials API at component
 - **THEN** dc_api mode option is hidden
 
 ### Requirement: Persist mode preference in session
-The system SHALL persist selected mode in browser sessionStorage.
+The system SHALL persist selected mode in browser localStorage.
 
 #### Scenario: Mode stored on selection
 - **WHEN** user selects a mode
-- **THEN** system writes mode to sessionStorage with key "authMode"
+- **THEN** system writes mode to localStorage with key "authMode"
 
 #### Scenario: Mode restored on page load
-- **WHEN** page loads and sessionStorage contains "authMode" key
+- **WHEN** page loads and localStorage contains "authMode" key
 - **THEN** system reads stored mode
 - **THEN** system pre-selects corresponding radio option
 
 #### Scenario: Default mode when no stored preference
-- **WHEN** page loads and sessionStorage does not contain "authMode" key
+- **WHEN** page loads and localStorage does not contain "authMode" key
 - **THEN** system defaults to direct_post mode

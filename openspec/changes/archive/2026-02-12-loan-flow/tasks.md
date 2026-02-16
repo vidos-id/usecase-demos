@@ -42,7 +42,7 @@
 - [x] 3.6 Build purpose dropdown with shadcn Select component showing purpose options
 - [x] 3.7 Build term dropdown with shadcn Select component showing "X months" format
 - [x] 3.8 Add form validation requiring all three fields before submit enabled
-- [x] 3.9 Implement handleSubmit to retrieve stored mode from session storage
+- [x] 3.9 Implement handleSubmit to retrieve stored mode from local storage
 - [x] 3.10 Call hcWithType client.loan.request.$post with mode, amount, purpose, term
 - [x] 3.11 Destructure requestId, authorizeUrl/dcApiRequest from response
 - [x] 3.12 Set state to "verifying" to show inline verification UI

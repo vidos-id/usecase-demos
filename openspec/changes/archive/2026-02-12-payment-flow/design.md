@@ -267,7 +267,7 @@ const authRequest = await vidosService.createAuthorizationRequest({
 - **Clear messaging**: Success page states "Demo mode - balance not affected"
 
 **Alternatives considered:**
-- Mock balance decrease: Requires client-side state or session storage, gets out of sync across tabs
+- Mock balance decrease: Requires client-side state or local storage, gets out of sync across tabs
 - Persistent transactions: Requires database, transaction history UI, reconciliation logic
 
 **Implementation:**

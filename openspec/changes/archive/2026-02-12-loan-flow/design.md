@@ -189,7 +189,7 @@ const { authId, authorizeUrl } = await vidosService.createAuthorizationRequest({
 **Alternatives considered:**
 - Let user choose mode per transaction: Confusing, adds unnecessary friction
 - Always use direct_post: Ignores DC API availability and user preference
-- Check if session mode still valid: Overcomplicates, session storage is authoritative
+- Check if session mode still valid: Overcomplicates, local storage is authoritative
 
 **Implementation:**
 ```typescript
@@ -311,7 +311,7 @@ User                 Client                  Server                  Vidos API
 **[Risk]** Loan details stored in Vidos metadata only → no persistence after demo restart  
 **→ Mitigation:** Acceptable for demo scope. Document that loan applications are not persisted. Could add in-memory store later if needed.
 
-**[Risk]** Reusing session mode assumes session storage is still valid  
+**[Risk]** Reusing session mode assumes local storage is still valid  
 **→ Mitigation:** If storage cleared, fallback to default (direct_post). User can re-authenticate to set mode again.
 
 **[Risk]** Fixed loan amounts may not match user expectations (custom amounts)  
@@ -326,7 +326,7 @@ User                 Client                  Server                  Vidos API
 ## Migration Plan
 
 **Prerequisites:**
-- `auth-flows` change deployed (session mode storage in session storage)
+- `auth-flows` change deployed (session mode storage in local storage)
 - `core-infrastructure` change deployed (Vidos service)
 - Protected routes working (loan form is under `_auth` layout)
 

@@ -226,11 +226,11 @@ const isDCApiSupported = () => {
 **Implementation:**
 ```typescript
 const getStoredMode = (): PresentationMode => {
-  return (sessionStorage.getItem("authMode") as PresentationMode) || "direct_post";
+  return (localStorage.getItem("authMode") as PresentationMode) || "direct_post";
 };
 
 const setStoredMode = (mode: PresentationMode) => {
-  sessionStorage.setItem("authMode", mode);
+  localStorage.setItem("authMode", mode);
 };
 ```
 

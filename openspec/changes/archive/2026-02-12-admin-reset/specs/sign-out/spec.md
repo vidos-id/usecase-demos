@@ -19,15 +19,15 @@ The system SHALL call DELETE /api/session when the user clicks "Sign Out".
 - **THEN** the client sends DELETE /api/session with the current session ID in the Authorization header
 
 ### Requirement: Client-side session cleanup after sign-out
-The system SHALL clear sessionStorage of session-related data after successful sign-out.
+The system SHALL clear localStorage of session-related data after successful sign-out.
 
-#### Scenario: Session storage cleared
+#### Scenario: Local storage cleared
 - **WHEN** DELETE /api/session returns successfully
-- **THEN** the client removes "sessionId" from sessionStorage
+- **THEN** the client removes "sessionId" from localStorage
 
 #### Scenario: Auth mode storage cleared
 - **WHEN** DELETE /api/session returns successfully
-- **THEN** the client removes "authMode" from sessionStorage
+- **THEN** the client removes "authMode" from localStorage
 
 ### Requirement: Redirect to landing page after sign-out
 The system SHALL navigate the user to the landing page (/) after successful sign-out.

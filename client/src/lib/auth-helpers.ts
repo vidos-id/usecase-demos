@@ -183,10 +183,10 @@ export function getDCApiUnsupportedReason(): string | undefined {
 
 export function getStoredMode(): PresentationMode {
 	return (
-		(sessionStorage.getItem("authMode") as PresentationMode) || "direct_post"
+		(localStorage.getItem("authMode") as PresentationMode) || "direct_post"
 	);
 }
 
 export function setStoredMode(mode: PresentationMode): void {
-	sessionStorage.setItem("authMode", mode);
+	localStorage.setItem("authMode", mode);
 }

@@ -35,8 +35,8 @@
 - [x] 5.2 Implement DC API feature detection (check navigator.credentials and DigitalCredential)
 - [x] 5.3 Show dc_api option only when browser supports it
 - [x] 5.4 Default to direct_post mode
-- [x] 5.5 Persist selected mode in sessionStorage
-- [x] 5.6 Restore mode from sessionStorage on page load
+- [x] 5.5 Persist selected mode in localStorage
+- [x] 5.6 Restore mode from localStorage on page load
 
 ## 6. Client - QR Code Display (direct_post mode)
 
@@ -97,7 +97,7 @@
 ## 12. Client - Helper Utilities
 
 - [x] 12.1 Create client/src/lib/auth-helpers.ts with isDCApiSupported function
-- [x] 12.2 Add getStoredMode and setStoredMode functions for sessionStorage
+- [x] 12.2 Add getStoredMode and setStoredMode functions for localStorage
 - [x] 12.3 Add typed Hono client import from server/client
 
 ## 13. Testing and Verification
@@ -107,7 +107,7 @@
 - [x] 13.3 Manual test: signup with dc_api mode (browser wallet)
 - [x] 13.4 Manual test: signin with existing user (both modes)
 - [x] 13.5 Manual test: signin with no account (verify 404 error and signup link)
-- [x] 13.6 Manual test: mode persistence in sessionStorage
+- [x] 13.6 Manual test: mode persistence in localStorage
 - [x] 13.7 Manual test: polling timeout and restart flow
 - [x] 13.8 Manual test: DC API feature detection on supported/unsupported browsers
 - [x] 13.9 Verify type safety: client autocomplete for all API endpoints

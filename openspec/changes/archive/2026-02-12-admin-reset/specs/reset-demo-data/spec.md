@@ -29,11 +29,11 @@ The system SHALL display a toast notification after successful reset.
 - **THEN** the client displays a toast message "Demo data has been reset"
 
 ### Requirement: Session cleanup after reset
-The system SHALL clear sessionStorage after successful reset.
+The system SHALL clear localStorage after successful reset.
 
-#### Scenario: Session storage cleared after reset
+#### Scenario: Local storage cleared after reset
 - **WHEN** DELETE /api/admin/reset completes successfully
-- **THEN** the client removes "sessionId" from sessionStorage
+- **THEN** the client removes "sessionId" from localStorage
 
 ### Requirement: Redirect to landing page after reset
 The system SHALL navigate the user to the landing page (/) after successful reset.
