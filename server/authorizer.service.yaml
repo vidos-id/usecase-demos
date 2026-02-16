@@ -1193,6 +1193,125 @@ paths:
                     type: string
                 required:
                   - message
+  /openid4/vp/v1_0/response-code/resolve:
+    post:
+      description: Exchanges a single-use OpenID4VP response_code for the associated
+        authorization identifier and status. The response code is invalidated
+        immediately after successful resolution.
+      summary: Resolve response code
+      tags: []
+      parameters: []
+      operationId: resolveResponseCode
+      requestBody:
+        description: Body
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                response_code:
+                  description: Single-use response code from the wallet redirect_uri callback
+                  type: string
+              required:
+                - response_code
+      responses:
+        "200":
+          description: "200"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  authorization_id:
+                    description: Authorization identifier associated with the response code
+                    type: string
+                  status:
+                    description: Final authorization status associated with this response code
+                    type: string
+                    enum:
+                      - authorized
+                      - rejected
+                      - error
+                      - expired
+                required:
+                  - authorization_id
+                  - status
+        "400":
+          description: Bad request error
+          content:
+            application/json:
+              schema:
+                description: Bad request error
+                type: object
+                properties:
+                  type:
+                    description: Error type identifier
+                    type: string
+                  message:
+                    description: User-facing error message
+                    type: string
+                  action:
+                    description: Suggested action to resolve the error
+                    type: string
+                required:
+                  - message
+        "401":
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                description: Unauthorized - authentication required
+                type: object
+                properties:
+                  type:
+                    description: Error type identifier
+                    type: string
+                  message:
+                    description: User-facing error message
+                    type: string
+                  action:
+                    description: Suggested action to resolve the error
+                    type: string
+                required:
+                  - message
+        "404":
+          description: Response code not found, already used, or expired
+          content:
+            application/json:
+              schema:
+                description: Response code not found, already used, or expired
+                type: object
+                properties:
+                  type:
+                    description: Error type identifier
+                    type: string
+                  message:
+                    description: User-facing error message
+                    type: string
+                  action:
+                    description: Suggested action to resolve the error
+                    type: string
+                required:
+                  - message
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                description: Internal server error
+                type: object
+                properties:
+                  type:
+                    description: Error type identifier
+                    type: string
+                  message:
+                    description: User-facing error message
+                    type: string
+                  action:
+                    description: Suggested action to resolve the error
+                    type: string
+                required:
+                  - message
   /openid4/vp/v1_0/authorizations:
     post:
       description: Creates a new OpenID4VP authorization request for requesting
