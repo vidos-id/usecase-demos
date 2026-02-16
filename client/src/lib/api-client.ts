@@ -13,7 +13,7 @@ const env = envSchema.parse({
 });
 
 // Custom fetch that injects Authorization header when session exists
-const authFetch: typeof fetch = (input, init) => {
+const authFetch: typeof fetch = ((input, init) => {
 	const sessionId = getSessionId();
 	if (sessionId) {
 		const headers = new Headers(init?.headers);
@@ -24,7 +24,7 @@ const authFetch: typeof fetch = (input, init) => {
 		return fetch(input, { ...init, headers });
 	}
 	return fetch(input, init);
-};
+}) as typeof fetch;
 
 export const apiClient = hc<AppType>(env.VITE_VIDOS_DEMO_BANK_SERVER_URL, {
 	fetch: authFetch,

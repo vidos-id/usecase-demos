@@ -23,7 +23,6 @@
 		"radix-ui": "^1.4.3",
 		"react": "^19.2.3",
 		"react-dom": "^19.2.3",
-		"server": "workspace:*",
 		"shared": "workspace:*",
 		"sonner": "^2.0.7",
 		"tailwind-merge": "^3.4.1",
@@ -32,6 +31,7 @@
 	},
 	"devDependencies": {
 		"@tanstack/router-plugin": "^1.160.0",
+		"server": "workspace:*",
 		"@types/node": "^25.2.3",
 		"@types/react": "^19.2.7",
 		"@types/react-dom": "^19.2.3",
