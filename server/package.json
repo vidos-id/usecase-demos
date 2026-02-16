@@ -14,12 +14,12 @@
 		"db:studio": "drizzle-kit studio"
 	},
 	"dependencies": {
-		"drizzle-orm": "^0.42.0",
+		"drizzle-orm": "^0.45.1",
 		"hono": "^4.11.9",
 		"@hono/zod-validator": "^0.7.6",
 		"zod": "^4.3.6",
 		"shared": "workspace:*",
-		"openapi-fetch": "^0.15.0"
+		"openapi-fetch": "^0.17.0"
 	},
 	"devDependencies": {
 		"@types/bun": "latest",
