@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useRouteContext } from "@tanstack/react-router";
 import {
 	AlertCircle,
@@ -14,7 +14,6 @@ import {
 	Wallet,
 	XCircle,
 } from "lucide-react";
-import { useEffect } from "react";
 import type { CallbackResolveResponse } from "shared/api/callback";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -65,10 +64,21 @@ function CallbackPage() {
 	const { response_code } = Route.useSearch();
 	const { apiClient } = useRouteContext({ from: "__root__" });
 
-	const resolveMutation = useMutation({
-		mutationFn: async (code: string) => {
+	const resolveQuery = useQuery({
+		queryKey: ["callback-resolve", response_code],
+		enabled: Boolean(response_code),
+		retry: false,
+		retryOnMount: false,
+		refetchOnWindowFocus: false,
+		refetchOnReconnect: false,
+		staleTime: Infinity,
+		queryFn: async () => {
+			if (!response_code) {
+				throw new Error("invalid_code");
+			}
+
 			const res = await apiClient.api.callback.resolve.$post({
-				json: { response_code: code },
+				json: { response_code },
 			});
 
 			if (!res.ok) {
@@ -78,16 +88,9 @@ function CallbackPage() {
 				throw new Error("resolve_failed");
 			}
 
-			return res.json();
+			return (await res.json()) as CallbackResolveResponse;
 		},
 	});
-
-	// Automatically resolve on mount if response_code is present
-	useEffect(() => {
-		if (response_code && !resolveMutation.data && !resolveMutation.isPending) {
-			resolveMutation.mutate(response_code);
-		}
-	}, [response_code, resolveMutation]);
 
 	// No response_code provided
 	if (!response_code) {
@@ -95,22 +98,22 @@ function CallbackPage() {
 	}
 
 	// Loading state
-	if (resolveMutation.isPending) {
+	if (resolveQuery.isPending) {
 		return <LoadingState />;
 	}
 
 	// Error state
-	if (resolveMutation.isError) {
-		const isInvalidCode = resolveMutation.error?.message === "invalid_code";
+	if (resolveQuery.isError) {
+		const isInvalidCode = resolveQuery.error?.message === "invalid_code";
 		if (isInvalidCode) {
 			return <InvalidCodeState />;
 		}
-		return <ErrorState onRetry={() => resolveMutation.mutate(response_code)} />;
+		return <ErrorState onRetry={() => void resolveQuery.refetch()} />;
 	}
 
 	// Success - show result
-	if (resolveMutation.data) {
-		return <ResultDisplay result={resolveMutation.data} />;
+	if (resolveQuery.data) {
+		return <ResultDisplay result={resolveQuery.data} />;
 	}
 
 	return null;
