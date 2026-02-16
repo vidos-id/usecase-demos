@@ -40,6 +40,12 @@ function getAuthorizerClient() {
 export type CreateAuthRequestParams = ModeParams & {
 	requestedClaims: readonly string[]; // Canonical attribute IDs from pid-attributes.ts
 	purpose: string;
+	transactionData?: string[]; // base64url-encoded JSON objects
+	verifierInfo?: Array<{
+		format: string;
+		data: string | Record<string, unknown>;
+		credential_ids?: string[];
+	}>;
 };
 
 export type CreateAuthRequestResult =
@@ -189,6 +195,10 @@ export async function createAuthorizationRequest(
 						dcql: dcqlQuery,
 					},
 					responseMode: "direct_post.jwt",
+					responseTypeParameters: {
+						transaction_data: params.transactionData,
+						verifier_info: params.verifierInfo,
+					},
 				},
 			},
 		);
@@ -223,6 +233,10 @@ export async function createAuthorizationRequest(
 			responseMode: "dc_api.jwt",
 			protocol: "openid4vp-v1-signed",
 			expectedOrigins: [params.origin],
+			responseTypeParameters: {
+				transaction_data: params.transactionData,
+				verifier_info: params.verifierInfo,
+			},
 		},
 	});
 

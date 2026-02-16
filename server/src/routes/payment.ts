@@ -43,10 +43,30 @@ export const paymentRouter = new Hono()
 		// Generate transactionId immediately per spec
 		const transactionId = `txn-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
+		// Build transaction data for OID4VP cryptographic binding
+		const transactionData = [
+			Buffer.from(
+				JSON.stringify({
+					type: "payment",
+					recipient,
+					amount,
+					reference,
+					transactionId,
+				}),
+			).toString("base64url"),
+		];
+
 		const result = await createAuthorizationRequest({
 			...modeParams,
 			requestedClaims: PAYMENT_CLAIMS,
 			purpose: PAYMENT_PURPOSE,
+			transactionData,
+			verifierInfo: [
+				{
+					format: "plaintext",
+					data: "Demo Bank - Secure Payment Authorization",
+				},
+			],
 		});
 
 		const pendingRequest = createPendingRequest({

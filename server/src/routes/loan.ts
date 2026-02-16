@@ -44,10 +44,29 @@ export const loanRouter = new Hono()
 			...modeParams
 		} = c.req.valid("json");
 
+		// Build transaction data for OID4VP cryptographic binding
+		const transactionData = [
+			Buffer.from(
+				JSON.stringify({
+					type: "loan_application",
+					amount,
+					loanPurpose,
+					term,
+				}),
+			).toString("base64url"),
+		];
+
 		const result = await createAuthorizationRequest({
 			...modeParams,
 			requestedClaims: LOAN_CLAIMS,
 			purpose: LOAN_PURPOSE,
+			transactionData,
+			verifierInfo: [
+				{
+					format: "plaintext",
+					data: "Demo Bank - Loan Application Identity Verification",
+				},
+			],
 		});
 
 		const pendingRequest = createPendingRequest({
