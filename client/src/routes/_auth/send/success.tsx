@@ -1,38 +1,20 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, CheckCircle2, Copy, ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-interface SuccessSearchParams {
-	transactionId: string;
-	recipient: string;
-	amount: string;
-	reference?: string;
-	confirmedAt: string;
-}
+const successSearchSchema = z.object({
+	transactionId: z.string(),
+	recipient: z.string(),
+	amount: z.string(),
+	reference: z.string().optional(),
+	confirmedAt: z.string(),
+});
 
 export const Route = createFileRoute("/_auth/send/success")({
-	validateSearch: (
-		search: Record<string, unknown>,
-	): SuccessSearchParams | undefined => {
-		if (
-			typeof search.transactionId === "string" &&
-			typeof search.recipient === "string" &&
-			typeof search.amount === "string" &&
-			typeof search.confirmedAt === "string"
-		) {
-			return {
-				transactionId: search.transactionId,
-				recipient: search.recipient,
-				amount: search.amount,
-				reference:
-					typeof search.reference === "string" ? search.reference : undefined,
-				confirmedAt: search.confirmedAt,
-			};
-		}
-		return undefined;
-	},
+	validateSearch: successSearchSchema,
 	component: PaymentSuccessPage,
 });
 

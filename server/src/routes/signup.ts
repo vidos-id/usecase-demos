@@ -17,8 +17,9 @@ import {
 } from "../services/vidos";
 import {
 	createPendingRequest,
-	deletePendingRequest,
 	getPendingRequestById,
+	updateRequestToCompleted,
+	updateRequestToFailed,
 } from "../stores/pending-auth-requests";
 import { createSession } from "../stores/sessions";
 import { createUser, getUserByIdentifier } from "../stores/users";
@@ -88,7 +89,7 @@ export const signupRouter = new Hono()
 				claims.personal_administrative_number,
 			);
 			if (existingUser) {
-				deletePendingRequest(pendingRequest.id);
+				updateRequestToFailed(pendingRequest.id, "Account already exists");
 				const response = signupStatusResponseSchema.parse({
 					status: "account_exists" as const,
 				});
@@ -116,7 +117,7 @@ export const signupRouter = new Hono()
 				mode: pendingRequest.mode,
 			});
 
-			deletePendingRequest(pendingRequest.id);
+			updateRequestToCompleted(pendingRequest.id, claims, session.id);
 
 			const response = signupStatusResponseSchema.parse({
 				status: "authorized" as const,
@@ -181,7 +182,7 @@ export const signupRouter = new Hono()
 				claims.personal_administrative_number,
 			);
 			if (existingUser) {
-				deletePendingRequest(pendingRequest.id);
+				updateRequestToFailed(pendingRequest.id, "Account already exists");
 				return c.json({ error: "Account already exists" }, 400);
 			}
 
@@ -206,7 +207,7 @@ export const signupRouter = new Hono()
 				mode: pendingRequest.mode,
 			});
 
-			deletePendingRequest(pendingRequest.id);
+			updateRequestToCompleted(pendingRequest.id, claims, session.id);
 
 			const response = signupCompleteResponseSchema.parse({
 				sessionId: session.id,

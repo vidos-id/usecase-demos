@@ -17,6 +17,7 @@ import {
 import { useEffect, useState } from "react";
 import type { DcApiRequest } from "shared/types/auth";
 import type { AuthorizationErrorInfo } from "shared/types/vidos-errors";
+import { z } from "zod";
 import { CredentialDisclosure } from "@/components/auth/credential-disclosure";
 import { DCApiHandler } from "@/components/auth/dc-api-handler";
 import { PollingStatus } from "@/components/auth/polling-status";
@@ -27,29 +28,14 @@ import { getStoredMode } from "@/lib/auth-helpers";
 
 import { cn } from "@/lib/utils";
 
-interface ConfirmSearchParams {
-	recipient: string;
-	amount: string;
-	reference?: string;
-}
+const confirmSearchSchema = z.object({
+	recipient: z.string(),
+	amount: z.string(),
+	reference: z.string().optional(),
+});
 
 export const Route = createFileRoute("/_auth/send/confirm")({
-	validateSearch: (
-		search: Record<string, unknown>,
-	): ConfirmSearchParams | undefined => {
-		if (
-			typeof search.recipient === "string" &&
-			typeof search.amount === "string"
-		) {
-			return {
-				recipient: search.recipient,
-				amount: search.amount,
-				reference:
-					typeof search.reference === "string" ? search.reference : undefined,
-			};
-		}
-		return undefined;
-	},
+	validateSearch: confirmSearchSchema,
 	component: PaymentConfirmPage,
 });
 

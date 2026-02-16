@@ -160,6 +160,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/openid4/vp/v1_0/response-code/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resolve response code
+         * @description Exchanges a single-use OpenID4VP response_code for the associated authorization identifier and status. The response code is invalidated immediately after successful resolution.
+         */
+        post: operations["resolveResponseCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/openid4/vp/v1_0/authorizations": {
         parameters: {
             query?: never;
@@ -1162,6 +1182,106 @@ export interface operations {
                 };
             };
             /** @description Resource not found error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error type identifier */
+                        type?: string;
+                        /** @description User-facing error message */
+                        message: string;
+                        /** @description Suggested action to resolve the error */
+                        action?: string;
+                    };
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error type identifier */
+                        type?: string;
+                        /** @description User-facing error message */
+                        message: string;
+                        /** @description Suggested action to resolve the error */
+                        action?: string;
+                    };
+                };
+            };
+        };
+    };
+    resolveResponseCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Body */
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @description Single-use response code from the wallet redirect_uri callback */
+                    response_code: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 200 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Authorization identifier associated with the response code */
+                        authorization_id: string;
+                        /**
+                         * @description Final authorization status associated with this response code
+                         * @enum {string}
+                         */
+                        status: "authorized" | "rejected" | "error" | "expired";
+                    };
+                };
+            };
+            /** @description Bad request error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error type identifier */
+                        type?: string;
+                        /** @description User-facing error message */
+                        message: string;
+                        /** @description Suggested action to resolve the error */
+                        action?: string;
+                    };
+                };
+            };
+            /** @description Unauthorized - authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error type identifier */
+                        type?: string;
+                        /** @description User-facing error message */
+                        message: string;
+                        /** @description Suggested action to resolve the error */
+                        action?: string;
+                    };
+                };
+            };
+            /** @description Response code not found, already used, or expired */
             404: {
                 headers: {
                     [name: string]: unknown;

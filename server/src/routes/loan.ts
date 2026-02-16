@@ -19,8 +19,9 @@ import {
 } from "../services/vidos";
 import {
 	createPendingRequest,
-	deletePendingRequest,
 	getPendingRequestById,
+	updateRequestToCompleted,
+	updateRequestToFailed,
 } from "../stores/pending-auth-requests";
 import { getSessionById } from "../stores/sessions";
 import { getUserById, updateUser } from "../stores/users";
@@ -121,7 +122,10 @@ export const loanRouter = new Hono()
 			const user = getUserById(session.userId);
 
 			if (!user || user.identifier !== claims.personal_administrative_number) {
-				deletePendingRequest(pendingRequest.id);
+				updateRequestToFailed(
+					pendingRequest.id,
+					"The credential used for verification does not match your account identity.",
+				);
 				return c.json({
 					status: "rejected" as const,
 					errorInfo: {
@@ -134,7 +138,6 @@ export const loanRouter = new Hono()
 			}
 
 			const loanRequestId = `loan-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-			deletePendingRequest(pendingRequest.id);
 
 			// Append loan activity and update balance + pendingLoansTotal (direct_post flow)
 			const metadata = pendingRequest.metadata as {
@@ -160,6 +163,8 @@ export const loanRouter = new Hono()
 				pendingLoansTotal: user.pendingLoansTotal + loanAmount,
 				activity: [activityItem, ...user.activity],
 			});
+
+			updateRequestToCompleted(pendingRequest.id, claims);
 
 			const response = loanStatusResponseSchema.parse({
 				status: "authorized" as const,
@@ -221,7 +226,10 @@ export const loanRouter = new Hono()
 			const user = getUserById(session.userId);
 
 			if (!user || user.identifier !== claims.personal_administrative_number) {
-				deletePendingRequest(pendingRequest.id);
+				updateRequestToFailed(
+					pendingRequest.id,
+					"The credential used for verification does not match your account identity.",
+				);
 				return c.json(
 					{
 						error: "Identity mismatch",
@@ -237,7 +245,6 @@ export const loanRouter = new Hono()
 			}
 
 			const loanRequestId = `loan-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-			deletePendingRequest(pendingRequest.id);
 
 			// Append loan activity and update balance + pendingLoansTotal
 			const metadata = pendingRequest.metadata as {
@@ -263,6 +270,8 @@ export const loanRouter = new Hono()
 				pendingLoansTotal: user.pendingLoansTotal + loanAmount,
 				activity: [activityItem, ...user.activity],
 			});
+
+			updateRequestToCompleted(pendingRequest.id, claims);
 
 			const response = loanCompleteResponseSchema.parse({
 				loanRequestId,

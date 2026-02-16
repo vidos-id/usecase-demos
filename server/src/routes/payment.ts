@@ -19,8 +19,9 @@ import {
 } from "../services/vidos";
 import {
 	createPendingRequest,
-	deletePendingRequest,
 	getPendingRequestById,
+	updateRequestToCompleted,
+	updateRequestToFailed,
 } from "../stores/pending-auth-requests";
 import { getSessionById } from "../stores/sessions";
 import { getUserById, updateUser } from "../stores/users";
@@ -124,7 +125,10 @@ export const paymentRouter = new Hono()
 			const user = getUserById(session.userId);
 
 			if (!user || user.identifier !== claims.personal_administrative_number) {
-				deletePendingRequest(pendingRequest.id);
+				updateRequestToFailed(
+					pendingRequest.id,
+					"The credential used for verification does not match your account identity.",
+				);
 				return c.json({
 					status: "rejected" as const,
 					errorInfo: {
@@ -143,7 +147,6 @@ export const paymentRouter = new Hono()
 				amount: string;
 				reference?: string;
 			};
-			deletePendingRequest(pendingRequest.id);
 
 			// Append activity and update balance (direct_post flow)
 			const paymentAmount = Number(metadata.amount);
@@ -162,6 +165,8 @@ export const paymentRouter = new Hono()
 				balance: user.balance - paymentAmount,
 				activity: [activityItem, ...user.activity],
 			});
+
+			updateRequestToCompleted(pendingRequest.id, claims);
 
 			const response = paymentStatusResponseSchema.parse({
 				status: "authorized" as const,
@@ -223,7 +228,10 @@ export const paymentRouter = new Hono()
 			const user = getUserById(session.userId);
 
 			if (!user || user.identifier !== claims.personal_administrative_number) {
-				deletePendingRequest(pendingRequest.id);
+				updateRequestToFailed(
+					pendingRequest.id,
+					"The credential used for verification does not match your account identity.",
+				);
 				return c.json(
 					{
 						error: "Identity mismatch",
@@ -247,8 +255,6 @@ export const paymentRouter = new Hono()
 			};
 			const confirmedAt = new Date().toISOString();
 
-			deletePendingRequest(pendingRequest.id);
-
 			// Append activity and update balance
 			const paymentAmount = Number(metadata.amount);
 			const activityItem = {
@@ -266,6 +272,8 @@ export const paymentRouter = new Hono()
 				balance: user.balance - paymentAmount,
 				activity: [activityItem, ...user.activity],
 			});
+
+			updateRequestToCompleted(pendingRequest.id, claims);
 
 			const response = paymentCompleteResponseSchema.parse({
 				transactionId: metadata.transactionId,

@@ -1,16 +1,84 @@
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
+import {
+	type LoanAuthMetadata,
+	loanAuthMetadataSchema,
+	type PaymentAuthMetadata,
+	type ProfileUpdateAuthMetadata,
+	paymentAuthMetadataSchema,
+	profileUpdateAuthMetadataSchema,
+} from "shared/types/auth-metadata";
 import { db } from "../db";
 import {
 	type PendingAuthMetadata,
 	type PendingAuthRequest,
-	type PendingAuthResult,
 	pendingAuthMetadataSchema,
 	pendingAuthRequests as pendingAuthRequestsTable,
 	pendingAuthResultSchema,
 } from "../db/schema";
+import { appEvents } from "../lib/events";
 
 export type { PendingAuthRequest };
+
+type BaseCreateInput = {
+	vidosAuthorizationId: string;
+	mode: "direct_post" | "dc_api";
+	responseUrl?: string;
+	completedAt?: Date;
+	result?: PendingAuthRequest["result"];
+};
+
+type SignupCreateInput = BaseCreateInput & {
+	type: "signup";
+	metadata?: undefined;
+};
+
+type SigninCreateInput = BaseCreateInput & {
+	type: "signin";
+	metadata?: undefined;
+};
+
+type PaymentCreateInput = BaseCreateInput & {
+	type: "payment";
+	metadata: PaymentAuthMetadata;
+};
+
+type LoanCreateInput = BaseCreateInput & {
+	type: "loan";
+	metadata: LoanAuthMetadata;
+};
+
+type ProfileUpdateCreateInput = BaseCreateInput & {
+	type: "profile_update";
+	metadata: ProfileUpdateAuthMetadata;
+};
+
+export type CreatePendingRequestInput =
+	| SignupCreateInput
+	| SigninCreateInput
+	| PaymentCreateInput
+	| LoanCreateInput
+	| ProfileUpdateCreateInput;
+
+function validateMetadata(
+	type: CreatePendingRequestInput["type"],
+	metadata: unknown,
+): PendingAuthMetadata | undefined {
+	switch (type) {
+		case "payment":
+			return paymentAuthMetadataSchema.parse(metadata);
+		case "loan":
+			return loanAuthMetadataSchema.parse(metadata);
+		case "profile_update":
+			return profileUpdateAuthMetadataSchema.parse(metadata);
+		case "signup":
+		case "signin":
+			if (metadata !== undefined && metadata !== null) {
+				throw new Error(`Unexpected metadata for ${type} request`);
+			}
+			return undefined;
+	}
+}
 
 // Default TTL for all requests (10 minutes for signup/signin)
 const DEFAULT_REQUEST_TTL_MS = 10 * 60 * 1000;
@@ -61,8 +129,10 @@ const mapRowToPendingAuthRequest = (
 };
 
 export const createPendingRequest = (
-	data: Omit<PendingAuthRequest, "id" | "status" | "createdAt">,
+	data: CreatePendingRequestInput,
 ): PendingAuthRequest => {
+	const normalizedMetadata = validateMetadata(data.type, data.metadata);
+
 	const id = randomUUID();
 	const createdAt = new Date();
 
@@ -73,9 +143,7 @@ export const createPendingRequest = (
 		mode: data.mode,
 		status: "pending",
 		responseUrl: data.responseUrl ?? null,
-		metadata: data.metadata
-			? (JSON.stringify(data.metadata) as unknown as PendingAuthMetadata)
-			: null,
+		metadata: normalizedMetadata ?? null,
 		createdAt: createdAt.toISOString(),
 		completedAt: null,
 		result: null,
@@ -84,9 +152,13 @@ export const createPendingRequest = (
 	db.insert(pendingAuthRequestsTable).values(row).run();
 
 	return {
-		...data,
 		id,
+		vidosAuthorizationId: data.vidosAuthorizationId,
+		type: data.type,
+		mode: data.mode,
 		status: "pending",
+		responseUrl: data.responseUrl,
+		metadata: normalizedMetadata,
 		createdAt,
 	};
 };
@@ -147,36 +219,72 @@ export const updateRequestToCompleted = (
 	sessionId?: string,
 ): void => {
 	const result = { claims, sessionId };
-	db.update(pendingAuthRequestsTable)
+	const updated = db
+		.update(pendingAuthRequestsTable)
 		.set({
 			status: "completed",
 			completedAt: new Date().toISOString(),
-			result: JSON.stringify(result) as unknown as PendingAuthResult,
+			result,
 		})
 		.where(eq(pendingAuthRequestsTable.id, id))
-		.run();
+		.returning({
+			vidosAuthorizationId: pendingAuthRequestsTable.vidosAuthorizationId,
+		})
+		.get();
+
+	// Emit event for any listeners waiting on this authorization
+	if (updated?.vidosAuthorizationId) {
+		appEvents.emit("authRequestResolved", {
+			authorizationId: updated.vidosAuthorizationId,
+			status: "completed",
+		});
+	}
 };
 
 export const updateRequestToFailed = (id: string, error: string): void => {
 	const result = { claims: {}, error };
-	db.update(pendingAuthRequestsTable)
+	const updated = db
+		.update(pendingAuthRequestsTable)
 		.set({
 			status: "failed",
 			completedAt: new Date().toISOString(),
-			result: JSON.stringify(result) as unknown as PendingAuthResult,
+			result,
 		})
 		.where(eq(pendingAuthRequestsTable.id, id))
-		.run();
+		.returning({
+			vidosAuthorizationId: pendingAuthRequestsTable.vidosAuthorizationId,
+		})
+		.get();
+
+	// Emit event for any listeners waiting on this authorization
+	if (updated?.vidosAuthorizationId) {
+		appEvents.emit("authRequestResolved", {
+			authorizationId: updated.vidosAuthorizationId,
+			status: "failed",
+		});
+	}
 };
 
 export const updateRequestToExpired = (id: string): void => {
-	db.update(pendingAuthRequestsTable)
+	const updated = db
+		.update(pendingAuthRequestsTable)
 		.set({
 			status: "expired",
 			completedAt: new Date().toISOString(),
 		})
 		.where(eq(pendingAuthRequestsTable.id, id))
-		.run();
+		.returning({
+			vidosAuthorizationId: pendingAuthRequestsTable.vidosAuthorizationId,
+		})
+		.get();
+
+	// Emit event for any listeners waiting on this authorization
+	if (updated?.vidosAuthorizationId) {
+		appEvents.emit("authRequestResolved", {
+			authorizationId: updated.vidosAuthorizationId,
+			status: "expired",
+		});
+	}
 };
 
 export const listPendingRequests = (): PendingAuthRequest[] => {

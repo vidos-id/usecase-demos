@@ -38,6 +38,8 @@ export const activityItemSchema = z.discriminatedUnion("type", [
 
 export const activityItemsSchema = z.array(activityItemSchema);
 
+// Generic metadata for internal store operations
+// Type-safe metadata schemas are defined in shared/api/callback.ts
 export const pendingAuthMetadataSchema = z.record(z.string(), z.unknown());
 
 export const pendingAuthResultSchema = z.object({
@@ -46,11 +48,24 @@ export const pendingAuthResultSchema = z.object({
 	error: z.string().optional(),
 });
 
-// Full entity schemas for type inference
+// ============================================================================
+// PendingAuthRequest schemas
+// ============================================================================
+
+/** Auth request type enum */
+export const authRequestTypeSchema = z.enum([
+	"signup",
+	"signin",
+	"payment",
+	"loan",
+	"profile_update",
+]);
+
+/** Base schema for internal store operations (loose metadata typing) */
 export const pendingAuthRequestSchema = z.object({
 	id: z.string(),
 	vidosAuthorizationId: z.string(),
-	type: z.enum(["signup", "signin", "payment", "loan", "profile_update"]),
+	type: authRequestTypeSchema,
 	mode: z.enum(["direct_post", "dc_api"]),
 	status: z.enum(["pending", "completed", "failed", "expired"]),
 	responseUrl: z.string().optional(),
@@ -118,10 +133,10 @@ export const pendingAuthRequests = sqliteTable(
 		mode: text("mode").notNull(),
 		status: text("status").notNull().default("pending"),
 		responseUrl: text("response_url"),
-		metadata: text("metadata").$type<PendingAuthMetadata>(),
+		metadata: text("metadata", { mode: "json" }).$type<PendingAuthMetadata>(),
 		createdAt: text("created_at").notNull(),
 		completedAt: text("completed_at"),
-		result: text("result").$type<PendingAuthResult>(),
+		result: text("result", { mode: "json" }).$type<PendingAuthResult>(),
 	},
 	(table) => [
 		index("idx_pending_auth_vidos_id").on(table.vidosAuthorizationId),

@@ -22,8 +22,9 @@ import {
 } from "../services/vidos";
 import {
 	createPendingRequest,
-	deletePendingRequest,
 	getPendingRequestById,
+	updateRequestToCompleted,
+	updateRequestToFailed,
 } from "../stores/pending-auth-requests";
 import { getSessionById } from "../stores/sessions";
 import type { User } from "../stores/users";
@@ -243,7 +244,7 @@ export const profileUpdateRouter = new Hono()
 			const user = getUserById(session.userId);
 
 			if (!user) {
-				deletePendingRequest(pendingRequest.id);
+				updateRequestToFailed(pendingRequest.id, "Unauthorized");
 				return c.json({ error: "Unauthorized" }, 401);
 			}
 
@@ -251,7 +252,10 @@ export const profileUpdateRouter = new Hono()
 				claims.personal_administrative_number &&
 				claims.personal_administrative_number !== user.identifier
 			) {
-				deletePendingRequest(pendingRequest.id);
+				updateRequestToFailed(
+					pendingRequest.id,
+					"The credential used for verification does not match your account identity.",
+				);
 				return c.json({
 					status: "rejected" as const,
 					errorInfo: {
@@ -268,7 +272,7 @@ export const profileUpdateRouter = new Hono()
 				metadata.requestedClaims,
 			);
 			updateUser(user.id, updates);
-			deletePendingRequest(pendingRequest.id);
+			updateRequestToCompleted(pendingRequest.id, claims);
 
 			const response = profileUpdateStatusResponseSchema.parse({
 				status: "authorized" as const,
@@ -330,7 +334,7 @@ export const profileUpdateRouter = new Hono()
 			const user = getUserById(session.userId);
 
 			if (!user) {
-				deletePendingRequest(pendingRequest.id);
+				updateRequestToFailed(pendingRequest.id, "Unauthorized");
 				return c.json({ error: "Unauthorized" }, 401);
 			}
 
@@ -338,7 +342,10 @@ export const profileUpdateRouter = new Hono()
 				claims.personal_administrative_number &&
 				claims.personal_administrative_number !== user.identifier
 			) {
-				deletePendingRequest(pendingRequest.id);
+				updateRequestToFailed(
+					pendingRequest.id,
+					"The credential used for verification does not match your account identity.",
+				);
 				return c.json(
 					{
 						error: "Identity mismatch",
@@ -358,7 +365,7 @@ export const profileUpdateRouter = new Hono()
 				metadata.requestedClaims,
 			);
 			updateUser(user.id, updates);
-			deletePendingRequest(pendingRequest.id);
+			updateRequestToCompleted(pendingRequest.id, claims);
 
 			const response = profileUpdateCompleteResponseSchema.parse({
 				updatedFields,

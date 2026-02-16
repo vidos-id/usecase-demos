@@ -17,8 +17,9 @@ import {
 } from "../services/vidos";
 import {
 	createPendingRequest,
-	deletePendingRequest,
 	getPendingRequestById,
+	updateRequestToCompleted,
+	updateRequestToFailed,
 } from "../stores/pending-auth-requests";
 import { createSession } from "../stores/sessions";
 import { getUserByIdentifier } from "../stores/users";
@@ -83,7 +84,10 @@ export const signinRouter = new Hono()
 			const user = getUserByIdentifier(claims.personal_administrative_number);
 
 			if (!user) {
-				deletePendingRequest(pendingRequest.id);
+				updateRequestToFailed(
+					pendingRequest.id,
+					"No account found with this credential.",
+				);
 				const response = signinStatusResponseSchema.parse({
 					status: "not_found" as const,
 					error: "No account found with this credential.",
@@ -96,7 +100,7 @@ export const signinRouter = new Hono()
 				mode: pendingRequest.mode,
 			});
 
-			deletePendingRequest(pendingRequest.id);
+			updateRequestToCompleted(pendingRequest.id, claims, session.id);
 
 			const response = signinStatusResponseSchema.parse({
 				status: "authorized" as const,
@@ -159,6 +163,10 @@ export const signinRouter = new Hono()
 			const user = getUserByIdentifier(claims.personal_administrative_number);
 
 			if (!user) {
+				updateRequestToFailed(
+					pendingRequest.id,
+					"No account found. Please sign up first or use a different credential.",
+				);
 				return c.json(
 					{
 						error:
@@ -173,7 +181,7 @@ export const signinRouter = new Hono()
 				mode: pendingRequest.mode,
 			});
 
-			deletePendingRequest(pendingRequest.id);
+			updateRequestToCompleted(pendingRequest.id, claims, session.id);
 
 			const response = signinCompleteResponseSchema.parse({
 				sessionId: session.id,

@@ -55,3 +55,4 @@ bun run --filter server db:studio     # GUI browser
 - JSON columns (`activity`, `metadata`, `result`): use `$type<T>()` + Zod parse on read
 - API schemas in `shared/` are separate from DB schema (no shared->server imports)
 - `PRAGMA foreign_keys = ON` set on connection for cascades
+- Use `.returning()` on UPDATE/INSERT to get values in one query: `db.update(...).returning({ id }).get()`

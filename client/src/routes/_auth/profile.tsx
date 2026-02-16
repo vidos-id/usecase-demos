@@ -24,6 +24,7 @@ import { CLAIM_LABELS, PROFILE_UPDATE_CLAIMS } from "shared/lib/claims";
 import { getImageDataUrl } from "shared/lib/image";
 import type { DcApiRequest } from "shared/types/auth";
 import type { AuthorizationErrorInfo } from "shared/types/vidos-errors";
+import { z } from "zod";
 import { CredentialDisclosure } from "@/components/auth/credential-disclosure";
 import { DCApiHandler } from "@/components/auth/dc-api-handler";
 import { PollingStatus } from "@/components/auth/polling-status";
@@ -34,10 +35,15 @@ import { getStoredMode } from "@/lib/auth-helpers";
 import { useProfileUpdate } from "@/lib/use-profile-update";
 import { cn } from "@/lib/utils";
 
+const profileSearchSchema = z.object({
+	edit: z.preprocess(
+		(val) => val === true || val === "true" || val === "1",
+		z.boolean(),
+	),
+});
+
 export const Route = createFileRoute("/_auth/profile")({
-	validateSearch: (search: Record<string, unknown>) => ({
-		edit: search.edit === true || search.edit === "true" || search.edit === "1",
-	}),
+	validateSearch: profileSearchSchema,
 	component: ProfilePage,
 });
 

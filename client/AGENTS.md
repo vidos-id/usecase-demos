@@ -13,11 +13,12 @@ src/
 
 ## Conventions
 
-- Do NOT edit `src/routeTree.gen.ts` (auto-generated).
+- Do NOT edit `src/routeTree.gen.ts` (auto-generated). Regenerate routes via `bun run build:client` from repo root.
 - API client in `lib/api-client.ts`, access via `useRouteContext({ from: "__root__" })`.
 - Path alias: `@/*` → `./src/*`.
 - Navigation: Use TanStack Router's `<Link>`/`useNavigate()` — never raw `<a href>` (basepath support).
 - Data fetching: `useMutation` for API calls, `useQuery` for polling. Avoid `useEffect` + `useState` for async.
+- Route search params: Use Zod schemas directly in `validateSearch`, example: `createFileRoute("/_auth/send/success")({ validateSearch: successSearchSchema, ....`.
 - Env: `VITE_VIDOS_DEMO_BANK_SERVER_URL` required.
 
 ## Design Language
