@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { getSessionId } from "@/lib/auth";
+import { clearSession, getSessionId } from "@/lib/auth";
 
 export const Route = createFileRoute("/_auth")({
 	beforeLoad: async ({ context }) => {
@@ -12,11 +12,13 @@ export const Route = createFileRoute("/_auth")({
 		const res = await apiClient.api.session.$get({});
 
 		if (!res.ok) {
+			clearSession();
 			throw redirect({ to: "/" });
 		}
 
 		const data = await res.json();
 		if (!data.authenticated) {
+			clearSession();
 			throw redirect({ to: "/" });
 		}
 
