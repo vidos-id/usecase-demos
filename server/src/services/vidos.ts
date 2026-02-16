@@ -447,6 +447,57 @@ export async function forwardDCAPIResponse(
  * Retrieves extracted credentials from a completed authorization.
  * Validates against provided schema for flow-specific requirements.
  */
+export interface ResolveResponseCodeResult {
+	authorizationId: string;
+	status: "authorized" | "rejected" | "error" | "expired";
+}
+
+/**
+ * Resolves a response_code to get the associated authorization ID and status.
+ * The response_code is single-use and has a short TTL.
+ * Throws on 404 (expired, already used, or non-existent code).
+ */
+export async function resolveResponseCode(
+	responseCode: string,
+): Promise<ResolveResponseCodeResult> {
+	const client = getAuthorizerClient();
+
+	console.log("[Vidos] resolveResponseCode:", responseCode.slice(0, 8) + "...");
+
+	const { data, error, response } = await client.POST(
+		"/openid4/vp/v1_0/response-code/resolve",
+		{
+			body: {
+				response_code: responseCode,
+			},
+		},
+	);
+
+	if (error) {
+		console.error("[Vidos] resolveResponseCode error:", error);
+		if (response?.status === 404) {
+			throw new Error("Response code not found, already used, or expired");
+		}
+		throw new Error(`Vidos API error: ${error.message}`);
+	}
+
+	if (!data) {
+		throw new Error("Vidos API returned empty response");
+	}
+
+	console.log(
+		"[Vidos] resolveResponseCode success:",
+		data.authorization_id,
+		"->",
+		data.status,
+	);
+
+	return {
+		authorizationId: data.authorization_id,
+		status: data.status as ResolveResponseCodeResult["status"],
+	};
+}
+
 export async function getExtractedCredentials<T extends z.ZodTypeAny>(
 	authorizationId: string,
 	schema: T,
