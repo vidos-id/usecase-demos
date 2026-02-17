@@ -48,9 +48,6 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
       - name: Install root dependencies
         run: bun install
-      - name: Install infrastructure dependencies
-        run: npm install
-        working-directory: infrastructure
       - name: Build infrastructure
         run: npm run build
         working-directory: infrastructure
