@@ -1,4 +1,4 @@
-import { BookOpen, Fingerprint, Shield, Zap } from "lucide-react";
+import { BookOpen, Fingerprint, Github, Shield, Zap } from "lucide-react";
 import { ResourceLink } from "./resource-link";
 
 /**
@@ -27,6 +27,11 @@ export function PoweredByVidos() {
 							href="https://authorizer.demo.vidos.id"
 							icon={<Zap className="h-3.5 w-3.5" />}
 							label="Tester"
+						/>
+						<ResourceLink
+							href="https://github.com/vidos-id/usecase-demos"
+							icon={<Github className="h-3.5 w-3.5" />}
+							label="Source"
 						/>
 					</div>
 

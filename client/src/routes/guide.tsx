@@ -1,5 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, FileText, Shield, Wallet } from "lucide-react";
+import {
+	ArrowRight,
+	Code2,
+	ExternalLink,
+	FileText,
+	Github,
+	Shield,
+	Wallet,
+} from "lucide-react";
 import { useState } from "react";
 import { EudiGuide } from "@/components/guide/eudi-guide";
 import { MultipazGuide } from "@/components/guide/multipaz-guide";
@@ -150,6 +158,35 @@ function GuidePage() {
 							Regulation EU 2024/1183)
 						</p>
 					</div>
+				</section>
+
+				{/* Source Code */}
+				<section className="space-y-6">
+					<SectionHeader
+						icon={<Code2 className="h-5 w-5" />}
+						title="Source Code"
+						description="Explore the code and build your own integrations."
+					/>
+
+					<a
+						href="https://github.com/vidos-id/usecase-demos"
+						target="_blank"
+						rel="noopener noreferrer"
+						className="flex items-center justify-between p-5 rounded-2xl border border-border/60 bg-card hover:border-primary/40 transition-colors group"
+					>
+						<div className="flex items-center gap-4">
+							<div className="h-10 w-10 rounded-xl bg-[#24292f] dark:bg-white/10 flex items-center justify-center">
+								<Github className="h-5 w-5 text-white" />
+							</div>
+							<div>
+								<p className="font-semibold">vidos-id/usecase-demos</p>
+								<p className="text-sm text-muted-foreground">
+									This demo and more — code examples using Vidos SDK
+								</p>
+							</div>
+						</div>
+						<ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+					</a>
 				</section>
 
 				{/* Footer CTA */}

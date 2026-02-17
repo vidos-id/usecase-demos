@@ -1,6 +1,14 @@
 # Vidos Use Case Demos
 
-A demo banking application showcasing **EU Digital Identity (EUDI) Wallet** integration for identity verification, KYC, and payment authentication. Built with [Vidos](https://vidos.id/) verification infrastructure.
+Open source demos showcasing **EU Digital Identity (EUDI) Wallet** integration with [Vidos](https://vidos.id/) verification infrastructure.
+
+## Demos
+
+### VidosDemoBank
+
+A banking application demonstrating PID-based identity verification, KYC, and payment authentication.
+
+**[Live Demo](https://vidos-id.github.io/usecase-demos/)** · [Source](./client/) · [Server](./server/)
 
 ## What This Demo Shows
 
@@ -24,6 +32,25 @@ A demo banking application showcasing **EU Digital Identity (EUDI) Wallet** inte
 
 - [EUDI Reference Wallet](https://github.com/eu-digital-identity-wallet) (Android APK)
 - [Multipaz Wallet](https://github.com/nickkipshidze/multipaz-wallet) (OpenWallet Foundation)
+
+## Project Structure
+
+Bun + Turbo monorepo with three workspaces:
+
+```
+client/          # React + Vite frontend (TanStack Router, Tailwind)
+server/          # Hono API server with Vidos SDK integration  
+shared/          # Zod schemas and TypeScript types
+```
+
+### Key Integration Points
+
+| File | Description |
+|------|-------------|
+| `server/src/services/vidos.ts` | Vidos SDK setup and credential verification |
+| `server/src/routes/verify.ts` | OID4VP verification flow handlers |
+| `client/src/lib/api-client.ts` | Type-safe API client with Hono RPC |
+| `client/src/routes/_auth/` | Protected routes requiring wallet auth |
 
 ## Resources
 
