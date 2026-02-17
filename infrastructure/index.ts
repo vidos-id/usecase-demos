@@ -55,14 +55,18 @@ const service = new aws.lightsail.ContainerService("usecaseDemos", {
 
 const repositoryPolicyDocument = pulumi
 	.all([repository.arn, service.privateRegistryAccess])
-	.apply(([repoArn, registryAccess]) =>
-		JSON.stringify({
+	.apply(([repoArn, registryAccess]) => {
+		const principalArn = registryAccess.ecrImagePullerRole?.principalArn;
+		if (!principalArn) {
+			throw new Error("Lightsail ECR puller role not ready");
+		}
+		return JSON.stringify({
 			Version: "2012-10-17",
 			Statement: [
 				{
 					Effect: "Allow",
 					Principal: {
-						AWS: registryAccess.ecrImagePullerRole?.principalArn ?? "",
+						AWS: principalArn,
 					},
 					Action: [
 						"ecr:BatchCheckLayerAvailability",
@@ -72,13 +76,19 @@ const repositoryPolicyDocument = pulumi
 					Resource: repoArn,
 				},
 			],
-		}),
-	);
+		});
+	});
 
-new aws.ecr.RepositoryPolicy("usecaseDemos", {
-	repository: repository.name,
-	policy: repositoryPolicyDocument,
-});
+new aws.ecr.RepositoryPolicy(
+	"usecaseDemos",
+	{
+		repository: repository.name,
+		policy: repositoryPolicyDocument,
+	},
+	{
+		dependsOn: service,
+	},
+);
 
 const deployment = new aws.lightsail.ContainerServiceDeploymentVersion(
 	"usecaseDemos",
@@ -105,6 +115,10 @@ const deployment = new aws.lightsail.ContainerServiceDeploymentVersion(
 				successCodes: "200-499",
 			},
 		},
+	},
+	{
+		deleteBeforeReplace: true,
+		replaceOnChanges: ["*"],
 	},
 );
 
