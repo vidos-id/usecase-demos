@@ -31,6 +31,7 @@ jobs:
       server_url: ${{ steps.stack-outputs.outputs.server_url }}
     env:
       AWS_REGION: ${{ secrets.AWS_REGION }}
+      PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
       PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
       VIDOS_AUTHORIZER_URL: ${{ secrets.VIDOS_AUTHORIZER_URL }}
       VIDOS_API_KEY: ${{ secrets.VIDOS_API_KEY }}
