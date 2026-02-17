@@ -16,6 +16,7 @@ const tags = {
 };
 
 const repository = new aws.ecr.Repository("usecaseDemos", {
+	name: pulumi.interpolate`usecase-demos-${pulumi.getStack()}`,
 	imageTagMutability: "MUTABLE",
 	tags,
 });
@@ -97,8 +98,8 @@ const deployment = new aws.lightsail.ContainerServiceDeploymentVersion(
 				},
 				environment: {
 					VIDOS_AUTHORIZER_URL: vidosAuthorizerUrl,
-				VIDOS_API_KEY: vidosApiKey,
-			},
+					VIDOS_API_KEY: vidosApiKey,
+				},
 			},
 		],
 		publicEndpoint: {
