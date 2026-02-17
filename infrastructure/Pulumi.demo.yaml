@@ -1,0 +1,5 @@
+encryptionsalt: v1:aW+6uM/ZaWE=:v1:qe820GXumculxIey:GK/z/6pdRY769GfxDcW2R2yrL2lzkg==
+config:
+  aws:region: eu-west-1
+  lightsail:serviceTier: micro
+  lightsail:scale: "1"
