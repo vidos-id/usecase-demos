@@ -7,7 +7,8 @@
 	"workspaces": [
 		"./server",
 		"./client",
-		"./shared"
+		"./shared",
+		"./infrastructure"
 	],
 	"scripts": {
 		"generate-api": "turbo generate-api",
@@ -16,6 +17,7 @@
 		"dev:client": "turbo dev --filter=client",
 		"dev:server": "turbo dev --filter=server",
 		"build:client": "turbo build --filter=client",
+		"build:infrastructure": "turbo build --filter=infrastructure",
 		"lint": "biome lint .",
 		"format": "biome format . --write",
 		"check-types": "turbo check-types",

@@ -71,11 +71,6 @@ const repositoryPolicyDocument = pulumi
 					],
 					Resource: repoArn,
 				},
-				{
-					Effect: "Allow",
-					Action: ["ecr:GetAuthorizationToken"],
-					Resource: "*",
-				},
 			],
 		}),
 	);

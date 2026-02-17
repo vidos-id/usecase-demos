@@ -54,6 +54,16 @@ jobs:
       - name: Build infrastructure
         run: npm run build
         working-directory: infrastructure
+      - name: Build and push latest image
+        run: |
+          repo_name="usecase-demos-${PULUMI_STACK}"
+          repo_uri=$(aws ecr describe-repositories --repository-names "$repo_name" --query 'repositories[0].repositoryUri' --output text 2>/dev/null || true)
+          if [ -z "$repo_uri" ] || [ "$repo_uri" = "None" ]; then
+            repo_uri=$(aws ecr create-repository --repository-name "$repo_name" --query 'repository.repositoryUri' --output text)
+          fi
+          aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$repo_uri"
+          docker build -f Dockerfile.server -t "$repo_uri:latest" .
+          docker push "$repo_uri:latest"
       - name: Pulumi up
         run: |
           pulumi login "$PULUMI_BACKEND_URL"
