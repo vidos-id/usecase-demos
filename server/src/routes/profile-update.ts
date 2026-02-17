@@ -1,5 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
-import { Hono, type Context } from "hono";
+import { type Context, Hono } from "hono";
 import {
 	profileUpdateCompleteRequestSchema,
 	profileUpdateCompleteResponseSchema,
@@ -163,9 +163,16 @@ export const profileUpdateRouter = new Hono()
 				return c.json({ error: "Invalid requested claims" }, 400);
 			}
 
+			// Always include personal_administrative_number to verify identity
+			// This prevents updating profile with credentials from a different identity
+			const claimsForVerification = [
+				"personal_administrative_number",
+				...requestedClaims,
+			];
+
 			const result = await createAuthorizationRequest({
 				...modeParams,
-				requestedClaims,
+				requestedClaims: claimsForVerification,
 				purpose: PROFILE_UPDATE_PURPOSE,
 			});
 
@@ -174,7 +181,10 @@ export const profileUpdateRouter = new Hono()
 				type: "profile_update",
 				mode: modeParams.mode,
 				responseUrl: result.mode === "dc_api" ? result.responseUrl : undefined,
-				metadata: { requestedClaims, userId: session.userId },
+				metadata: {
+					requestedClaims: claimsForVerification,
+					userId: session.userId,
+				},
 			});
 
 			startAuthorizationMonitor(pendingRequest.id);
@@ -185,14 +195,14 @@ export const profileUpdateRouter = new Hono()
 							mode: "direct_post",
 							requestId: pendingRequest.id,
 							authorizeUrl: result.authorizeUrl,
-							requestedClaims,
+							requestedClaims: claimsForVerification,
 							purpose: PROFILE_UPDATE_PURPOSE,
 						}
 					: {
 							mode: "dc_api",
 							requestId: pendingRequest.id,
 							dcApiRequest: result.dcApiRequest,
-							requestedClaims,
+							requestedClaims: claimsForVerification,
 							purpose: PROFILE_UPDATE_PURPOSE,
 						},
 			);
@@ -272,10 +282,34 @@ export const profileUpdateRouter = new Hono()
 				return c.json({ error: "Unauthorized" }, 401);
 			}
 
-			if (
-				claims.personal_administrative_number &&
-				claims.personal_administrative_number !== user.identifier
-			) {
+			// Identity verification is mandatory - reject if personal_administrative_number is missing
+			if (!claims.personal_administrative_number) {
+				updateRequestToFailed(
+					pendingRequest.id,
+					"Identity verification failed: personal identification number not provided.",
+					{
+						errorType: vidosErrorTypes.identityMismatch,
+						title: "Identity Verification Failed",
+						detail:
+							"The credential must include a personal identification number for verification.",
+					},
+					{ status: "rejected" },
+				);
+				return c.json(
+					{
+						error: "Identity verification failed",
+						errorInfo: {
+							errorType: vidosErrorTypes.identityMismatch,
+							title: "Identity Verification Failed",
+							detail:
+								"The credential must include a personal identification number for verification.",
+						},
+					},
+					400,
+				);
+			}
+
+			if (claims.personal_administrative_number !== user.identifier) {
 				updateRequestToFailed(
 					pendingRequest.id,
 					"The credential used for verification does not match your account identity.",

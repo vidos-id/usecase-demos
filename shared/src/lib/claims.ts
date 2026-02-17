@@ -41,7 +41,6 @@ export const LOAN_CLAIMS = [
 ] as const;
 
 export const PROFILE_UPDATE_CLAIMS = [
-	"personal_administrative_number",
 	"family_name",
 	"given_name",
 	"birth_date",
