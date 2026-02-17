@@ -1,3 +1,4 @@
 name: usecase-demos-infrastructure
 runtime: nodejs
+main: dist/index.js
 description: AWS Lightsail deployment for Vidos use case demos
