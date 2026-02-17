@@ -1,5 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, useRouteContext } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
 	AlertCircle,
 	ArrowRight,
@@ -14,9 +13,11 @@ import {
 	Wallet,
 	XCircle,
 } from "lucide-react";
-import type { CallbackResolveResponse } from "shared/api/callback";
+import { useState } from "react";
+import type { CallbackSseState } from "shared/api/callback-sse";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
+import { useCallbackStream } from "@/lib/use-callback-stream";
 import { cn } from "@/lib/utils";
 
 const callbackSearchSchema = z.object({
@@ -30,7 +31,7 @@ export const Route = createFileRoute("/callback")({
 
 // Flow type display configuration
 const flowConfig: Record<
-	CallbackResolveResponse["flowType"],
+	CallbackSseState["flowType"],
 	{ label: string; icon: typeof LogIn; description: string }
 > = {
 	signin: {
@@ -62,33 +63,41 @@ const flowConfig: Record<
 
 function CallbackPage() {
 	const { response_code } = Route.useSearch();
-	const { apiClient } = useRouteContext({ from: "__root__" });
+	const [result, setResult] = useState<CallbackSseState | null>(null);
+	const [streamError, setStreamError] = useState<
+		"invalid_code" | "resolve_failed" | null
+	>(null);
+	const [retryCount, setRetryCount] = useState(0);
 
-	const resolveQuery = useQuery({
-		queryKey: ["callback-resolve", response_code],
+	useCallbackStream({
+		responseCode: response_code ?? null,
+		retryCount,
 		enabled: Boolean(response_code),
-		retry: false,
-		retryOnMount: false,
-		refetchOnWindowFocus: false,
-		refetchOnReconnect: false,
-		staleTime: Infinity,
-		queryFn: async () => {
-			if (!response_code) {
-				throw new Error("invalid_code");
-			}
-
-			const res = await apiClient.api.callback.resolve.$post({
-				json: { response_code },
-			});
-
-			if (!res.ok) {
-				if (res.status === 404) {
-					throw new Error("invalid_code");
+		onEvent: (event, controls) => {
+			if (event.eventType === "error") {
+				if (
+					event.code === "invalid_response_code" ||
+					event.code === "missing_response_code"
+				) {
+					setStreamError("invalid_code");
+				} else {
+					setStreamError("resolve_failed");
 				}
-				throw new Error("resolve_failed");
+				controls.close();
+				return;
 			}
 
-			return (await res.json()) as CallbackResolveResponse;
+			if (event.eventType === "connected") {
+				return;
+			}
+
+			setResult(event);
+			if (event.eventType !== "pending") {
+				controls.close();
+			}
+		},
+		onParseError: () => {
+			setStreamError("resolve_failed");
 		},
 	});
 
@@ -98,22 +107,29 @@ function CallbackPage() {
 	}
 
 	// Loading state
-	if (resolveQuery.isPending) {
+	if (!streamError && !result) {
 		return <LoadingState />;
 	}
 
 	// Error state
-	if (resolveQuery.isError) {
-		const isInvalidCode = resolveQuery.error?.message === "invalid_code";
-		if (isInvalidCode) {
+	if (streamError) {
+		if (streamError === "invalid_code") {
 			return <InvalidCodeState />;
 		}
-		return <ErrorState onRetry={() => void resolveQuery.refetch()} />;
+		return (
+			<ErrorState
+				onRetry={() => {
+					setResult(null);
+					setStreamError(null);
+					setRetryCount((count) => count + 1);
+				}}
+			/>
+		);
 	}
 
 	// Success - show result
-	if (resolveQuery.data) {
-		return <ResultDisplay result={resolveQuery.data} />;
+	if (result) {
+		return <ResultDisplay result={result} />;
 	}
 
 	return null;
@@ -187,7 +203,7 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
 	);
 }
 
-function ResultDisplay({ result }: { result: CallbackResolveResponse }) {
+function ResultDisplay({ result }: { result: CallbackSseState }) {
 	const flow = flowConfig[result.flowType];
 	const FlowIcon = flow.icon;
 
@@ -314,7 +330,7 @@ function ResultDisplay({ result }: { result: CallbackResolveResponse }) {
 	);
 }
 
-function StatusIcon({ status }: { status: CallbackResolveResponse["status"] }) {
+function StatusIcon({ status }: { status: CallbackSseState["status"] }) {
 	if (status === "completed") {
 		return (
 			<div className="inline-flex items-center justify-center h-20 w-20 rounded-full bg-green-500/10">
@@ -341,8 +357,8 @@ function StatusTitle({
 	status,
 	flowType,
 }: {
-	status: CallbackResolveResponse["status"];
-	flowType: CallbackResolveResponse["flowType"];
+	status: CallbackSseState["status"];
+	flowType: CallbackSseState["flowType"];
 }) {
 	const flow = flowConfig[flowType];
 	if (status === "completed") {
@@ -358,8 +374,8 @@ function StatusDescription({
 	status,
 	vidosStatus,
 }: {
-	status: CallbackResolveResponse["status"];
-	vidosStatus?: CallbackResolveResponse["vidosStatus"];
+	status: CallbackSseState["status"];
+	vidosStatus?: CallbackSseState["vidosStatus"];
 }) {
 	if (status === "completed") {
 		return "Your identity verification completed successfully.";
@@ -380,7 +396,7 @@ function StatusDescription({
 function TransactionDetails({
 	details,
 }: {
-	details: NonNullable<CallbackResolveResponse["transactionDetails"]>;
+	details: NonNullable<CallbackSseState["transactionDetails"]>;
 }) {
 	return (
 		<div className="pt-4 border-t border-border/40 space-y-3">

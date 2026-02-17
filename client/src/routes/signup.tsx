@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { createStreamUrl } from "@/lib/sse";
 
 export const Route = createFileRoute("/signup")({
 	component: SignupPage,
@@ -40,16 +41,8 @@ function SignupPage() {
 					return res.json();
 				},
 
-				pollStatus: async (requestId: string) => {
-					const res = await apiClient.api.signup.status[":requestId"].$get({
-						param: { requestId },
-					});
-
-					if (!res.ok) {
-						throw new Error("Polling failed");
-					}
-
-					return res.json();
+				createStreamUrl: (requestId: string) => {
+					return createStreamUrl(`/api/signup/stream/${requestId}`);
 				},
 
 				completeRequest: async (
@@ -92,20 +85,6 @@ function SignupPage() {
 				// Success state shows card with "Sign In" link - no navigation
 			},
 
-			mapPollingResult: (result) => {
-				if (result.status === "account_exists") {
-					return {
-						handled: true,
-						state: {
-							status: "error",
-							message:
-								"An account with this identity already exists. Please sign in instead or delete your existing account first.",
-							errorType: "account_exists",
-						},
-					};
-				}
-				return { handled: false };
-			},
 			mapCompleteError: (err) => mapAccountExistsError(err),
 
 			labels: {

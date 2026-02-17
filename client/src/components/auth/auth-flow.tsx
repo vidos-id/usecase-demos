@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { AlertCircle, Clock, Loader2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -13,6 +13,7 @@ import { VidosErrorDisplay } from "@/components/auth/vidos-error-display";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getStoredMode, setStoredMode } from "@/lib/auth-helpers";
+import { useAuthorizationStream } from "@/lib/use-authorization-stream";
 
 // ============================================================================
 // Types
@@ -63,14 +64,6 @@ type DcApiRequestResult = {
 
 type RequestResult = DirectPostRequestResult | DcApiRequestResult;
 
-type PollingResult = {
-	status: string;
-	sessionId?: string;
-	mode?: PresentationMode;
-	error?: string;
-	errorInfo?: AuthorizationErrorInfo;
-} & Record<string, unknown>;
-
 type CompleteResult = {
 	sessionId: string;
 	mode: PresentationMode;
@@ -85,7 +78,7 @@ export type AuthFlowConfig = {
 		createRequest: (
 			params: { mode: "direct_post" } | { mode: "dc_api"; origin: string },
 		) => Promise<RequestResult>;
-		pollStatus: (requestId: string) => Promise<PollingResult>;
+		createStreamUrl: (requestId: string) => string;
 		completeRequest: (
 			requestId: string,
 			response: Record<string, unknown>,
@@ -95,11 +88,6 @@ export type AuthFlowConfig = {
 
 	/** Handle successful authorization */
 	onSuccess: (sessionId: string, mode: PresentationMode) => void;
-
-	/** Map polling/API errors to state */
-	mapPollingResult?: (
-		result: PollingResult,
-	) => { handled: true; state: AuthState } | { handled: false };
 
 	/** Map request errors to state */
 	mapRequestError?: (
@@ -145,7 +133,6 @@ export type AuthFlowConfig = {
 export function AuthFlow({ config }: { config: AuthFlowConfig }) {
 	const [mode, setMode] = useState<PresentationMode>(getStoredMode);
 	const [state, setState] = useState<AuthState>({ status: "idle" });
-	const [pollingStartTime, setPollingStartTime] = useState<number | null>(null);
 
 	const handleModeChange = (newMode: PresentationMode) => {
 		setMode(newMode);
@@ -162,7 +149,6 @@ export function AuthFlow({ config }: { config: AuthFlowConfig }) {
 			),
 		onSuccess: (data) => {
 			console.log(`[${config.flowKey}] request created:`, data.requestId);
-			setPollingStartTime(Date.now());
 			if (data.mode === "direct_post") {
 				setState({
 					status: "awaiting_verification",
@@ -197,60 +183,96 @@ export function AuthFlow({ config }: { config: AuthFlowConfig }) {
 		},
 	});
 
-	// Polling for direct_post mode
 	const currentRequestId =
 		state.status === "awaiting_verification" && state.mode === "direct_post"
 			? state.requestId
 			: null;
 
-	const pollingQuery = useQuery({
-		queryKey: [config.flowKey, "status", currentRequestId],
-		queryFn: () => {
-			if (!currentRequestId) throw new Error("No request ID");
-			return config.api.pollStatus(currentRequestId);
-		},
-		enabled: !!currentRequestId,
-		refetchInterval: (query) => {
-			if (!pollingStartTime) return false;
-			if (Date.now() - pollingStartTime > 5 * 60 * 1000) return false;
-			const count = query.state.dataUpdateCount;
-			return Math.min(1000 * 1.5 ** count, 5000);
-		},
-	});
+	const isDirectPostVerificationActive =
+		state.status === "awaiting_verification" && state.mode === "direct_post";
 
-	// Handle polling results
-	if (pollingQuery.data && state.status === "awaiting_verification") {
-		const data = pollingQuery.data;
+	useAuthorizationStream({
+		requestId: currentRequestId,
+		getStreamUrl: config.api.createStreamUrl,
+		enabled: isDirectPostVerificationActive,
+		withSession: false,
+		onEvent: (event, controls) => {
+			if (event.eventType === "connected" || event.eventType === "pending") {
+				return;
+			}
 
-		// Try custom mapping first
-		const mapped = config.mapPollingResult?.(data);
-		if (mapped?.handled) {
-			setState(mapped.state);
-		} else if (data.status === "authorized" && data.sessionId) {
-			console.log(`[${config.flowKey}] authorized!`);
-			setStoredMode(data.mode || mode);
-			config.onSuccess(data.sessionId, data.mode || mode);
-			setState({ status: "success", sessionId: data.sessionId });
-		} else if (data.status === "expired") {
-			setState({ status: "expired" });
-		} else if (data.status === "rejected" || data.status === "error") {
+			if (event.eventType === "authorized") {
+				if (!event.sessionId) {
+					setState({
+						status: "error",
+						message: "Verification completed without a valid session.",
+					});
+					controls.close();
+					return;
+				}
+
+				const nextMode = event.mode ?? mode;
+				setStoredMode(nextMode);
+				config.onSuccess(event.sessionId, nextMode);
+				setState({ status: "success", sessionId: event.sessionId });
+				controls.close();
+				return;
+			}
+
+			if (event.eventType === "expired") {
+				setState({ status: "expired" });
+				controls.close();
+				return;
+			}
+
+			if (event.eventType === "not_found") {
+				setState({
+					status: "error",
+					message:
+						event.message ||
+						"No account found with this identity. Please sign up.",
+					errorType: "not_found",
+				});
+				controls.close();
+				return;
+			}
+
+			if (event.eventType === "account_exists") {
+				setState({
+					status: "error",
+					message:
+						event.message ||
+						"An account with this identity already exists. Please sign in instead.",
+					errorType: "account_exists",
+				});
+				controls.close();
+				return;
+			}
+
+			if (event.eventType === "rejected") {
+				setState({
+					status: "error",
+					message: event.message,
+					errorInfo: event.errorInfo,
+				});
+				controls.close();
+				return;
+			}
+
 			setState({
 				status: "error",
-				message: data.error || `Verification ${data.status}`,
-				errorInfo: data.errorInfo,
+				message: event.message,
+				errorInfo: event.errorInfo,
 			});
-		}
-	}
-
-	// Timeout check
-	if (
-		state.status === "awaiting_verification" &&
-		state.mode === "direct_post" &&
-		pollingStartTime &&
-		Date.now() - pollingStartTime > 5 * 60 * 1000
-	) {
-		setState({ status: "error", message: "Verification timed out" });
-	}
+			controls.close();
+		},
+		onParseError: () => {
+			setState({
+				status: "error",
+				message: "Received an invalid stream payload.",
+			});
+		},
+	});
 
 	// DC API completion mutation
 	const completeMutation = useMutation({
@@ -296,10 +318,6 @@ export function AuthFlow({ config }: { config: AuthFlowConfig }) {
 	const handleCancel = () => {
 		setState({ status: "idle" });
 	};
-
-	const elapsedSeconds = pollingStartTime
-		? Math.floor((Date.now() - pollingStartTime) / 1000)
-		: 0;
 
 	// ============================================================================
 	// Render
@@ -396,10 +414,7 @@ export function AuthFlow({ config }: { config: AuthFlowConfig }) {
 									purpose={state.purpose}
 								/>
 								<QRCodeDisplay url={state.authorizeUrl} />
-								<PollingStatus
-									elapsedSeconds={elapsedSeconds}
-									onCancel={handleCancel}
-								/>
+								<PollingStatus onCancel={handleCancel} />
 							</CardContent>
 						</Card>
 					)}

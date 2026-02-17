@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { setSessionId } from "@/lib/auth";
+import { createStreamUrl } from "@/lib/sse";
 
 export const Route = createFileRoute("/signin")({
 	component: SigninPage,
@@ -51,16 +52,8 @@ function SigninPage() {
 					return res.json();
 				},
 
-				pollStatus: async (requestId: string) => {
-					const res = await apiClient.api.signin.status[":requestId"].$get({
-						param: { requestId },
-					});
-
-					if (!res.ok) {
-						throw new Error("Polling failed");
-					}
-
-					return res.json();
+				createStreamUrl: (requestId: string) => {
+					return createStreamUrl(`/api/signin/stream/${requestId}`);
 				},
 
 				completeRequest: async (
@@ -108,21 +101,6 @@ function SigninPage() {
 			},
 
 			mapRequestError: (err) => mapNotFoundError(err),
-			mapPollingResult: (result) => {
-				if (result.status === "not_found") {
-					return {
-						handled: true,
-						state: {
-							status: "error",
-							message:
-								result.error ||
-								"No account found with this identity. Please sign up.",
-							errorType: "not_found",
-						},
-					};
-				}
-				return { handled: false };
-			},
 			mapCompleteError: (err) => mapNotFoundError(err),
 
 			labels: {

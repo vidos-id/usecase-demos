@@ -12,6 +12,23 @@ const env = envSchema.parse({
 		.VITE_VIDOS_DEMO_BANK_SERVER_URL,
 });
 
+export const apiBaseUrl = env.VITE_VIDOS_DEMO_BANK_SERVER_URL;
+
+export function buildApiUrl(
+	pathname: string,
+	query?: Record<string, string | undefined>,
+): string {
+	const url = new URL(pathname, apiBaseUrl);
+	if (query) {
+		for (const [key, value] of Object.entries(query)) {
+			if (value) {
+				url.searchParams.set(key, value);
+			}
+		}
+	}
+	return url.toString();
+}
+
 // Custom fetch that injects Authorization header when session exists
 const authFetch: typeof fetch = ((input, init) => {
 	const sessionId = getSessionId();
@@ -26,6 +43,6 @@ const authFetch: typeof fetch = ((input, init) => {
 	return fetch(input, init);
 }) as typeof fetch;
 
-export const apiClient = hc<AppType>(env.VITE_VIDOS_DEMO_BANK_SERVER_URL, {
+export const apiClient = hc<AppType>(apiBaseUrl, {
 	fetch: authFetch,
 });

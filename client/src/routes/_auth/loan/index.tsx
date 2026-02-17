@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
 	createFileRoute,
 	useNavigate,
@@ -30,6 +30,7 @@ import { VidosErrorDisplay } from "@/components/auth/vidos-error-display";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { getStoredMode } from "@/lib/auth-helpers";
+import { useAuthorizationStream } from "@/lib/use-authorization-stream";
 
 import { cn } from "@/lib/utils";
 
@@ -91,7 +92,6 @@ function LoanPage() {
 	const [purpose, setPurpose] = useState<string>("");
 	const [term, setTerm] = useState<string>("");
 	const [state, setState] = useState<FlowState>({ status: "form" });
-	const [pollingStartTime, setPollingStartTime] = useState<number | null>(null);
 
 	const isFormValid = amount && purpose && term;
 
@@ -139,7 +139,6 @@ function LoanPage() {
 			return res.json();
 		},
 		onSuccess: (data) => {
-			setPollingStartTime(Date.now());
 			if (data.mode === "direct_post") {
 				setState({
 					status: "verifying",
@@ -168,65 +167,58 @@ function LoanPage() {
 		},
 	});
 
-	// Polling query for direct_post mode
-	const currentRequestId =
+	const directPostRequestId =
 		state.status === "verifying" && state.mode === "direct_post"
 			? state.requestId
 			: null;
 
-	const pollingQuery = useQuery({
-		queryKey: ["loan", "status", currentRequestId, apiClient],
-		queryFn: async () => {
-			if (!currentRequestId) throw new Error("No request ID");
+	const isDirectPostVerificationActive =
+		state.status === "verifying" && state.mode === "direct_post";
 
-			const res = await apiClient.api.loan.status[":requestId"].$get({
-				param: { requestId: currentRequestId },
-			});
-
-			if (!res.ok) throw new Error("Polling failed");
-
-			return res.json();
-		},
-		enabled: !!currentRequestId,
-		refetchInterval: (query) => {
-			if (!pollingStartTime) return false;
-			// Stop polling after 5 minutes
-			if (Date.now() - pollingStartTime > 5 * 60 * 1000) {
-				return false;
+	useAuthorizationStream({
+		requestId: directPostRequestId,
+		streamPath: "/api/loan/stream",
+		enabled: isDirectPostVerificationActive,
+		withSession: true,
+		onEvent: (event, controls) => {
+			if (event.eventType === "connected" || event.eventType === "pending") {
+				return;
 			}
-			// Exponential backoff: start at 1s, max 5s
-			const count = query.state.dataUpdateCount;
-			return Math.min(1000 * 1.5 ** count, 5000);
-		},
-	});
 
-	// Handle polling results
-	if (pollingQuery.data && state.status === "verifying") {
-		const data = pollingQuery.data;
+			if (event.eventType === "authorized") {
+				queryClient.invalidateQueries({ queryKey: ["user", "me"] });
+				navigate({ to: "/loan/success" });
+				controls.close();
+				return;
+			}
 
-		if (data.status === "authorized") {
-			queryClient.invalidateQueries({ queryKey: ["user", "me"] });
-			navigate({ to: "/loan/success" });
-		} else if (data.status === "expired") {
-			setState({ status: "expired" });
-		} else if (data.status === "rejected" || data.status === "error") {
+			if (event.eventType === "expired") {
+				setState({ status: "expired" });
+				controls.close();
+				return;
+			}
+
+			if (event.eventType === "rejected") {
+				setState({
+					status: "error",
+					message: event.message,
+					errorInfo: event.errorInfo,
+				});
+				controls.close();
+				return;
+			}
+
 			setState({
 				status: "error",
-				message: `Verification ${data.status}`,
-				errorInfo: data.errorInfo,
+				message: event.message,
+				errorInfo: "errorInfo" in event ? event.errorInfo : undefined,
 			});
-		}
-	}
-
-	// Check for timeout
-	if (
-		state.status === "verifying" &&
-		state.mode === "direct_post" &&
-		pollingStartTime &&
-		Date.now() - pollingStartTime > 5 * 60 * 1000
-	) {
-		setState({ status: "error", message: "Verification timed out" });
-	}
+			controls.close();
+		},
+		onParseError: () => {
+			setState({ status: "error", message: "Invalid stream payload" });
+		},
+	});
 
 	// Mutation for DC API completion
 	const completeMutation = useMutation({
@@ -307,10 +299,6 @@ function LoanPage() {
 	const handleReset = () => {
 		setState({ status: "form" });
 	};
-
-	const elapsedSeconds = pollingStartTime
-		? Math.floor((Date.now() - pollingStartTime) / 1000)
-		: 0;
 
 	return (
 		<div className="min-h-[calc(100vh-4rem)] py-8 px-4 sm:px-6 lg:px-8">
@@ -668,10 +656,7 @@ function LoanPage() {
 						<div className="rounded-2xl border border-border/60 bg-background overflow-hidden">
 							<div className="p-6 lg:p-8 space-y-4">
 								<QRCodeDisplay url={state.authorizeUrl} />
-								<PollingStatus
-									elapsedSeconds={elapsedSeconds}
-									onCancel={handleReset}
-								/>
+								<PollingStatus onCancel={handleReset} />
 							</div>
 						</div>
 					</div>

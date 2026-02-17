@@ -33,6 +33,7 @@ import { VidosErrorDisplay } from "@/components/auth/vidos-error-display";
 import { Button } from "@/components/ui/button";
 import { getStoredMode } from "@/lib/auth-helpers";
 import { useProfileUpdate } from "@/lib/use-profile-update";
+import { useAuthorizationStream } from "@/lib/use-authorization-stream";
 import { cn } from "@/lib/utils";
 
 const profileSearchSchema = z.object({
@@ -92,7 +93,6 @@ function ProfilePage() {
 	const [isUpdateOpen, setIsUpdateOpen] = useState(false);
 	const [selectedClaims, setSelectedClaims] = useState<string[]>([]);
 	const [state, setState] = useState<ProfileUpdateState>({ status: "idle" });
-	const [pollingStartTime, setPollingStartTime] = useState<number | null>(null);
 
 	const { data: user, isLoading } = useQuery({
 		queryKey: ["user", "me"],
@@ -105,7 +105,6 @@ function ProfilePage() {
 
 	const requestMutation = useProfileUpdate({
 		onSuccess: (data) => {
-			setPollingStartTime(Date.now());
 			if (data.mode === "direct_post") {
 				setState({
 					status: "awaiting_verification",
@@ -134,75 +133,66 @@ function ProfilePage() {
 		},
 	});
 
-	const currentRequestId =
+	const directPostRequestId =
 		state.status === "awaiting_verification" && state.mode === "direct_post"
 			? state.requestId
 			: null;
 
-	const pollingQuery = useQuery({
-		queryKey: ["profile-update", "status", currentRequestId, apiClient],
-		queryFn: async () => {
-			if (!currentRequestId) throw new Error("No request ID");
-			const res = await apiClient.api.profile.update.status[":requestId"].$get({
-				param: { requestId: currentRequestId },
-			});
-			if (!res.ok) throw new Error("Polling failed");
-			return res.json();
-		},
-		enabled: !!currentRequestId,
-		refetchInterval: (query) => {
-			if (!pollingStartTime) return false;
-			if (Date.now() - pollingStartTime > 5 * 60 * 1000) return false;
-			const count = query.state.dataUpdateCount;
-			return Math.min(1000 * 1.5 ** count, 5000);
-		},
-	});
+	const isDirectPostVerificationActive =
+		state.status === "awaiting_verification" && state.mode === "direct_post";
 
-	useEffect(() => {
-		if (!pollingQuery.data || state.status !== "awaiting_verification") return;
-		const data = pollingQuery.data;
-		if (data.status === "authorized") {
-			queryClient.invalidateQueries({ queryKey: ["user", "me"] });
-			setState({
-				status: "success",
-				updatedFields: data.updatedFields || [],
-				requestedClaims: state.requestedClaims,
-			});
-			setIsUpdateOpen(false);
-			return;
-		}
-		if (data.status === "expired") {
-			setState({ status: "expired" });
-			return;
-		}
-		if (data.status === "rejected" || data.status === "error") {
+	useAuthorizationStream({
+		requestId: directPostRequestId,
+		streamPath: "/api/profile/update/stream",
+		enabled: isDirectPostVerificationActive,
+		withSession: true,
+		onEvent: (event, controls) => {
+			if (event.eventType === "connected" || event.eventType === "pending") {
+				return;
+			}
+
+			if (event.eventType === "authorized") {
+				queryClient.invalidateQueries({ queryKey: ["user", "me"] });
+				setState({
+					status: "success",
+					updatedFields: event.updatedFields || [],
+					requestedClaims:
+						state.status === "awaiting_verification"
+							? state.requestedClaims
+							: selectedClaims,
+				});
+				setIsUpdateOpen(false);
+				controls.close();
+				return;
+			}
+
+			if (event.eventType === "expired") {
+				setState({ status: "expired" });
+				controls.close();
+				return;
+			}
+
+			if (event.eventType === "rejected") {
+				setState({
+					status: "error",
+					message: event.message,
+					errorInfo: event.errorInfo,
+				});
+				controls.close();
+				return;
+			}
+
 			setState({
 				status: "error",
-				message: `Verification ${data.status}`,
-				errorInfo: data.errorInfo,
+				message: event.message,
+				errorInfo: "errorInfo" in event ? event.errorInfo : undefined,
 			});
-		}
-	}, [pollingQuery.data, queryClient, state]);
-
-	useEffect(() => {
-		if (
-			state.status !== "awaiting_verification" ||
-			state.mode !== "direct_post" ||
-			!pollingStartTime
-		) {
-			return;
-		}
-		const timeoutMs = 5 * 60 * 1000;
-		const elapsedMs = Date.now() - pollingStartTime;
-		if (elapsedMs >= timeoutMs) {
-			setState({ status: "error", message: "Verification timed out" });
-			return;
-		}
-		const timeoutId = window.setTimeout(() => {
-			setState({ status: "error", message: "Verification timed out" });
-		}, timeoutMs - elapsedMs);
-		return () => window.clearTimeout(timeoutId);
-	}, [pollingStartTime, state]);
+			controls.close();
+		},
+		onParseError: () => {
+			setState({ status: "error", message: "Invalid stream payload" });
+		},
+	});
 
 	const completeMutation = useMutation({
 		mutationFn: async ({
@@ -297,14 +287,12 @@ function ProfilePage() {
 
 	const handleCancel = () => {
 		setState({ status: "idle" });
-		setPollingStartTime(null);
 	};
 
 	const handleResetSelection = () => {
 		setSelectedClaims([]);
 		setState({ status: "idle" });
 		setIsUpdateOpen(false);
-		setPollingStartTime(null);
 	};
 
 	const handleRetry = () => {
@@ -313,10 +301,6 @@ function ProfilePage() {
 
 	const isSelectionValid = selectedClaims.length > 0;
 	const isRequesting = requestMutation.isPending;
-	const elapsedSeconds = pollingStartTime
-		? Math.floor((Date.now() - pollingStartTime) / 1000)
-		: 0;
-
 	useEffect(() => {
 		if (!search.edit) return;
 		setIsUpdateOpen(true);
@@ -579,10 +563,7 @@ function ProfilePage() {
 											{state.mode === "direct_post" ? (
 												<>
 													<QRCodeDisplay url={state.authorizeUrl} />
-													<PollingStatus
-														elapsedSeconds={elapsedSeconds}
-														onCancel={handleCancel}
-													/>
+													<PollingStatus onCancel={handleCancel} />
 												</>
 											) : (
 												<>

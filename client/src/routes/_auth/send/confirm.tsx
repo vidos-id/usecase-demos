@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
 	createFileRoute,
 	Link,
@@ -25,6 +25,7 @@ import { QRCodeDisplay } from "@/components/auth/qr-code-display";
 import { VidosErrorDisplay } from "@/components/auth/vidos-error-display";
 import { Button } from "@/components/ui/button";
 import { getStoredMode } from "@/lib/auth-helpers";
+import { useAuthorizationStream } from "@/lib/use-authorization-stream";
 
 import { cn } from "@/lib/utils";
 
@@ -67,7 +68,6 @@ function PaymentConfirmPage() {
 	const { apiClient } = useRouteContext({ from: "__root__" });
 	const search = Route.useSearch();
 	const [state, setState] = useState<PaymentState>({ status: "idle" });
-	const [pollingStartTime, setPollingStartTime] = useState<number | null>(null);
 
 	// Redirect if no search params
 	useEffect(() => {
@@ -104,7 +104,6 @@ function PaymentConfirmPage() {
 			return res.json();
 		},
 		onSuccess: (data) => {
-			setPollingStartTime(Date.now());
 			if (data.mode === "direct_post") {
 				setState({
 					status: "awaiting_verification",
@@ -133,75 +132,81 @@ function PaymentConfirmPage() {
 		},
 	});
 
-	// Polling query for direct_post mode
-	const currentRequestId =
+	const directPostRequestId =
 		state.status === "awaiting_verification" && state.mode === "direct_post"
 			? state.requestId
 			: null;
 
-	const pollingQuery = useQuery({
-		queryKey: ["payment", "status", currentRequestId, apiClient],
-		queryFn: async () => {
-			if (!currentRequestId) throw new Error("No request ID");
+	const isDirectPostVerificationActive =
+		state.status === "awaiting_verification" && state.mode === "direct_post";
 
-			const res = await apiClient.api.payment.status[":requestId"].$get({
-				param: { requestId: currentRequestId },
-			});
-
-			if (!res.ok) throw new Error("Polling failed");
-
-			return res.json();
-		},
-		enabled: !!currentRequestId,
-		refetchInterval: (query) => {
-			if (!pollingStartTime) return false;
-			// Stop polling after 5 minutes
-			if (Date.now() - pollingStartTime > 5 * 60 * 1000) {
-				return false;
+	useAuthorizationStream({
+		requestId: directPostRequestId,
+		streamPath: "/api/payment/stream",
+		enabled: isDirectPostVerificationActive,
+		withSession: true,
+		onEvent: (event, controls) => {
+			if (event.eventType === "connected" || event.eventType === "pending") {
+				return;
 			}
-			// Exponential backoff: start at 1s, max 5s
-			const count = query.state.dataUpdateCount;
-			return Math.min(1000 * 1.5 ** count, 5000);
-		},
-	});
 
-	// Handle polling results
-	if (pollingQuery.data && state.status === "awaiting_verification" && search) {
-		const data = pollingQuery.data;
+			if (!search) {
+				return;
+			}
 
-		if (data.status === "authorized" && data.transactionId) {
-			setState({ status: "success", transactionId: data.transactionId });
-			queryClient.invalidateQueries({ queryKey: ["user", "me"] });
-			navigate({
-				to: "/send/success",
-				search: {
-					transactionId: data.transactionId,
-					recipient: search.recipient,
-					amount: search.amount,
-					reference: search.reference,
-					confirmedAt: new Date().toISOString(),
-				},
-			});
-		} else if (data.status === "expired") {
-			setState({ status: "expired" });
-		} else if (data.status === "rejected" || data.status === "error") {
+			if (event.eventType === "authorized") {
+				if (!event.transactionId) {
+					setState({
+						status: "error",
+						message: "Verification completed without transaction details",
+					});
+					controls.close();
+					return;
+				}
+
+				setState({ status: "success", transactionId: event.transactionId });
+				queryClient.invalidateQueries({ queryKey: ["user", "me"] });
+				navigate({
+					to: "/send/success",
+					search: {
+						transactionId: event.transactionId,
+						recipient: search.recipient,
+						amount: search.amount,
+						reference: search.reference,
+						confirmedAt: new Date().toISOString(),
+					},
+				});
+				controls.close();
+				return;
+			}
+
+			if (event.eventType === "expired") {
+				setState({ status: "expired" });
+				controls.close();
+				return;
+			}
+
+			if (event.eventType === "rejected") {
+				setState({
+					status: "error",
+					message: event.message,
+					errorInfo: event.errorInfo,
+				});
+				controls.close();
+				return;
+			}
+
 			setState({
 				status: "error",
-				message: `Verification ${data.status}`,
-				errorInfo: data.errorInfo,
+				message: event.message,
+				errorInfo: "errorInfo" in event ? event.errorInfo : undefined,
 			});
-		}
-	}
-
-	// Check for timeout
-	if (
-		state.status === "awaiting_verification" &&
-		state.mode === "direct_post" &&
-		pollingStartTime &&
-		Date.now() - pollingStartTime > 5 * 60 * 1000
-	) {
-		setState({ status: "error", message: "Verification timed out" });
-	}
+			controls.close();
+		},
+		onParseError: () => {
+			setState({ status: "error", message: "Invalid stream payload" });
+		},
+	});
 
 	// Mutation for DC API completion
 	const completeMutation = useMutation({
@@ -298,10 +303,6 @@ function PaymentConfirmPage() {
 	};
 
 	if (!search) return null;
-
-	const elapsedSeconds = pollingStartTime
-		? Math.floor((Date.now() - pollingStartTime) / 1000)
-		: 0;
 
 	return (
 		<div className="min-h-[calc(100vh-4rem)] py-8 px-4 sm:px-6 lg:px-8">
@@ -407,10 +408,7 @@ function PaymentConfirmPage() {
 												purpose={state.purpose}
 											/>
 											<QRCodeDisplay url={state.authorizeUrl} />
-											<PollingStatus
-												elapsedSeconds={elapsedSeconds}
-												onCancel={handleCancel}
-											/>
+											<PollingStatus onCancel={handleCancel} />
 										</div>
 									)}
 
