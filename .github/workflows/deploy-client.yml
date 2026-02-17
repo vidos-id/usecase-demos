@@ -55,6 +55,7 @@ jobs:
         run: |
           pulumi login "$PULUMI_BACKEND_URL"
           pulumi stack select "$PULUMI_STACK"
+          pulumi config set lightsail:deploy false
           pulumi cancel --yes || true
           pulumi up --yes
         working-directory: infrastructure
@@ -68,6 +69,7 @@ jobs:
         run: |
           pulumi login "$PULUMI_BACKEND_URL"
           pulumi stack select "$PULUMI_STACK"
+          pulumi config set lightsail:deploy true
           pulumi cancel --yes || true
           pulumi up --yes
         working-directory: infrastructure

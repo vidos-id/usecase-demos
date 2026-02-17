@@ -8,6 +8,7 @@ const vidosApiKey = vidosConfig.getSecret("apiKey") ?? pulumi.secret("");
 const lightsailConfig = new pulumi.Config("lightsail");
 const serviceTier = lightsailConfig.get("serviceTier") ?? "micro";
 const scale = Number(lightsailConfig.get("scale") ?? "1");
+const deployEnabled = lightsailConfig.getBoolean("deploy") ?? true;
 
 const tags = {
 	Project: "usecase-demos",
@@ -94,37 +95,39 @@ new aws.ecr.RepositoryPolicy(
 	},
 );
 
-const deployment = new aws.lightsail.ContainerServiceDeploymentVersion(
-	"usecaseDemos",
-	{
-		serviceName: service.name,
-		containers: [
-			{
+if (deployEnabled) {
+	new aws.lightsail.ContainerServiceDeploymentVersion(
+		"usecaseDemos",
+		{
+			serviceName: service.name,
+			containers: [
+				{
+					containerName: "backend",
+					image: repository.repositoryUrl.apply((url) => `${url}:latest`),
+					ports: {
+						"3000": "HTTP",
+					},
+					environment: {
+						VIDOS_AUTHORIZER_URL: vidosAuthorizerUrl,
+						VIDOS_API_KEY: vidosApiKey,
+					},
+				},
+			],
+			publicEndpoint: {
 				containerName: "backend",
-				image: repository.repositoryUrl.apply((url) => `${url}:latest`),
-				ports: {
-					"3000": "HTTP",
+				containerPort: 3000,
+				healthCheck: {
+					path: "/",
+					successCodes: "200-499",
 				},
-				environment: {
-					VIDOS_AUTHORIZER_URL: vidosAuthorizerUrl,
-					VIDOS_API_KEY: vidosApiKey,
-				},
-			},
-		],
-		publicEndpoint: {
-			containerName: "backend",
-			containerPort: 3000,
-			healthCheck: {
-				path: "/",
-				successCodes: "200-499",
 			},
 		},
-	},
-	{
-		deleteBeforeReplace: true,
-		replaceOnChanges: ["*"],
-	},
-);
+		{
+			deleteBeforeReplace: true,
+			replaceOnChanges: ["*"],
+		},
+	);
+}
 
 export const ecrRepositoryUrl = repository.repositoryUrl;
 export const ecrRepositoryName = repository.name;
