@@ -1,5 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import {
+	authorizationConnectedEventSchema,
+	authorizationStreamEventSchema,
+} from "shared/api/authorization-sse";
 import {
 	type LoanAuthMetadata,
 	loanAuthMetadataSchema,
@@ -8,6 +12,7 @@ import {
 	paymentAuthMetadataSchema,
 	profileUpdateAuthMetadataSchema,
 } from "shared/types/auth-metadata";
+import type { AuthorizationErrorInfo } from "shared/types/vidos-errors";
 import { db } from "../db";
 import {
 	type PendingAuthMetadata,
@@ -59,6 +64,10 @@ export type CreatePendingRequestInput =
 	| PaymentCreateInput
 	| LoanCreateInput
 	| ProfileUpdateCreateInput;
+
+export type PendingRequestResultPatch = Partial<
+	NonNullable<PendingAuthRequest["result"]>
+>;
 
 function validateMetadata(
 	type: CreatePendingRequestInput["type"],
@@ -126,6 +135,111 @@ const mapRowToPendingAuthRequest = (
 		completedAt: row.completedAt ? new Date(row.completedAt) : undefined,
 		result: parseResult(row.result),
 	};
+};
+
+const mapResolvedStatus = (
+	eventType: "authorized" | "expired" | "not_found" | "account_exists" | "rejected" | "error",
+): "completed" | "failed" | "expired" => {
+	if (eventType === "authorized") {
+		return "completed";
+	}
+	if (eventType === "expired") {
+		return "expired";
+	}
+	return "failed";
+};
+
+const toAuthorizationStateEvent = (
+	request: PendingAuthRequest,
+): ReturnType<typeof authorizationStreamEventSchema.parse> => {
+	if (request.status === "pending") {
+		return authorizationStreamEventSchema.parse({
+			eventType: "pending",
+		});
+	}
+
+	const result = request.result;
+	const resolvedStatus =
+		result?.status ??
+		(request.status === "expired"
+			? "expired"
+			: result?.errorInfo
+				? "rejected"
+				: "error");
+
+	if (resolvedStatus === "authorized") {
+		return authorizationStreamEventSchema.parse({
+			eventType: "authorized",
+			sessionId: result?.sessionId,
+			mode: result?.mode ?? request.mode,
+			transactionId: result?.transactionId,
+			loanRequestId: result?.loanRequestId,
+			updatedFields: result?.updatedFields,
+		});
+	}
+
+	if (resolvedStatus === "expired") {
+		return authorizationStreamEventSchema.parse({
+			eventType: "expired",
+		});
+	}
+
+	if (resolvedStatus === "not_found") {
+		return authorizationStreamEventSchema.parse({
+			eventType: "not_found",
+			message:
+				result?.error ?? "No account found with this credential.",
+		});
+	}
+
+	if (resolvedStatus === "account_exists") {
+		return authorizationStreamEventSchema.parse({
+			eventType: "account_exists",
+			message: result?.error ?? "Account already exists.",
+		});
+	}
+
+	if (resolvedStatus === "rejected") {
+		return authorizationStreamEventSchema.parse({
+			eventType: "rejected",
+			message: result?.error ?? "Verification was rejected.",
+			errorInfo: result?.errorInfo,
+		});
+	}
+
+	return authorizationStreamEventSchema.parse({
+		eventType: "error",
+		message: result?.error ?? "Verification failed.",
+		errorInfo: result?.errorInfo,
+	});
+};
+
+const emitAuthorizationEvent = (
+	request: PendingAuthRequest,
+	eventType: "connected" | "state",
+): void => {
+	const event =
+		eventType === "connected"
+			? authorizationConnectedEventSchema.parse({ eventType })
+			: toAuthorizationStateEvent(request);
+
+	appEvents.emit("authorizationRequestEvent", {
+		requestId: request.id,
+		authorizationId: request.vidosAuthorizationId,
+		flowType: request.type,
+		event,
+	});
+
+	if (
+		eventType === "state" &&
+		event.eventType !== "connected" &&
+		event.eventType !== "pending"
+	) {
+		appEvents.emit("authRequestResolved", {
+			authorizationId: request.vidosAuthorizationId,
+			status: mapResolvedStatus(event.eventType),
+		});
+	}
 };
 
 export const createPendingRequest = (
@@ -213,78 +327,99 @@ export const getPendingRequestByAuthId = (
 	return mapRowToPendingAuthRequest(row);
 };
 
+const updatePendingRequestTerminal = (
+	id: string,
+	nextStatus: "completed" | "failed" | "expired",
+	resultPatch: PendingRequestResultPatch,
+): PendingAuthRequest | undefined => {
+	const nowIso = new Date().toISOString();
+	const row = db
+		.update(pendingAuthRequestsTable)
+		.set({
+			status: nextStatus,
+			completedAt: nowIso,
+			result: Object.keys(resultPatch).length > 0 ? resultPatch : null,
+		})
+		.where(
+			and(
+				eq(pendingAuthRequestsTable.id, id),
+				eq(pendingAuthRequestsTable.status, "pending"),
+			),
+		)
+		.returning()
+		.get();
+
+	if (!row) {
+		const existing = db
+			.select()
+			.from(pendingAuthRequestsTable)
+			.where(eq(pendingAuthRequestsTable.id, id))
+			.get();
+		if (!existing) {
+			return undefined;
+		}
+		return mapRowToPendingAuthRequest(existing);
+	}
+
+	const updated = mapRowToPendingAuthRequest(row);
+	emitAuthorizationEvent(updated, "state");
+	return updated;
+};
+
 export const updateRequestToCompleted = (
 	id: string,
 	claims: Record<string, unknown>,
 	sessionId?: string,
-): void => {
-	const result = { claims, sessionId };
-	const updated = db
-		.update(pendingAuthRequestsTable)
-		.set({
-			status: "completed",
-			completedAt: new Date().toISOString(),
-			result,
-		})
-		.where(eq(pendingAuthRequestsTable.id, id))
-		.returning({
-			vidosAuthorizationId: pendingAuthRequestsTable.vidosAuthorizationId,
-		})
-		.get();
-
-	// Emit event for any listeners waiting on this authorization
-	if (updated?.vidosAuthorizationId) {
-		appEvents.emit("authRequestResolved", {
-			authorizationId: updated.vidosAuthorizationId,
-			status: "completed",
-		});
-	}
+	extras?: PendingRequestResultPatch,
+): PendingAuthRequest | undefined => {
+	return updatePendingRequestTerminal(id, "completed", {
+		status: "authorized",
+		claims,
+		sessionId,
+		...extras,
+	});
 };
 
-export const updateRequestToFailed = (id: string, error: string): void => {
-	const result = { claims: {}, error };
-	const updated = db
-		.update(pendingAuthRequestsTable)
-		.set({
-			status: "failed",
-			completedAt: new Date().toISOString(),
-			result,
-		})
-		.where(eq(pendingAuthRequestsTable.id, id))
-		.returning({
-			vidosAuthorizationId: pendingAuthRequestsTable.vidosAuthorizationId,
-		})
-		.get();
-
-	// Emit event for any listeners waiting on this authorization
-	if (updated?.vidosAuthorizationId) {
-		appEvents.emit("authRequestResolved", {
-			authorizationId: updated.vidosAuthorizationId,
-			status: "failed",
-		});
-	}
+export const updateRequestToFailed = (
+	id: string,
+	error: string,
+	errorInfo?: AuthorizationErrorInfo,
+	extras?: PendingRequestResultPatch,
+): PendingAuthRequest | undefined => {
+	return updatePendingRequestTerminal(id, "failed", {
+		status: errorInfo ? "rejected" : "error",
+		error,
+		errorInfo,
+		...extras,
+	});
 };
 
-export const updateRequestToExpired = (id: string): void => {
-	const updated = db
-		.update(pendingAuthRequestsTable)
-		.set({
-			status: "expired",
-			completedAt: new Date().toISOString(),
-		})
-		.where(eq(pendingAuthRequestsTable.id, id))
-		.returning({
-			vidosAuthorizationId: pendingAuthRequestsTable.vidosAuthorizationId,
-		})
-		.get();
+export const updateRequestToExpired = (
+	id: string,
+	extras?: PendingRequestResultPatch,
+): PendingAuthRequest | undefined => {
+	return updatePendingRequestTerminal(id, "expired", {
+		status: "expired",
+		...extras,
+	});
+};
 
-	// Emit event for any listeners waiting on this authorization
-	if (updated?.vidosAuthorizationId) {
-		appEvents.emit("authRequestResolved", {
-			authorizationId: updated.vidosAuthorizationId,
-			status: "expired",
-		});
+export const emitAuthorizationConnected = (requestId: string): void => {
+	const request = getPendingRequestById(requestId);
+	if (!request) {
+		return;
 	}
+	emitAuthorizationEvent(request, "connected");
+};
+
+export const getAuthorizationStreamStateByRequestId = (
+	requestId: string,
+): ReturnType<typeof authorizationStreamEventSchema.parse> | undefined => {
+	const request = getPendingRequestById(requestId);
+	if (!request) {
+		return undefined;
+	}
+	return toAuthorizationStateEvent(request);
 };
 
 export const listPendingRequests = (): PendingAuthRequest[] => {

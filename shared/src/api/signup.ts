@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { dcApiRequestSchema, presentationModeSchema } from "../types/auth";
-import { authorizationErrorInfoSchema } from "../types/vidos-errors";
 
 export const signupRequestSchema = z.discriminatedUnion("mode", [
 	z.object({
@@ -34,29 +33,6 @@ export const signupRequestResponseSchema = z.discriminatedUnion("mode", [
 	}),
 ]);
 export type SignupRequestResponse = z.infer<typeof signupRequestResponseSchema>;
-
-export const signupStatusResponseSchema = z.object({
-	status: z.enum([
-		"pending",
-		"authorized",
-		"rejected",
-		"error",
-		"expired",
-		"account_exists",
-	]),
-	sessionId: z.string().optional(),
-	user: z
-		.object({
-			id: z.string(),
-			familyName: z.string(),
-			givenName: z.string(),
-		})
-		.optional(),
-	mode: presentationModeSchema.optional(),
-	/** Detailed error information when status is rejected/error */
-	errorInfo: authorizationErrorInfoSchema.optional(),
-});
-export type SignupStatusResponse = z.infer<typeof signupStatusResponseSchema>;
 
 export const signupCompleteRequestSchema = z.object({
 	origin: z.string(),

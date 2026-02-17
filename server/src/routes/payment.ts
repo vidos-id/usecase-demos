@@ -1,21 +1,23 @@
 import { randomUUID } from "node:crypto";
 import { zValidator } from "@hono/zod-validator";
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import {
 	paymentCompleteRequestSchema,
 	paymentCompleteResponseSchema,
 	paymentRequestResponseSchema,
 	paymentRequestSchema,
-	paymentStatusResponseSchema,
 } from "shared/api/payment";
 import { PAYMENT_CLAIMS, PAYMENT_PURPOSE } from "shared/lib/claims";
+import { paymentAuthMetadataSchema } from "shared/types/auth-metadata";
 import { paymentClaimsSchema } from "shared/types/auth";
 import { vidosErrorTypes } from "shared/types/vidos-errors";
+import { getSessionFromRequest } from "../lib/request-session";
+import { startAuthorizationMonitor } from "../services/authorization-monitor";
+import { streamAuthorizationRequest } from "../services/authorization-stream";
 import {
 	createAuthorizationRequest,
 	forwardDCAPIResponse,
 	getExtractedCredentials,
-	pollAuthorizationStatus,
 } from "../services/vidos";
 import {
 	createPendingRequest,
@@ -23,16 +25,11 @@ import {
 	updateRequestToCompleted,
 	updateRequestToFailed,
 } from "../stores/pending-auth-requests";
-import { getSessionById } from "../stores/sessions";
 import { getUserById, updateUser } from "../stores/users";
 
-// Helper to extract session from Authorization header
-function getSession(c: {
-	req: { header: (name: string) => string | undefined };
-}) {
-	const authHeader = c.req.header("Authorization");
-	if (!authHeader?.startsWith("Bearer ")) return null;
-	return getSessionById(authHeader.slice(7));
+// Helper to extract session from Authorization header or SSE query token
+function getSession(c: Context) {
+	return getSessionFromRequest(c);
 }
 
 export const paymentRouter = new Hono()
@@ -76,8 +73,16 @@ export const paymentRouter = new Hono()
 			type: "payment",
 			mode: modeParams.mode,
 			responseUrl: result.mode === "dc_api" ? result.responseUrl : undefined,
-			metadata: { transactionId, recipient, amount, reference },
+			metadata: {
+				userId: session.userId,
+				transactionId,
+				recipient,
+				amount,
+				reference,
+			},
 		});
+
+		startAuthorizationMonitor(pendingRequest.id);
 
 		const response = paymentRequestResponseSchema.parse(
 			result.mode === "direct_post"
@@ -101,92 +106,23 @@ export const paymentRouter = new Hono()
 
 		return c.json(response);
 	})
-	.get("/status/:requestId", async (c) => {
-		const session = getSession(c);
-		if (!session) return c.json({ error: "Unauthorized" }, 401);
-
-		const requestId = c.req.param("requestId");
-		const pendingRequest = getPendingRequestById(requestId);
-
-		if (!pendingRequest) {
-			return c.json({ error: "Request not found" }, 404);
-		}
-
-		const statusResult = await pollAuthorizationStatus(
-			pendingRequest.vidosAuthorizationId,
-		);
-
-		if (statusResult.status === "authorized") {
-			// Verify identity matches session user
-			const claims = await getExtractedCredentials(
-				pendingRequest.vidosAuthorizationId,
-				paymentClaimsSchema,
-			);
-			const user = getUserById(session.userId);
-
-			if (!user || user.identifier !== claims.personal_administrative_number) {
-				updateRequestToFailed(
-					pendingRequest.id,
-					"The credential used for verification does not match your account identity.",
+	.get("/stream/:requestId", (c) => {
+		return streamAuthorizationRequest(c, {
+			flowType: "payment",
+			authorize: (ctx, pendingRequest) => {
+				const session = getSession(ctx);
+				if (!session) {
+					return { ok: false, status: 401, message: "Unauthorized" } as const;
+				}
+				const parsed = paymentAuthMetadataSchema.safeParse(
+					pendingRequest.metadata,
 				);
-				return c.json({
-					status: "rejected" as const,
-					errorInfo: {
-						errorType: vidosErrorTypes.identityMismatch,
-						title: "Identity Mismatch",
-						detail:
-							"The credential used for verification does not match your account identity.",
-					},
-				});
-			}
-
-			// Use transactionId from stored metadata
-			const metadata = pendingRequest.metadata as {
-				transactionId: string;
-				recipient: string;
-				amount: string;
-				reference?: string;
-			};
-
-			// Append activity and update balance (direct_post flow)
-			const paymentAmount = Number(metadata.amount);
-			const activityItem = {
-				id: randomUUID(),
-				type: "payment" as const,
-				title: `Payment to ${metadata.recipient}`,
-				amount: -paymentAmount,
-				createdAt: new Date().toISOString(),
-				meta: {
-					recipient: metadata.recipient,
-					reference: metadata.reference,
-				},
-			};
-			updateUser(user.id, {
-				balance: user.balance - paymentAmount,
-				activity: [activityItem, ...user.activity],
-			});
-
-			updateRequestToCompleted(pendingRequest.id, claims);
-
-			const response = paymentStatusResponseSchema.parse({
-				status: "authorized" as const,
-				transactionId: metadata.transactionId,
-				claims: {
-					familyName: claims.family_name,
-					givenName: claims.given_name,
-					identifier: claims.personal_administrative_number,
-				},
-			});
-
-			return c.json(response);
-		}
-
-		const response = paymentStatusResponseSchema.parse({
-			status: statusResult.status,
-			errorInfo: statusResult.errorInfo,
+				if (!parsed.success || parsed.data.userId !== session.userId) {
+					return { ok: false, status: 403, message: "Unauthorized" } as const;
+				}
+				return { ok: true } as const;
+			},
 		});
-
-		return c.json(response);
 	})
 	.post(
 		"/complete/:requestId",
@@ -201,6 +137,16 @@ export const paymentRouter = new Hono()
 			const pendingRequest = getPendingRequestById(requestId);
 			if (!pendingRequest) {
 				return c.json({ error: "Request not found or expired" }, 404);
+			}
+
+			const parsedMetadata = paymentAuthMetadataSchema.safeParse(
+				pendingRequest.metadata,
+			);
+			if (
+				!parsedMetadata.success ||
+				parsedMetadata.data.userId !== session.userId
+			) {
+				return c.json({ error: "Unauthorized" }, 403);
 			}
 
 			const result = await forwardDCAPIResponse({
@@ -231,6 +177,13 @@ export const paymentRouter = new Hono()
 				updateRequestToFailed(
 					pendingRequest.id,
 					"The credential used for verification does not match your account identity.",
+					{
+						errorType: vidosErrorTypes.identityMismatch,
+						title: "Identity Mismatch",
+						detail:
+							"The credential used for verification does not match your account identity.",
+					},
+					{ status: "rejected" },
 				);
 				return c.json(
 					{
@@ -246,13 +199,7 @@ export const paymentRouter = new Hono()
 				);
 			}
 
-			// Use transactionId from stored metadata
-			const metadata = pendingRequest.metadata as {
-				transactionId: string;
-				recipient: string;
-				amount: string;
-				reference?: string;
-			};
+			const metadata = parsedMetadata.data;
 			const confirmedAt = new Date().toISOString();
 
 			// Append activity and update balance
@@ -273,7 +220,10 @@ export const paymentRouter = new Hono()
 				activity: [activityItem, ...user.activity],
 			});
 
-			updateRequestToCompleted(pendingRequest.id, claims);
+			updateRequestToCompleted(pendingRequest.id, claims, undefined, {
+				status: "authorized",
+				transactionId: metadata.transactionId,
+			});
 
 			const response = paymentCompleteResponseSchema.parse({
 				transactionId: metadata.transactionId,

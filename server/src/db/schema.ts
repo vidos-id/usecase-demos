@@ -1,4 +1,5 @@
 import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { authorizationErrorInfoSchema } from "shared/types/vidos-errors";
 import { z } from "zod";
 
 // Discriminated union for activity item meta based on activity type
@@ -43,9 +44,31 @@ export const activityItemsSchema = z.array(activityItemSchema);
 export const pendingAuthMetadataSchema = z.record(z.string(), z.unknown());
 
 export const pendingAuthResultSchema = z.object({
-	claims: z.record(z.string(), z.unknown()),
+	status: z
+		.enum([
+			"authorized",
+			"not_found",
+			"account_exists",
+			"rejected",
+			"error",
+			"expired",
+		])
+		.optional(),
+	claims: z.record(z.string(), z.unknown()).optional(),
 	sessionId: z.string().optional(),
+	mode: z.enum(["direct_post", "dc_api"]).optional(),
+	user: z
+		.object({
+			id: z.string(),
+			familyName: z.string(),
+			givenName: z.string(),
+		})
+		.optional(),
+	transactionId: z.string().optional(),
+	loanRequestId: z.string().optional(),
+	updatedFields: z.array(z.string()).optional(),
 	error: z.string().optional(),
+	errorInfo: authorizationErrorInfoSchema.optional(),
 });
 
 // ============================================================================

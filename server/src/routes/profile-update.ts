@@ -1,24 +1,26 @@
 import { zValidator } from "@hono/zod-validator";
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import {
 	profileUpdateCompleteRequestSchema,
 	profileUpdateCompleteResponseSchema,
 	profileUpdateRequestResponseSchema,
 	profileUpdateRequestSchema,
-	profileUpdateStatusResponseSchema,
 } from "shared/api/profile-update";
 import {
 	PROFILE_UPDATE_CLAIMS,
 	PROFILE_UPDATE_PURPOSE,
 } from "shared/lib/claims";
+import { profileUpdateAuthMetadataSchema } from "shared/types/auth-metadata";
 import { profileUpdateClaimsSchema } from "shared/types/profile-update";
 import { vidosErrorTypes } from "shared/types/vidos-errors";
 import { z } from "zod";
+import { getSessionFromRequest } from "../lib/request-session";
+import { startAuthorizationMonitor } from "../services/authorization-monitor";
+import { streamAuthorizationRequest } from "../services/authorization-stream";
 import {
 	createAuthorizationRequest,
 	forwardDCAPIResponse,
 	getExtractedCredentials,
-	pollAuthorizationStatus,
 } from "../services/vidos";
 import {
 	createPendingRequest,
@@ -26,14 +28,8 @@ import {
 	updateRequestToCompleted,
 	updateRequestToFailed,
 } from "../stores/pending-auth-requests";
-import { getSessionById } from "../stores/sessions";
 import type { User } from "../stores/users";
 import { getUserById, updateUser } from "../stores/users";
-
-type ProfileUpdateMetadata = {
-	requestedClaims: string[];
-	userId: string;
-};
 
 const profileUpdateAddressSchema = z.union([
 	z.string(),
@@ -58,12 +54,8 @@ const profileUpdateClaimsExtendedSchema = profileUpdateClaimsSchema.extend({
 
 type ProfileUpdateClaims = z.infer<typeof profileUpdateClaimsExtendedSchema>;
 
-function getSession(c: {
-	req: { header: (name: string) => string | undefined };
-}) {
-	const authHeader = c.req.header("Authorization");
-	if (!authHeader?.startsWith("Bearer ")) return null;
-	return getSessionById(authHeader.slice(7));
+function getSession(c: Context) {
+	return getSessionFromRequest(c);
 }
 
 function buildProfileUpdate(
@@ -151,16 +143,6 @@ function buildProfileUpdate(
 	return { updates, updatedFields };
 }
 
-function getProfileUpdateMetadata(
-	metadata: unknown,
-): ProfileUpdateMetadata | null {
-	if (!metadata || typeof metadata !== "object") return null;
-	const value = metadata as Partial<ProfileUpdateMetadata>;
-	if (!Array.isArray(value.requestedClaims)) return null;
-	if (typeof value.userId !== "string") return null;
-	return { requestedClaims: value.requestedClaims, userId: value.userId };
-}
-
 export const profileUpdateRouter = new Hono()
 	.post(
 		"/request",
@@ -195,6 +177,8 @@ export const profileUpdateRouter = new Hono()
 				metadata: { requestedClaims, userId: session.userId },
 			});
 
+			startAuthorizationMonitor(pendingRequest.id);
+
 			const response = profileUpdateRequestResponseSchema.parse(
 				result.mode === "direct_post"
 					? {
@@ -216,78 +200,23 @@ export const profileUpdateRouter = new Hono()
 			return c.json(response);
 		},
 	)
-	.get("/status/:requestId", async (c) => {
-		const session = getSession(c);
-		if (!session) return c.json({ error: "Unauthorized" }, 401);
-
-		const requestId = c.req.param("requestId");
-		const pendingRequest = getPendingRequestById(requestId);
-
-		if (!pendingRequest) {
-			return c.json({ error: "Request not found" }, 404);
-		}
-
-		const metadata = getProfileUpdateMetadata(pendingRequest.metadata);
-		if (!metadata || metadata.userId !== session.userId) {
-			return c.json({ error: "Unauthorized" }, 403);
-		}
-
-		const statusResult = await pollAuthorizationStatus(
-			pendingRequest.vidosAuthorizationId,
-		);
-
-		if (statusResult.status === "authorized") {
-			const claims = await getExtractedCredentials(
-				pendingRequest.vidosAuthorizationId,
-				profileUpdateClaimsExtendedSchema,
-			);
-			const user = getUserById(session.userId);
-
-			if (!user) {
-				updateRequestToFailed(pendingRequest.id, "Unauthorized");
-				return c.json({ error: "Unauthorized" }, 401);
-			}
-
-			if (
-				claims.personal_administrative_number &&
-				claims.personal_administrative_number !== user.identifier
-			) {
-				updateRequestToFailed(
-					pendingRequest.id,
-					"The credential used for verification does not match your account identity.",
+	.get("/stream/:requestId", (c) => {
+		return streamAuthorizationRequest(c, {
+			flowType: "profile_update",
+			authorize: (ctx, pendingRequest) => {
+				const session = getSession(ctx);
+				if (!session) {
+					return { ok: false, status: 401, message: "Unauthorized" } as const;
+				}
+				const parsed = profileUpdateAuthMetadataSchema.safeParse(
+					pendingRequest.metadata,
 				);
-				return c.json({
-					status: "rejected" as const,
-					errorInfo: {
-						errorType: vidosErrorTypes.identityMismatch,
-						title: "Identity Mismatch",
-						detail:
-							"The credential used for verification does not match your account identity.",
-					},
-				});
-			}
-
-			const { updates, updatedFields } = buildProfileUpdate(
-				claims,
-				metadata.requestedClaims,
-			);
-			updateUser(user.id, updates);
-			updateRequestToCompleted(pendingRequest.id, claims);
-
-			const response = profileUpdateStatusResponseSchema.parse({
-				status: "authorized" as const,
-				updatedFields,
-			});
-
-			return c.json(response);
-		}
-
-		const response = profileUpdateStatusResponseSchema.parse({
-			status: statusResult.status,
-			errorInfo: statusResult.errorInfo,
+				if (!parsed.success || parsed.data.userId !== session.userId) {
+					return { ok: false, status: 403, message: "Unauthorized" } as const;
+				}
+				return { ok: true } as const;
+			},
 		});
-
-		return c.json(response);
 	})
 	.post(
 		"/complete/:requestId",
@@ -304,8 +233,13 @@ export const profileUpdateRouter = new Hono()
 				return c.json({ error: "Request not found or expired" }, 404);
 			}
 
-			const metadata = getProfileUpdateMetadata(pendingRequest.metadata);
-			if (!metadata || metadata.userId !== session.userId) {
+			const parsedMetadata = profileUpdateAuthMetadataSchema.safeParse(
+				pendingRequest.metadata,
+			);
+			if (
+				!parsedMetadata.success ||
+				parsedMetadata.data.userId !== session.userId
+			) {
 				return c.json({ error: "Unauthorized" }, 403);
 			}
 
@@ -345,6 +279,13 @@ export const profileUpdateRouter = new Hono()
 				updateRequestToFailed(
 					pendingRequest.id,
 					"The credential used for verification does not match your account identity.",
+					{
+						errorType: vidosErrorTypes.identityMismatch,
+						title: "Identity Mismatch",
+						detail:
+							"The credential used for verification does not match your account identity.",
+					},
+					{ status: "rejected" },
 				);
 				return c.json(
 					{
@@ -362,10 +303,13 @@ export const profileUpdateRouter = new Hono()
 
 			const { updates, updatedFields } = buildProfileUpdate(
 				claims,
-				metadata.requestedClaims,
+				parsedMetadata.data.requestedClaims,
 			);
 			updateUser(user.id, updates);
-			updateRequestToCompleted(pendingRequest.id, claims);
+			updateRequestToCompleted(pendingRequest.id, claims, undefined, {
+				status: "authorized",
+				updatedFields,
+			});
 
 			const response = profileUpdateCompleteResponseSchema.parse({
 				updatedFields,

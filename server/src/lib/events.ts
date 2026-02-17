@@ -1,13 +1,24 @@
 import { EventEmitter } from "node:events";
+import type {
+	AuthorizationFlowType,
+	AuthorizationStreamEvent,
+} from "shared/api/authorization-sse";
 
 /**
  * Typed application events.
  * Add new event types here as the application grows.
  */
 export interface AppEventMap {
+	authorizationRequestEvent: {
+		requestId: string;
+		authorizationId: string;
+		flowType: AuthorizationFlowType;
+		event: AuthorizationStreamEvent;
+	};
+
 	/**
 	 * Fired when an auth request transitions from "pending" to any final state.
-	 * Used by callback resolver to avoid polling.
+	 * Used by callback streaming and other terminal waiters.
 	 */
 	authRequestResolved: {
 		authorizationId: string;

@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { dcApiRequestSchema } from "../types/auth";
-import { authorizationErrorInfoSchema } from "../types/vidos-errors";
 
 const profileUpdateRequestBaseSchema = z.object({
 	requestedClaims: z.array(z.string()).min(1),
@@ -37,16 +36,6 @@ export const profileUpdateRequestResponseSchema = z.discriminatedUnion("mode", [
 ]);
 export type ProfileUpdateRequestResponse = z.infer<
 	typeof profileUpdateRequestResponseSchema
->;
-
-export const profileUpdateStatusResponseSchema = z.object({
-	status: z.enum(["pending", "authorized", "rejected", "error", "expired"]),
-	updatedFields: z.array(z.string()).optional(),
-	/** Detailed error information when status is rejected/error */
-	errorInfo: authorizationErrorInfoSchema.optional(),
-});
-export type ProfileUpdateStatusResponse = z.infer<
-	typeof profileUpdateStatusResponseSchema
 >;
 
 export const profileUpdateCompleteRequestSchema = z.object({

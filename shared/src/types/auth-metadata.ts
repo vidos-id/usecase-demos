@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const paymentAuthMetadataSchema = z.object({
+	userId: z.string(),
 	transactionId: z.string(),
 	recipient: z.string(),
 	amount: z.string(),
@@ -8,6 +9,7 @@ export const paymentAuthMetadataSchema = z.object({
 });
 
 export const loanAuthMetadataSchema = z.object({
+	userId: z.string(),
 	amount: z.string(),
 	purpose: z.string(),
 	term: z.string(),

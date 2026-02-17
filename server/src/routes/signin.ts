@@ -5,15 +5,15 @@ import {
 	signinCompleteResponseSchema,
 	signinRequestResponseSchema,
 	signinRequestSchema,
-	signinStatusResponseSchema,
 } from "shared/api/signin";
 import { SIGNIN_CLAIMS, SIGNIN_PURPOSE } from "shared/lib/claims";
 import { signinClaimsSchema } from "shared/types/auth";
+import { startAuthorizationMonitor } from "../services/authorization-monitor";
+import { streamAuthorizationRequest } from "../services/authorization-stream";
 import {
 	createAuthorizationRequest,
 	forwardDCAPIResponse,
 	getExtractedCredentials,
-	pollAuthorizationStatus,
 } from "../services/vidos";
 import {
 	createPendingRequest,
@@ -41,6 +41,8 @@ export const signinRouter = new Hono()
 			responseUrl: result.mode === "dc_api" ? result.responseUrl : undefined,
 		});
 
+		startAuthorizationMonitor(pendingRequest.id);
+
 		const response = signinRequestResponseSchema.parse(
 			result.mode === "direct_post"
 				? {
@@ -61,67 +63,11 @@ export const signinRouter = new Hono()
 
 		return c.json(response);
 	})
-	.get("/status/:requestId", async (c) => {
-		const requestId = c.req.param("requestId");
-		const pendingRequest = getPendingRequestById(requestId);
-
-		if (!pendingRequest) {
-			return c.json({ error: "Request not found" }, 404);
-		}
-
-		// Poll Vidos for status
-		const statusResult = await pollAuthorizationStatus(
-			pendingRequest.vidosAuthorizationId,
-		);
-
-		if (statusResult.status === "authorized") {
-			// Get credentials validated for signin flow
-			const claims = await getExtractedCredentials(
-				pendingRequest.vidosAuthorizationId,
-				signinClaimsSchema,
-			);
-
-			const user = getUserByIdentifier(claims.personal_administrative_number);
-
-			if (!user) {
-				updateRequestToFailed(
-					pendingRequest.id,
-					"No account found with this credential.",
-				);
-				const response = signinStatusResponseSchema.parse({
-					status: "not_found" as const,
-					error: "No account found with this credential.",
-				});
-				return c.json(response);
-			}
-
-			const session = createSession({
-				userId: user.id,
-				mode: pendingRequest.mode,
-			});
-
-			updateRequestToCompleted(pendingRequest.id, claims, session.id);
-
-			const response = signinStatusResponseSchema.parse({
-				status: "authorized" as const,
-				sessionId: session.id,
-				user: {
-					id: user.id,
-					familyName: user.familyName,
-					givenName: user.givenName,
-				},
-				mode: pendingRequest.mode,
-			});
-
-			return c.json(response);
-		}
-
-		const response = signinStatusResponseSchema.parse({
-			status: statusResult.status,
-			errorInfo: statusResult.errorInfo,
+	.get("/stream/:requestId", (c) => {
+		return streamAuthorizationRequest(c, {
+			flowType: "signin",
+			authorize: () => ({ ok: true }),
 		});
-
-		return c.json(response);
 	})
 	.post(
 		"/complete/:requestId",
@@ -166,6 +112,8 @@ export const signinRouter = new Hono()
 				updateRequestToFailed(
 					pendingRequest.id,
 					"No account found. Please sign up first or use a different credential.",
+					undefined,
+					{ status: "not_found" },
 				);
 				return c.json(
 					{
@@ -181,7 +129,15 @@ export const signinRouter = new Hono()
 				mode: pendingRequest.mode,
 			});
 
-			updateRequestToCompleted(pendingRequest.id, claims, session.id);
+			updateRequestToCompleted(pendingRequest.id, claims, session.id, {
+				status: "authorized",
+				mode: pendingRequest.mode,
+				user: {
+					id: user.id,
+					familyName: user.familyName,
+					givenName: user.givenName,
+				},
+			});
 
 			const response = signinCompleteResponseSchema.parse({
 				sessionId: session.id,

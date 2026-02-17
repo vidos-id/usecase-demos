@@ -8,7 +8,6 @@ import {
 	loanPurposeSchema,
 	loanTermSchema,
 } from "../types/loan";
-import { authorizationErrorInfoSchema } from "../types/vidos-errors";
 
 // Re-export constants for client usage
 export { LOAN_AMOUNTS, LOAN_PURPOSES, LOAN_TERMS };
@@ -49,21 +48,6 @@ export const loanRequestResponseSchema = z.discriminatedUnion("mode", [
 	}),
 ]);
 export type LoanRequestResponse = z.infer<typeof loanRequestResponseSchema>;
-
-export const loanStatusResponseSchema = z.object({
-	status: z.enum(["pending", "authorized", "rejected", "error", "expired"]),
-	loanRequestId: z.string().optional(),
-	claims: z
-		.object({
-			familyName: z.string(),
-			givenName: z.string(),
-			identifier: z.string(),
-		})
-		.optional(),
-	/** Detailed error information when status is rejected/error */
-	errorInfo: authorizationErrorInfoSchema.optional(),
-});
-export type LoanStatusResponse = z.infer<typeof loanStatusResponseSchema>;
 
 export const loanCompleteRequestSchema = z.object({
 	origin: z.string(),

@@ -1,61 +1,21 @@
-import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import {
-	type CallbackResolveResponse,
-	callbackResolveRequestSchema,
-	callbackResolveResponseSchema,
-	type TransactionDetails,
-} from "shared/api/callback";
+	callbackSseEventSchema,
+	type CallbackSseState,
+} from "shared/api/callback-sse";
 import {
 	loanAuthMetadataSchema,
 	paymentAuthMetadataSchema,
 } from "shared/types/auth-metadata";
-import type { PendingAuthRequest } from "../db/schema";
+import type { PendingAuthRequest } from "../stores/pending-auth-requests";
 import { appEvents } from "../lib/events";
+import { createSseResponse, createTypedSseSender } from "../lib/sse";
 import { resolveResponseCode } from "../services/vidos";
 import { getPendingRequestByAuthId } from "../stores/pending-auth-requests";
 
-// Configuration for waiting on application-level resolution
-const MAX_WAIT_TIME_MS = 10_000; // 10 seconds
-
-/**
- * Waits for pending request status to change from "pending" using event emitter.
- * Returns the final request state or undefined if not found.
- */
-async function waitForResolution(
-	authorizationId: string,
-): Promise<PendingAuthRequest | undefined> {
-	// Check current state first
-	const request = getPendingRequestByAuthId(authorizationId);
-	if (!request) return undefined;
-	if (request.status !== "pending") return request;
-
-	// Wait for resolution event or timeout
-	return new Promise<PendingAuthRequest | undefined>((resolve) => {
-		const timeoutId = setTimeout(() => {
-			appEvents.off("authRequestResolved", handler);
-			// Return current state on timeout
-			resolve(getPendingRequestByAuthId(authorizationId));
-		}, MAX_WAIT_TIME_MS);
-
-		const handler = (event: { authorizationId: string }) => {
-			if (event.authorizationId === authorizationId) {
-				clearTimeout(timeoutId);
-				appEvents.off("authRequestResolved", handler);
-				resolve(getPendingRequestByAuthId(authorizationId));
-			}
-		};
-
-		appEvents.on("authRequestResolved", handler);
-	});
-}
-
-/**
- * Extracts transaction details from pending request metadata based on flow type.
- */
 function extractTransactionDetails(
 	request: PendingAuthRequest,
-): TransactionDetails | undefined {
+): CallbackSseState["transactionDetails"] {
 	if (!request.metadata) return undefined;
 
 	if (request.type === "payment") {
@@ -83,88 +43,178 @@ function extractTransactionDetails(
 	return undefined;
 }
 
-export const callbackRouter = new Hono().post(
-	"/resolve",
-	zValidator("json", callbackResolveRequestSchema),
-	async (c) => {
-		const { response_code } = c.req.valid("json");
+function toCallbackStatus(request: PendingAuthRequest): {
+	status: "pending" | "completed" | "failed";
+	vidosStatus?: CallbackSseState["vidosStatus"];
+} {
+	if (request.status === "pending") {
+		return { status: "pending" };
+	}
+	if (request.status === "completed") {
+		return { status: "completed" };
+	}
+	if (request.status === "expired") {
+		return { status: "failed", vidosStatus: "expired" };
+	}
+	if (request.result?.status === "rejected") {
+		return { status: "failed", vidosStatus: "rejected" };
+	}
+	if (request.result?.status === "error") {
+		return { status: "failed", vidosStatus: "error" };
+	}
+	return { status: "failed" };
+}
 
-		// Step 1: Resolve response_code with Vidos to get authorization_id
-		let vidosResult: Awaited<ReturnType<typeof resolveResponseCode>>;
+function buildState(
+	request: PendingAuthRequest,
+	responseCode: string,
+	authorizationId: string,
+	fallbackVidosStatus?: CallbackSseState["vidosStatus"],
+): CallbackSseState {
+	const base = toCallbackStatus(request);
+	const errorInfo = request.result?.errorInfo
+		? {
+				title: request.result.errorInfo.title,
+				detail: request.result.errorInfo.detail,
+				errorType: request.result.errorInfo.errorType,
+			}
+		: request.result?.error
+			? {
+					title: "Verification Failed",
+					detail: request.result.error,
+				}
+			: undefined;
+
+	return {
+		responseCode,
+		authorizationId,
+		status: base.status,
+		vidosStatus: base.vidosStatus ?? fallbackVidosStatus,
+		flowType: request.type,
+		completedAt: request.completedAt?.toISOString() ?? null,
+		transactionDetails: extractTransactionDetails(request),
+		errorInfo,
+	};
+}
+
+function toCallbackStateEvent(
+	state: CallbackSseState,
+): ReturnType<typeof callbackSseEventSchema.parse> {
+	if (state.status === "completed") {
+		return callbackSseEventSchema.parse({
+			eventType: "completed",
+			...state,
+		});
+	}
+	if (state.status === "failed") {
+		return callbackSseEventSchema.parse({
+			eventType: "failed",
+			...state,
+		});
+	}
+	return callbackSseEventSchema.parse({
+		eventType: "pending",
+		...state,
+	});
+}
+
+export const callbackRouter = new Hono().get("/stream", (c) => {
+	return createSseResponse(c, async (connection) => {
+		const sender = createTypedSseSender(connection.sendRaw, (value) =>
+			callbackSseEventSchema.parse(value),
+		);
+
+		const responseCode = c.req.query("response_code");
+		if (!responseCode) {
+			sender.send({
+				eventType: "error",
+				code: "missing_response_code",
+				message: "response_code is required",
+			});
+			connection.close();
+			return;
+		}
+
+		let resolved: Awaited<ReturnType<typeof resolveResponseCode>>;
 		try {
-			vidosResult = await resolveResponseCode(response_code);
-		} catch (error) {
-			// 404 or other error from Vidos
-			console.error("[Callback] resolveResponseCode failed:", error);
-			return c.json(
-				{
-					error: "Invalid or expired response code",
-					detail: error instanceof Error ? error.message : "Unknown error",
-				},
-				404,
-			);
+			resolved = await resolveResponseCode(responseCode);
+		} catch {
+			sender.send({
+				eventType: "error",
+				responseCode,
+				code: "invalid_response_code",
+				message: "Invalid or expired response code",
+			});
+			connection.close();
+			return;
 		}
 
-		// Step 2: Wait for application-level resolution
-		const pendingRequest = await waitForResolution(vidosResult.authorizationId);
-
+		const pendingRequest = getPendingRequestByAuthId(resolved.authorizationId);
 		if (!pendingRequest) {
-			// No pending request found for this authorization
-			// This could happen if the authorization was created outside our system
-			console.warn(
-				"[Callback] No pending request found for authorization:",
-				vidosResult.authorizationId,
-			);
-			return c.json(
-				{
-					error: "Authorization not found in system",
-				},
-				404,
-			);
+			sender.send({
+				eventType: "error",
+				responseCode,
+				code: "authorization_not_found",
+				message: "Authorization not found in system",
+			});
+			connection.close();
+			return;
 		}
 
-		// Step 3: Build response based on final state
-		const transactionDetails = extractTransactionDetails(pendingRequest);
+		const initialState = buildState(
+			pendingRequest,
+			responseCode,
+			resolved.authorizationId,
+			resolved.status,
+		);
+		sender.send({
+			eventType: "connected",
+		});
 
-		let response: CallbackResolveResponse;
+		const initialEvent = toCallbackStateEvent(initialState);
+		sender.send(initialEvent);
 
-		if (pendingRequest.status === "completed") {
-			response = {
-				status: "completed",
-				flowType: pendingRequest.type,
-				completedAt: pendingRequest.completedAt?.toISOString() ?? null,
-				transactionDetails,
-			};
-		} else if (pendingRequest.status === "failed") {
-			const result = pendingRequest.result as { error?: string } | undefined;
-			response = {
-				status: "failed",
-				flowType: pendingRequest.type,
-				completedAt: pendingRequest.completedAt?.toISOString() ?? null,
-				transactionDetails,
-				errorInfo: result?.error
-					? {
-							title: "Verification Failed",
-							detail: result.error,
-						}
-					: {
-							title: "Verification Failed",
-							detail: "The verification could not be completed.",
-						},
-			};
-		} else {
-			// Still pending after timeout - return Vidos status
-			response = {
-				status: "pending",
-				vidosStatus: vidosResult.status,
-				flowType: pendingRequest.type,
-				completedAt: null,
-				transactionDetails,
-			};
+		if (initialEvent.eventType !== "pending") {
+			connection.close();
+			return;
 		}
 
-		// Validate and return
-		const validated = callbackResolveResponseSchema.parse(response);
-		return c.json(validated);
-	},
-);
+		const listener = (payload: {
+			authorizationId: string;
+			event: { eventType: string };
+		}) => {
+			if (payload.authorizationId !== resolved.authorizationId) {
+				return;
+			}
+
+			const latest = getPendingRequestByAuthId(resolved.authorizationId);
+			if (!latest) {
+				sender.send({
+					eventType: "error",
+					responseCode,
+					code: "authorization_not_found",
+					message: "Authorization not found in system",
+				});
+				connection.close();
+				return;
+			}
+
+			const state = buildState(
+				latest,
+				responseCode,
+				resolved.authorizationId,
+				resolved.status,
+			);
+			const stateEvent = toCallbackStateEvent(state);
+			sender.send(stateEvent);
+			if (stateEvent.eventType !== "pending") {
+				connection.close();
+			}
+		};
+
+		appEvents.on("authorizationRequestEvent", listener);
+		connection.onClose(() => {
+			appEvents.off("authorizationRequestEvent", listener);
+		});
+	});
+});

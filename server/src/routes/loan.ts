@@ -1,21 +1,23 @@
 import { randomUUID } from "node:crypto";
 import { zValidator } from "@hono/zod-validator";
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import {
 	loanCompleteRequestSchema,
 	loanCompleteResponseSchema,
 	loanRequestResponseSchema,
 	loanRequestSchema,
-	loanStatusResponseSchema,
 } from "shared/api/loan";
 import { LOAN_CLAIMS, LOAN_PURPOSE } from "shared/lib/claims";
+import { loanAuthMetadataSchema } from "shared/types/auth-metadata";
 import { loanClaimsSchema } from "shared/types/auth";
 import { vidosErrorTypes } from "shared/types/vidos-errors";
+import { getSessionFromRequest } from "../lib/request-session";
+import { startAuthorizationMonitor } from "../services/authorization-monitor";
+import { streamAuthorizationRequest } from "../services/authorization-stream";
 import {
 	createAuthorizationRequest,
 	forwardDCAPIResponse,
 	getExtractedCredentials,
-	pollAuthorizationStatus,
 } from "../services/vidos";
 import {
 	createPendingRequest,
@@ -23,15 +25,10 @@ import {
 	updateRequestToCompleted,
 	updateRequestToFailed,
 } from "../stores/pending-auth-requests";
-import { getSessionById } from "../stores/sessions";
 import { getUserById, updateUser } from "../stores/users";
 
-function getSession(c: {
-	req: { header: (name: string) => string | undefined };
-}) {
-	const authHeader = c.req.header("Authorization");
-	if (!authHeader?.startsWith("Bearer ")) return null;
-	return getSessionById(authHeader.slice(7));
+function getSession(c: Context) {
+	return getSessionFromRequest(c);
 }
 
 export const loanRouter = new Hono()
@@ -76,8 +73,15 @@ export const loanRouter = new Hono()
 			type: "loan",
 			mode: modeParams.mode,
 			responseUrl: result.mode === "dc_api" ? result.responseUrl : undefined,
-			metadata: { amount, purpose: loanPurpose, term },
+			metadata: {
+				userId: session.userId,
+				amount,
+				purpose: loanPurpose,
+				term,
+			},
 		});
+
+		startAuthorizationMonitor(pendingRequest.id);
 
 		const response = loanRequestResponseSchema.parse(
 			result.mode === "direct_post"
@@ -99,92 +103,23 @@ export const loanRouter = new Hono()
 
 		return c.json(response);
 	})
-	.get("/status/:requestId", async (c) => {
-		const session = getSession(c);
-		if (!session) return c.json({ error: "Unauthorized" }, 401);
-
-		const requestId = c.req.param("requestId");
-		const pendingRequest = getPendingRequestById(requestId);
-
-		if (!pendingRequest) {
-			return c.json({ error: "Request not found" }, 404);
-		}
-
-		const statusResult = await pollAuthorizationStatus(
-			pendingRequest.vidosAuthorizationId,
-		);
-
-		if (statusResult.status === "authorized") {
-			const claims = await getExtractedCredentials(
-				pendingRequest.vidosAuthorizationId,
-				loanClaimsSchema,
-			);
-			const user = getUserById(session.userId);
-
-			if (!user || user.identifier !== claims.personal_administrative_number) {
-				updateRequestToFailed(
-					pendingRequest.id,
-					"The credential used for verification does not match your account identity.",
+	.get("/stream/:requestId", (c) => {
+		return streamAuthorizationRequest(c, {
+			flowType: "loan",
+			authorize: (ctx, pendingRequest) => {
+				const session = getSession(ctx);
+				if (!session) {
+					return { ok: false, status: 401, message: "Unauthorized" } as const;
+				}
+				const parsed = loanAuthMetadataSchema.safeParse(
+					pendingRequest.metadata,
 				);
-				return c.json({
-					status: "rejected" as const,
-					errorInfo: {
-						errorType: vidosErrorTypes.identityMismatch,
-						title: "Identity Mismatch",
-						detail:
-							"The credential used for verification does not match your account identity.",
-					},
-				});
-			}
-
-			const loanRequestId = `loan-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-
-			// Append loan activity and update balance + pendingLoansTotal (direct_post flow)
-			const metadata = pendingRequest.metadata as {
-				amount: string;
-				purpose: string;
-				term: string;
-			};
-			const loanAmount = Number(metadata.amount);
-			const activityItem = {
-				id: randomUUID(),
-				type: "loan" as const,
-				title: "Loan application submitted",
-				amount: loanAmount,
-				createdAt: new Date().toISOString(),
-				meta: {
-					loanAmount,
-					loanPurpose: metadata.purpose,
-					loanTerm: Number(metadata.term),
-				},
-			};
-			updateUser(user.id, {
-				balance: user.balance + loanAmount,
-				pendingLoansTotal: user.pendingLoansTotal + loanAmount,
-				activity: [activityItem, ...user.activity],
-			});
-
-			updateRequestToCompleted(pendingRequest.id, claims);
-
-			const response = loanStatusResponseSchema.parse({
-				status: "authorized" as const,
-				loanRequestId,
-				claims: {
-					familyName: claims.family_name,
-					givenName: claims.given_name,
-					identifier: claims.personal_administrative_number,
-				},
-			});
-
-			return c.json(response);
-		}
-
-		const response = loanStatusResponseSchema.parse({
-			status: statusResult.status,
-			errorInfo: statusResult.errorInfo,
+				if (!parsed.success || parsed.data.userId !== session.userId) {
+					return { ok: false, status: 403, message: "Unauthorized" } as const;
+				}
+				return { ok: true } as const;
+			},
 		});
-
-		return c.json(response);
 	})
 	.post(
 		"/complete/:requestId",
@@ -199,6 +134,16 @@ export const loanRouter = new Hono()
 			const pendingRequest = getPendingRequestById(requestId);
 			if (!pendingRequest) {
 				return c.json({ error: "Request not found or expired" }, 404);
+			}
+
+			const parsedMetadata = loanAuthMetadataSchema.safeParse(
+				pendingRequest.metadata,
+			);
+			if (
+				!parsedMetadata.success ||
+				parsedMetadata.data.userId !== session.userId
+			) {
+				return c.json({ error: "Unauthorized" }, 403);
 			}
 
 			const result = await forwardDCAPIResponse({
@@ -229,6 +174,13 @@ export const loanRouter = new Hono()
 				updateRequestToFailed(
 					pendingRequest.id,
 					"The credential used for verification does not match your account identity.",
+					{
+						errorType: vidosErrorTypes.identityMismatch,
+						title: "Identity Mismatch",
+						detail:
+							"The credential used for verification does not match your account identity.",
+					},
+					{ status: "rejected" },
 				);
 				return c.json(
 					{
@@ -247,11 +199,7 @@ export const loanRouter = new Hono()
 			const loanRequestId = `loan-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
 			// Append loan activity and update balance + pendingLoansTotal
-			const metadata = pendingRequest.metadata as {
-				amount: string;
-				purpose: string;
-				term: string;
-			};
+			const metadata = parsedMetadata.data;
 			const loanAmount = Number(metadata.amount);
 			const activityItem = {
 				id: randomUUID(),
@@ -271,7 +219,10 @@ export const loanRouter = new Hono()
 				activity: [activityItem, ...user.activity],
 			});
 
-			updateRequestToCompleted(pendingRequest.id, claims);
+			updateRequestToCompleted(pendingRequest.id, claims, undefined, {
+				status: "authorized",
+				loanRequestId,
+			});
 
 			const response = loanCompleteResponseSchema.parse({
 				loanRequestId,
