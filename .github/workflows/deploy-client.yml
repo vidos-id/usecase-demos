@@ -55,6 +55,8 @@ jobs:
         run: |
           pulumi login "$PULUMI_BACKEND_URL"
           pulumi stack select "$PULUMI_STACK"
+          pulumi config set vidos:authorizerUrl "$VIDOS_AUTHORIZER_URL" --secret
+          pulumi config set vidos:apiKey "$VIDOS_API_KEY" --secret
           pulumi config set lightsail:deploy false
           pulumi cancel --yes || true
           pulumi up --yes
@@ -69,6 +71,8 @@ jobs:
         run: |
           pulumi login "$PULUMI_BACKEND_URL"
           pulumi stack select "$PULUMI_STACK"
+          pulumi config set vidos:authorizerUrl "$VIDOS_AUTHORIZER_URL" --secret
+          pulumi config set vidos:apiKey "$VIDOS_API_KEY" --secret
           pulumi config set lightsail:deploy true
           pulumi cancel --yes || true
           pulumi up --yes
