@@ -14,6 +14,10 @@ permissions:
   pages: write
   id-token: write
 
+env:
+  PULUMI_STACK: demo
+  PULUMI_BACKEND_URL: s3://vidos-demo-pulumi-state
+
 # Allow one concurrent deployment
 concurrency:
   group: 'pages'
@@ -21,7 +25,46 @@ concurrency:
 
 jobs:
   # Single deploy job since we're just deploying
+  deploy-infra:
+    runs-on: ubuntu-24.04-arm
+    outputs:
+      server_url: ${{ steps.stack-outputs.outputs.server_url }}
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+      VIDOS_AUTHORIZER_URL: ${{ secrets.VIDOS_AUTHORIZER_URL }}
+      VIDOS_API_KEY: ${{ secrets.VIDOS_API_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Install root dependencies
+        run: bun install
+      - name: Install infrastructure dependencies
+        run: npm install
+        working-directory: infrastructure
+      - name: Pulumi up
+        run: |
+          pulumi login "$PULUMI_BACKEND_URL"
+          pulumi stack select "$PULUMI_STACK"
+          pulumi up --yes
+        working-directory: infrastructure
+      - name: Read stack outputs
+        id: stack-outputs
+        run: |
+          echo "server_url=$(pulumi stack output endpoint)" >> "$GITHUB_OUTPUT"
+        working-directory: infrastructure
+      - name: Deploy backend container
+        run: bun scripts/deploy.ts
   deploy:
+    needs: deploy-infra
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -35,7 +78,7 @@ jobs:
         run: bun install
       - name: Build
         env:
-          VITE_VIDOS_DEMO_BANK_SERVER_URL: ${{ vars.VITE_VIDOS_DEMO_BANK_SERVER_URL }}
+          VITE_VIDOS_DEMO_BANK_SERVER_URL: ${{ needs.deploy-infra.outputs.server_url }}
         run: |
           bun run build:client
           cp client/dist/index.html client/dist/404.html
