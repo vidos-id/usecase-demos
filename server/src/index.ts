@@ -1,19 +1,9 @@
 import { app } from "./app";
-import { vidosAuthorizerHealthCheck } from "./services/vidos";
+import { validateHealthStartup } from "./startup";
 
 export { app };
 
-Promise.resolve()
-	.then(vidosAuthorizerHealthCheck)
-	.then(
-		(healthy) => {
-			console.log(
-				`Vidos Authorizer Health Check: ${healthy ? "Healthy" : "Unhealthy"}`,
-			);
-		},
-		(error) => {
-			console.error("Error during Vidos Authorizer Health Check:", error);
-		},
-	);
+// Run startup validation
+validateHealthStartup();
 
 export default app;
