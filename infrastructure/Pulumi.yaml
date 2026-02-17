@@ -1,0 +1,3 @@
+name: usecase-demos-infrastructure
+runtime: nodejs
+description: AWS Lightsail deployment for Vidos use case demos
