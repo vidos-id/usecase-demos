@@ -88,16 +88,33 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-24.04-arm
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
+      PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Install dependencies
         run: bun install
+      - name: Resolve server URL
+        id: resolve-server-url
+        run: |
+          pulumi login "$PULUMI_BACKEND_URL"
+          pulumi stack select "$PULUMI_STACK"
+          echo "server_url=$(pulumi stack output endpoint)" >> "$GITHUB_OUTPUT"
+        working-directory: infrastructure
       - name: Build
         env:
-          VITE_VIDOS_DEMO_BANK_SERVER_URL: ${{ needs.deploy-infra.outputs.server_url }}
+          VITE_VIDOS_DEMO_BANK_SERVER_URL: ${{ steps.resolve-server-url.outputs.server_url }}
         run: |
           bun run build:client
           cp client/dist/index.html client/dist/404.html
