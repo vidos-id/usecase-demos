@@ -4,6 +4,7 @@ import * as pulumi from "@pulumi/pulumi";
 const vidosConfig = new pulumi.Config("vidos");
 const vidosAuthorizerUrl = vidosConfig.requireSecret("authorizerUrl");
 const vidosApiKey = vidosConfig.getSecret("apiKey") ?? pulumi.secret("");
+const databasePath = "/app/data/vidos-demo.db";
 
 const lightsailConfig = new pulumi.Config("lightsail");
 const serviceTier = lightsailConfig.get("serviceTier") ?? "micro";
@@ -110,6 +111,7 @@ if (deployEnabled) {
 					environment: {
 						VIDOS_AUTHORIZER_URL: vidosAuthorizerUrl,
 						VIDOS_API_KEY: vidosApiKey,
+						DATABASE_PATH: databasePath,
 					},
 				},
 			],
