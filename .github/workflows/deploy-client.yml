@@ -51,17 +51,20 @@ jobs:
       - name: Build infrastructure
         run: npm run build
         working-directory: infrastructure
+      - name: Pulumi up (create infra)
+        run: |
+          pulumi login "$PULUMI_BACKEND_URL"
+          pulumi stack select "$PULUMI_STACK"
+          pulumi cancel --yes || true
+          pulumi up --yes
+        working-directory: infrastructure
       - name: Build and push latest image
         run: |
-          repo_name="usecase-demos-${PULUMI_STACK}"
-          repo_uri=$(aws ecr describe-repositories --repository-names "$repo_name" --query 'repositories[0].repositoryUri' --output text 2>/dev/null || true)
-          if [ -z "$repo_uri" ] || [ "$repo_uri" = "None" ]; then
-            repo_uri=$(aws ecr create-repository --repository-name "$repo_name" --query 'repository.repositoryUri' --output text)
-          fi
+          repo_uri=$(pulumi stack output ecrRepositoryUrl --cwd infrastructure)
           aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$repo_uri"
           docker build -f Dockerfile.server -t "$repo_uri:latest" .
           docker push "$repo_uri:latest"
-      - name: Pulumi up
+      - name: Pulumi up (deploy image)
         run: |
           pulumi login "$PULUMI_BACKEND_URL"
           pulumi stack select "$PULUMI_STACK"
@@ -73,8 +76,6 @@ jobs:
         run: |
           echo "server_url=$(pulumi stack output endpoint)" >> "$GITHUB_OUTPUT"
         working-directory: infrastructure
-      - name: Deploy backend container
-        run: bun scripts/deploy.ts
   deploy:
     needs: deploy-infra
     environment:
