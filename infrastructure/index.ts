@@ -63,25 +63,25 @@ const ecrPullerPrincipalArn = service.privateRegistryAccess.apply(
 	},
 );
 
-const repositoryPolicyDocument = aws.iam.getPolicyDocumentOutput({
-	statements: [
-		{
-			effect: "Allow",
-			principals: [
-				{
-					type: "AWS",
-					identifiers: [ecrPullerPrincipalArn],
+const repositoryPolicyDocument = ecrPullerPrincipalArn.apply((principalArn) =>
+	JSON.stringify({
+		Version: "2012-10-17",
+		Statement: [
+			{
+				Sid: "AllowLightsailPull",
+				Effect: "Allow",
+				Principal: {
+					AWS: principalArn,
 				},
-			],
-			actions: [
-				"ecr:BatchCheckLayerAvailability",
-				"ecr:BatchGetImage",
-				"ecr:GetDownloadUrlForLayer",
-			],
-			resources: [repository.arn],
-		},
-	],
-}).json;
+				Action: [
+					"ecr:BatchCheckLayerAvailability",
+					"ecr:BatchGetImage",
+					"ecr:GetDownloadUrlForLayer",
+				],
+			},
+		],
+	}),
+);
 
 new aws.ecr.RepositoryPolicy(
 	"usecaseDemos",
