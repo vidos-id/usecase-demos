@@ -17,9 +17,21 @@ src/
 - API client in `lib/api-client.ts`, access via `useRouteContext({ from: "__root__" })`.
 - Path alias: `@/*` → `./src/*`.
 - Navigation: Use TanStack Router's `<Link>`/`useNavigate()` — never raw `<a href>` (basepath support).
-- Data fetching: `useMutation` for API calls, `useQuery` for polling. Avoid `useEffect` + `useState` for async.
+- Data fetching: `useMutation` for API calls. For authorization/callback waiting, use SSE hooks (not polling queries).
 - Route search params: Use Zod schemas directly in `validateSearch`, example: `createFileRoute("/_auth/send/success")({ validateSearch: successSearchSchema, ....`.
 - Env: `VITE_VIDOS_DEMO_BANK_SERVER_URL` required.
+
+## Authorization Awaiting (SSE)
+
+- Use `useAuthorizationStream` for auth request lifecycle updates (`signin`, `signup`, `profile`, `loan`, `payment`).
+- Use `useCallbackStream` on callback flow (`/callback`) keyed by `response_code`.
+- Build stream URLs with `createStreamUrl(...)` from `src/lib/sse.ts`.
+- Expected auth event handling:
+  - ignore non-terminal: `connected`, `pending`
+  - handle terminal: `authorized`, `expired`, `rejected`, `not_found`, `account_exists`, `error`
+  - close stream on terminal event (`controls.close()`).
+- Keep parsing strictly typed with shared Zod schemas from `shared/api/authorization-sse` and `shared/api/callback-sse`.
+- Do not re-introduce timer/query polling for auth status unless explicitly requested.
 
 ## Design Language
 

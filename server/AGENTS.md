@@ -22,10 +22,23 @@ src/stores/     # in-memory/persistence
 - Schemas live in `shared/src/api/*`, import via `"shared/api/xxx"` only.
 - Avoid controller classes; prefer `app.route()` + small routers.
 
+## Authorization Awaiting (SSE)
+
+- Authorization waiting is server-driven via SSE + monitor, not per-client polling endpoints.
+- When creating a pending auth request, start monitor: `startAuthorizationMonitor(requestId)`.
+- Monitor cadence is centralized in `src/services/authorization-monitor.ts` and checks Vidos status, then applies transition logic.
+- Request transitions must go through `src/services/pending-request-transition.ts` to keep state changes/idempotency consistent.
+- Stream auth request updates via `streamAuthorizationRequest(...)` in `src/services/authorization-stream.ts`.
+- SSE transport primitives live in `src/lib/sse.ts` (typed sender, keepalive, cleanup).
+- Emit/consume typed internal events via `appEvents` in `src/lib/events.ts` (`authorizationRequestEvent`, `authRequestResolved`).
+- Callback waiting also uses SSE (`src/routes/callback.ts`) with shared schema `shared/api/callback-sse`.
+- Do not add new `/status/:requestId` polling routes unless explicitly requested.
+
 ## Pitfalls
 
 - `hc` path params do not match `/` unless encoded. Use `encodeURIComponent`.
 - Bun has a 128MiB request limit; raise `Bun.serve({ maxRequestBodySize })` if needed.
+- SSE connections can hit idle timeouts if no data is sent; keepalive interval in `src/lib/sse.ts` must stay below runtime/proxy idle timeout.
 
 ## Deployment
 

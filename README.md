@@ -39,18 +39,18 @@ Bun + Turbo monorepo with three workspaces:
 
 ```
 client/          # React + Vite frontend (TanStack Router, Tailwind)
-server/          # Hono API server with Vidos SDK integration  
+server/          # Hono API server with Vidos SDK integration
 shared/          # Zod schemas and TypeScript types
 ```
 
 ### Key Integration Points
 
-| File | Description |
-|------|-------------|
+| File                           | Description                                 |
+| ------------------------------ | ------------------------------------------- |
 | `server/src/services/vidos.ts` | Vidos SDK setup and credential verification |
-| `server/src/routes/verify.ts` | OID4VP verification flow handlers |
-| `client/src/lib/api-client.ts` | Type-safe API client with Hono RPC |
-| `client/src/routes/_auth/` | Protected routes requiring wallet auth |
+| `server/src/routes/verify.ts`  | OID4VP verification flow handlers           |
+| `client/src/lib/api-client.ts` | Type-safe API client with Hono RPC          |
+| `client/src/routes/_auth/`     | Protected routes requiring wallet auth      |
 
 ## Resources
 
@@ -70,6 +70,15 @@ shared/          # Zod schemas and TypeScript types
 | `bun run check-types` | Type-check all workspaces |
 | `bun run lint`        | Lint with Biome           |
 | `bun run format`      | Format with Biome         |
+
+## Authorization Waiting Model (SSE)
+
+Short change summary from `replace-polling-with-sse` proposal:
+
+- Authorization/callback waiting is **push-based SSE**, not client polling.
+- Server emits compact typed transition events: `connected`, `pending`, terminal events, and `error`.
+- Client subscribes with browser `EventSource` and updates UI from stream events.
+- Polling `/status/:requestId` endpoints were removed from auth flows.
 
 ## Deployment
 
