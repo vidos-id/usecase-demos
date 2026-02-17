@@ -1,6 +1,5 @@
 config:
   aws:region: eu-west-1
-  vidos:authorizerUrl: "https://explicit-aquamarine-mackerel-514.gateway.service.eu.vidos.dev/authorizer"
   vidos:apiKey: ""
   lightsail:serviceTier: micro
   lightsail:scale: "1"

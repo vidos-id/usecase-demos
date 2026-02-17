@@ -65,6 +65,7 @@ jobs:
         run: |
           pulumi login "$PULUMI_BACKEND_URL"
           pulumi stack select "$PULUMI_STACK"
+          pulumi cancel --yes || true
           pulumi up --yes
         working-directory: infrastructure
       - name: Read stack outputs
