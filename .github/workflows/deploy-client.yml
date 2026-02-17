@@ -16,7 +16,7 @@ permissions:
 
 env:
   PULUMI_STACK: demo
-  PULUMI_BACKEND_URL: s3://vidos-demo-pulumi-state
+  PULUMI_BACKEND_URL: s3://vidos-demo-pulumi-state-store
 
 # Allow one concurrent deployment
 concurrency:
