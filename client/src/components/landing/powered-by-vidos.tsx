@@ -47,7 +47,7 @@ export function PoweredByVidos() {
 						</span>
 						<div className="h-4 w-px bg-border/50" />
 						<img
-							src={"/usecase-demos/vidos-logo.svg"}
+							src={"/vidos-logo.svg"}
 							alt="Vidos"
 							className="h-5 dark:invert transition-transform duration-300 group-hover:scale-105"
 						/>
