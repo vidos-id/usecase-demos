@@ -8,7 +8,7 @@ Open source demos showcasing **EU Digital Identity (EUDI) Wallet** integration w
 
 A banking application demonstrating PID-based identity verification, KYC, and payment authentication.
 
-**[Live Demo](https://vidos-id.github.io/usecase-demos/)** · [Source](./client/) · [Server](./server/)
+**[Live Demo](https://eudi-usecase.demo.vidos.id/)** · [Source](./client/) · [Server](./server/)
 
 ## What This Demo Shows
 
