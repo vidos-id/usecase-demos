@@ -1,11 +1,11 @@
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-interface PollingStatusProps {
+interface VerificationStatusProps {
 	onCancel: () => void;
 }
 
-export function PollingStatus({ onCancel }: PollingStatusProps) {
+export function VerificationStatus({ onCancel }: VerificationStatusProps) {
 	return (
 		<div className="flex flex-col items-center space-y-4">
 			<Loader2 className="w-8 h-8 animate-spin text-primary" />

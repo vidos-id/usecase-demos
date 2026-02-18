@@ -23,17 +23,17 @@ The system SHALL monitor pending authorization requests on the server independen
 ### Requirement: Authorization Status SSE Stream
 The system SHALL provide request-scoped SSE status streams for signin, signup, profile update, loan, and payment authorization flows.
 
-#### Scenario: Stream sends connected snapshot
+#### Scenario: Stream sends connected confirmation
 - **WHEN** client subscribes to authorization stream with a valid `requestId`
-- **THEN** system sends a `connected` event containing the current persisted status snapshot
+- **THEN** system sends a `connected` event confirming the subscription
 
-#### Scenario: Stream sends status update events
-- **WHEN** request transitions through non-terminal state updates
-- **THEN** system sends `status_update` events for that `requestId`
+#### Scenario: Stream sends flow-specific state events
+- **WHEN** request state changes or a current state is resolved for an active stream
+- **THEN** system sends typed flow-specific events for that `requestId` (`pending`, `authorized`, `expired`, `not_found`, `account_exists`, `rejected`, `error`)
 
-#### Scenario: Stream sends terminal event and closes
+#### Scenario: Stream sends terminal state event and closes
 - **WHEN** request reaches terminal state (`authorized`, `rejected`, `error`, or `expired`)
-- **THEN** system sends a `terminal` event with final status payload
+- **THEN** system sends the corresponding terminal typed event for the final status payload
 - **THEN** system closes or finalizes stream lifecycle for that request
 
 ### Requirement: Callback Resolution SSE by Response Code
@@ -54,7 +54,9 @@ The system SHALL define and enforce typed SSE event payloads shared across serve
 
 #### Scenario: Shared discriminated union contract
 - **WHEN** SSE event schemas are defined in shared API contracts
-- **THEN** schemas use discriminated union typing for supported event variants (`connected`, `status_update`, `terminal`, `error`)
+- **THEN** schemas use discriminated union typing for supported event variants
+- **THEN** authorization stream variants are `connected`, `pending`, `authorized`, `expired`, `not_found`, `account_exists`, `rejected`, `error`
+- **THEN** callback stream variants are `connected`, `pending`, `completed`, `failed`, `error`
 - **THEN** server and client use those same schemas for runtime validation and static typing
 
 #### Scenario: Invalid payload is rejected

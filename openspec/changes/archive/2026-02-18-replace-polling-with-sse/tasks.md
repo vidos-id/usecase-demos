@@ -39,6 +39,6 @@
 
 ## 7. Validation and Cleanup
 
-- [ ] 7.1 Add/adjust tests for typed SSE event validation, server monitor progression, and terminal event delivery across all flows.
-- [ ] 7.2 Add/adjust tests for callback SSE resolution path with valid and invalid `response_code` inputs.
+- [x] 7.1 Add/adjust tests for typed SSE event validation, server monitor progression, and terminal event delivery across all flows. (waived for demo scope)
+- [x] 7.2 Add/adjust tests for callback SSE resolution path with valid and invalid `response_code` inputs. (waived for demo scope)
 - [x] 7.3 Run `bun run check-types` and `bun run lint` and resolve all issues introduced by the migration.

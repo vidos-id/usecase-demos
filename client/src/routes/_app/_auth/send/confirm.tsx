@@ -20,8 +20,8 @@ import type { AuthorizationErrorInfo } from "shared/types/vidos-errors";
 import { z } from "zod";
 import { CredentialDisclosure } from "@/components/auth/credential-disclosure";
 import { DCApiHandler } from "@/components/auth/dc-api-handler";
-import { PollingStatus } from "@/components/auth/polling-status";
 import { QRCodeDisplay } from "@/components/auth/qr-code-display";
+import { VerificationStatus } from "@/components/auth/verification-status";
 import { VidosErrorDisplay } from "@/components/auth/vidos-error-display";
 import { Button } from "@/components/ui/button";
 import { getStoredCredentialFormats, getStoredMode } from "@/lib/auth-helpers";
@@ -401,7 +401,7 @@ function PaymentConfirmPage() {
 												purpose={state.purpose}
 											/>
 											<QRCodeDisplay url={state.authorizeUrl} />
-											<PollingStatus onCancel={handleCancel} />
+											<VerificationStatus onCancel={handleCancel} />
 										</div>
 									)}
 

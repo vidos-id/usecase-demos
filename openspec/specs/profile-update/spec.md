@@ -1,5 +1,7 @@
 # Profile Update
 
+## Purpose
+
 Defines selective profile refresh from PID credentials with inline field selection and client cache refresh.
 
 ## Requirements

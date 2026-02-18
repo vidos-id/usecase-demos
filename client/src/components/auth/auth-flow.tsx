@@ -12,8 +12,8 @@ import { CredentialDisclosure } from "@/components/auth/credential-disclosure";
 import { CredentialFormatSelector } from "@/components/auth/credential-format-selector";
 import { DCApiHandler } from "@/components/auth/dc-api-handler";
 import { ModeSelector } from "@/components/auth/mode-selector";
-import { PollingStatus } from "@/components/auth/polling-status";
 import { QRCodeDisplay } from "@/components/auth/qr-code-display";
+import { VerificationStatus } from "@/components/auth/verification-status";
 import { VidosErrorDisplay } from "@/components/auth/vidos-error-display";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -451,7 +451,7 @@ export function AuthFlow({ config }: { config: AuthFlowConfig }) {
 									purpose={state.purpose}
 								/>
 								<QRCodeDisplay url={state.authorizeUrl} />
-								<PollingStatus onCancel={handleCancel} />
+								<VerificationStatus onCancel={handleCancel} />
 							</CardContent>
 						</Card>
 					)}

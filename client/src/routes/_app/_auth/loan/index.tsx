@@ -24,8 +24,8 @@ import type { CredentialFormats, DcApiRequest } from "shared/types/auth";
 import type { AuthorizationErrorInfo } from "shared/types/vidos-errors";
 import { CredentialDisclosure } from "@/components/auth/credential-disclosure";
 import { DCApiHandler } from "@/components/auth/dc-api-handler";
-import { PollingStatus } from "@/components/auth/polling-status";
 import { QRCodeDisplay } from "@/components/auth/qr-code-display";
+import { VerificationStatus } from "@/components/auth/verification-status";
 import { VidosErrorDisplay } from "@/components/auth/vidos-error-display";
 import {
 	AUTH_PAGE_MAX_WIDTH_CLASS,
@@ -668,7 +668,7 @@ function LoanPage() {
 						<div className="rounded-2xl border border-border/60 bg-background overflow-hidden">
 							<div className="p-6 lg:p-8 space-y-4">
 								<QRCodeDisplay url={state.authorizeUrl} />
-								<PollingStatus onCancel={handleReset} />
+								<VerificationStatus onCancel={handleReset} />
 							</div>
 						</div>
 					</div>

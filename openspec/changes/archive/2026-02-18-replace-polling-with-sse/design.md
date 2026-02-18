@@ -55,9 +55,9 @@ Decision:
 - Add shared Zod schemas as discriminated unions for SSE events (e.g., `eventType`) in `shared/src/api/*`.
 - Define strongly typed server serializers and client parsers from those schemas.
 - Event set includes:
-  - `connected`: subscription confirmation + initial snapshot.
-  - `status_update`: non-terminal transition.
-  - `terminal`: completed/failed/expired terminal payload.
+  - `connected`: subscription confirmation.
+  - `pending`: non-terminal pending state.
+  - flow-specific typed terminal events (`authorized`, `expired`, `not_found`, `account_exists`, `rejected`, `error`).
   - `error`: structured error payload.
 
 Rationale:

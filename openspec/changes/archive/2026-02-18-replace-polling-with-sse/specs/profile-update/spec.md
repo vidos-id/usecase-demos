@@ -4,7 +4,7 @@
 
 ### Requirement: Profile Update Status Polling
 **Reason**: Status polling is replaced by SSE updates and server-managed authorization monitoring.
-**Migration**: Subscribe to profile update SSE stream by `requestId` and handle `connected`, `status_update`, and `terminal` events.
+**Migration**: Subscribe to profile update SSE stream by `requestId` and handle `connected`, `pending`, and typed terminal status events.
 
 ## ADDED Requirements
 
@@ -18,8 +18,8 @@ The system SHALL stream profile update authorization status over SSE while autho
 
 #### Scenario: Stream terminal completion result
 - **WHEN** server monitoring or callback/DC API processing transitions request to terminal state
-- **THEN** system emits `terminal` event containing final status (`authorized`, `rejected`, `error`, or `expired`)
-- **THEN** for `authorized` status system updates user fields from extracted claims and deletes the pending request
+- **THEN** system emits the typed terminal status event (`authorized`, `rejected`, `error`, or `expired`)
+- **THEN** for `authorized` status system updates user fields from extracted claims and marks the request as completed
 
 #### Scenario: Resume after client reconnect
 - **WHEN** client reconnects to the profile update SSE stream after disconnect
