@@ -9,7 +9,7 @@ import {
 	Smartphone,
 	Wallet,
 } from "lucide-react";
-import { useState } from "react";
+import { z } from "zod";
 import { EudiGuide } from "@/components/guide/eudi-guide";
 import { MultipazGuide } from "@/components/guide/multipaz-guide";
 import { ProtocolCard, SectionHeader } from "@/components/guide/shared";
@@ -17,14 +17,29 @@ import { ValeraGuide } from "@/components/guide/valera-guide";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+const walletTabs = ["eudi", "multipaz", "valera"] as const;
+const walletTabSchema = z.enum(walletTabs);
+const guideSearchSchema = z.object({
+	wallet: walletTabSchema.optional(),
+});
+
 export const Route = createFileRoute("/_app/guide")({
+	validateSearch: guideSearchSchema,
 	component: GuidePage,
 });
 
-type WalletTab = "eudi" | "multipaz" | "valera";
+type WalletTab = (typeof walletTabs)[number];
 
 function GuidePage() {
-	const [activeTab, setActiveTab] = useState<WalletTab>("eudi");
+	const search = Route.useSearch();
+	const navigate = Route.useNavigate();
+	const activeTab = search.wallet ?? "eudi";
+
+	const handleTabChange = (wallet: WalletTab) => {
+		navigate({
+			search: (previous) => ({ ...previous, wallet }),
+		});
+	};
 
 	return (
 		<div className="min-h-[calc(100vh-4rem)] py-8 px-4 sm:px-6 lg:px-8">
@@ -59,21 +74,21 @@ function GuidePage() {
 					<div className="flex gap-2 p-1 rounded-xl bg-muted/50 border border-border/60 w-fit">
 						<WalletTab
 							active={activeTab === "eudi"}
-							onClick={() => setActiveTab("eudi")}
+							onClick={() => handleTabChange("eudi")}
 							icon={<Shield className="h-4 w-4" />}
 							name="EUDI Wallet"
 							status="direct_post"
 						/>
 						<WalletTab
 							active={activeTab === "multipaz"}
-							onClick={() => setActiveTab("multipaz")}
+							onClick={() => handleTabChange("multipaz")}
 							icon={<Wallet className="h-4 w-4" />}
 							name="Multipaz"
 							status="direct_post + DC API"
 						/>
 						<WalletTab
 							active={activeTab === "valera"}
-							onClick={() => setActiveTab("valera")}
+							onClick={() => handleTabChange("valera")}
 							icon={<Smartphone className="h-4 w-4" />}
 							name="Valera"
 							status="direct_post + DC API"
