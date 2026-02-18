@@ -55,7 +55,7 @@ export function CredentialFormatSelector({
 					Wallet compatibility
 				</p>
 			</div>
-			<div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+			<div className="grid grid-cols-1 gap-2">
 				{FORMAT_OPTIONS.map((option) => {
 					const isSelected = areSameFormats(value, option.formats);
 					const Icon = option.Icon;
@@ -67,7 +67,7 @@ export function CredentialFormatSelector({
 							onClick={() => onChange([...option.formats])}
 							className={cn(
 								"relative rounded-lg border text-left transition-all",
-								"px-3 py-2.5 flex items-start gap-2.5 h-28",
+								"px-3 py-2 flex items-start gap-2 h-auto",
 								"hover:border-primary/40 hover:bg-primary/5 cursor-pointer",
 								isSelected
 									? "border-primary bg-primary/5 ring-2 ring-primary/20"
@@ -89,10 +89,10 @@ export function CredentialFormatSelector({
 								<span className="font-medium block text-xs leading-tight whitespace-nowrap">
 									{option.label}
 								</span>
-								<span className="text-[11px] text-muted-foreground block leading-tight mt-1 h-10">
+								<span className="text-[11px] text-muted-foreground block leading-tight mt-0.5">
 									{option.description}
 								</span>
-								<span className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground/70 block pt-1 h-8">
+								<span className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground/70 block pt-0.5">
 									{option.tech}
 								</span>
 							</div>
