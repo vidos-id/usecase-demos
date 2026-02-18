@@ -22,7 +22,7 @@ import {
 import { useEffect, useState } from "react";
 import { CLAIM_LABELS, PROFILE_UPDATE_CLAIMS } from "shared/lib/claims";
 import { getImageDataUrl } from "shared/lib/image";
-import type { DcApiRequest } from "shared/types/auth";
+import type { CredentialFormats, DcApiRequest } from "shared/types/auth";
 import type { AuthorizationErrorInfo } from "shared/types/vidos-errors";
 import { z } from "zod";
 import { CredentialDisclosure } from "@/components/auth/credential-disclosure";
@@ -60,6 +60,7 @@ type ProfileUpdateState =
 			mode: "direct_post";
 			requestId: string;
 			authorizeUrl: string;
+			credentialFormats: CredentialFormats;
 			requestedClaims: string[];
 			purpose: string;
 	  }
@@ -68,6 +69,7 @@ type ProfileUpdateState =
 			mode: "dc_api";
 			requestId: string;
 			dcApiRequest: DcApiRequest;
+			credentialFormats: CredentialFormats;
 			requestedClaims: string[];
 			purpose: string;
 	  }
@@ -108,13 +110,14 @@ function ProfilePage() {
 	});
 
 	const requestMutation = useProfileUpdate({
-		onSuccess: (data) => {
+		onSuccess: (data, variables) => {
 			if (data.mode === "direct_post") {
 				setState({
 					status: "awaiting_verification",
 					mode: "direct_post",
 					requestId: data.requestId,
 					authorizeUrl: data.authorizeUrl,
+					credentialFormats: variables.credentialFormats,
 					requestedClaims: data.requestedClaims,
 					purpose: data.purpose,
 				});
@@ -124,6 +127,7 @@ function ProfilePage() {
 					mode: "dc_api",
 					requestId: data.requestId,
 					dcApiRequest: data.dcApiRequest,
+					credentialFormats: variables.credentialFormats,
 					requestedClaims: data.requestedClaims,
 					purpose: data.purpose,
 				});
@@ -561,6 +565,7 @@ function ProfilePage() {
 										<div className="rounded-xl border border-border/60 bg-background p-4 lg:p-6 space-y-4">
 											<h3 className="text-lg font-semibold">Verify update</h3>
 											<CredentialDisclosure
+												credentialFormats={state.credentialFormats}
 												requestedClaims={updateRequestedClaims}
 												purpose={state.purpose}
 											/>

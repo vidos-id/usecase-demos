@@ -1,16 +1,45 @@
 import { FileText, ShieldCheck } from "lucide-react";
 import { CLAIM_LABELS } from "shared/lib/claims";
+import {
+	CREDENTIAL_FORMAT_SELECTIONS,
+	type CredentialFormats,
+} from "shared/types/auth";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface CredentialDisclosureProps {
+	credentialFormats: CredentialFormats;
 	requestedClaims: string[];
 	purpose: string;
 }
 
+function formatCredentialFormats(formats: CredentialFormats): string {
+	if (
+		formats.length === CREDENTIAL_FORMAT_SELECTIONS.all.length &&
+		CREDENTIAL_FORMAT_SELECTIONS.all.every((format) => formats.includes(format))
+	) {
+		return "SD-JWT or mDoc";
+	}
+
+	if (formats.length === 1 && formats[0] === "sd-jwt") {
+		return "SD-JWT only";
+	}
+
+	if (formats.length === 1 && formats[0] === "mdoc") {
+		return "mDoc only";
+	}
+
+	return formats
+		.map((format) => (format === "sd-jwt" ? "SD-JWT" : "mDoc"))
+		.join(" + ");
+}
+
 export function CredentialDisclosure({
+	credentialFormats,
 	requestedClaims,
 	purpose,
 }: CredentialDisclosureProps) {
+	const requestedCredentialLabel = formatCredentialFormats(credentialFormats);
+
 	return (
 		<div className="space-y-4">
 			{/* Purpose section */}
@@ -37,7 +66,7 @@ export function CredentialDisclosure({
 							</div>
 						</div>
 						<div className="text-xs text-muted-foreground font-mono">
-							SD-JWT / mDoc
+							{requestedCredentialLabel}
 						</div>
 					</div>
 

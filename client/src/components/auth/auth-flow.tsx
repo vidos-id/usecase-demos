@@ -36,6 +36,7 @@ export type AuthState =
 			mode: "direct_post";
 			requestId: string;
 			authorizeUrl: string;
+			credentialFormats: CredentialFormats;
 			requestedClaims: string[];
 			purpose: string;
 	  }
@@ -44,6 +45,7 @@ export type AuthState =
 			mode: "dc_api";
 			requestId: string;
 			dcApiRequest: DcApiRequest;
+			credentialFormats: CredentialFormats;
 			requestedClaims: string[];
 			purpose: string;
 	  }
@@ -183,6 +185,7 @@ export function AuthFlow({ config }: { config: AuthFlowConfig }) {
 					mode: "direct_post",
 					requestId: data.requestId,
 					authorizeUrl: data.authorizeUrl,
+					credentialFormats,
 					requestedClaims: data.requestedClaims,
 					purpose: data.purpose,
 				});
@@ -192,6 +195,7 @@ export function AuthFlow({ config }: { config: AuthFlowConfig }) {
 					mode: "dc_api",
 					requestId: data.requestId,
 					dcApiRequest: data.dcApiRequest,
+					credentialFormats,
 					requestedClaims: data.requestedClaims,
 					purpose: data.purpose,
 				});
@@ -442,6 +446,7 @@ export function AuthFlow({ config }: { config: AuthFlowConfig }) {
 						<Card className="w-full max-w-2xl mx-auto animate-fade-in">
 							<CardContent className="p-8">
 								<CredentialDisclosure
+									credentialFormats={state.credentialFormats}
 									requestedClaims={state.requestedClaims}
 									purpose={state.purpose}
 								/>
@@ -456,6 +461,7 @@ export function AuthFlow({ config }: { config: AuthFlowConfig }) {
 						<Card className="w-full max-w-2xl mx-auto animate-fade-in">
 							<CardContent className="p-8">
 								<CredentialDisclosure
+									credentialFormats={state.credentialFormats}
 									requestedClaims={state.requestedClaims}
 									purpose={state.purpose}
 								/>

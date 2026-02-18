@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { LOAN_AMOUNTS, LOAN_PURPOSES, LOAN_TERMS } from "shared/api/loan";
-import type { DcApiRequest } from "shared/types/auth";
+import type { CredentialFormats, DcApiRequest } from "shared/types/auth";
 import type { AuthorizationErrorInfo } from "shared/types/vidos-errors";
 import { CredentialDisclosure } from "@/components/auth/credential-disclosure";
 import { DCApiHandler } from "@/components/auth/dc-api-handler";
@@ -58,6 +58,7 @@ type FlowState =
 			mode: "direct_post";
 			requestId: string;
 			authorizeUrl: string;
+			credentialFormats: CredentialFormats;
 			requestedClaims: string[];
 			purpose: string;
 	  }
@@ -66,6 +67,7 @@ type FlowState =
 			mode: "dc_api";
 			requestId: string;
 			dcApiRequest: DcApiRequest;
+			credentialFormats: CredentialFormats;
 			requestedClaims: string[];
 			purpose: string;
 	  }
@@ -142,15 +144,17 @@ function LoanPage() {
 
 			if (!res.ok) throw new Error("Failed to create loan request");
 
-			return res.json();
+			const data = await res.json();
+			return { data, credentialFormats };
 		},
-		onSuccess: (data) => {
+		onSuccess: ({ data, credentialFormats }) => {
 			if (data.mode === "direct_post") {
 				setState({
 					status: "verifying",
 					mode: "direct_post",
 					requestId: data.requestId,
 					authorizeUrl: data.authorizeUrl,
+					credentialFormats,
 					requestedClaims: data.requestedClaims,
 					purpose: data.purpose,
 				});
@@ -160,6 +164,7 @@ function LoanPage() {
 					mode: "dc_api",
 					requestId: data.requestId,
 					dcApiRequest: data.dcApiRequest,
+					credentialFormats,
 					requestedClaims: data.requestedClaims,
 					purpose: data.purpose,
 				});
@@ -654,6 +659,7 @@ function LoanPage() {
 								</div>
 
 								<CredentialDisclosure
+									credentialFormats={state.credentialFormats}
 									requestedClaims={state.requestedClaims}
 									purpose={state.purpose}
 								/>
@@ -693,6 +699,7 @@ function LoanPage() {
 								</div>
 
 								<CredentialDisclosure
+									credentialFormats={state.credentialFormats}
 									requestedClaims={state.requestedClaims}
 									purpose={state.purpose}
 								/>

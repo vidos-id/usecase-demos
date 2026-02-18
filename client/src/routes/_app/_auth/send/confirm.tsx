@@ -15,7 +15,7 @@ import {
 	ShieldCheck,
 } from "lucide-react";
 import { useState } from "react";
-import type { DcApiRequest } from "shared/types/auth";
+import type { CredentialFormats, DcApiRequest } from "shared/types/auth";
 import type { AuthorizationErrorInfo } from "shared/types/vidos-errors";
 import { z } from "zod";
 import { CredentialDisclosure } from "@/components/auth/credential-disclosure";
@@ -47,6 +47,7 @@ type PaymentState =
 			mode: "direct_post";
 			requestId: string;
 			authorizeUrl: string;
+			credentialFormats: CredentialFormats;
 			requestedClaims: string[];
 			purpose: string;
 	  }
@@ -55,6 +56,7 @@ type PaymentState =
 			mode: "dc_api";
 			requestId: string;
 			dcApiRequest: DcApiRequest;
+			credentialFormats: CredentialFormats;
 			requestedClaims: string[];
 			purpose: string;
 	  }
@@ -94,15 +96,17 @@ function PaymentConfirmPage() {
 
 			if (!res.ok) throw new Error("Failed to create payment request");
 
-			return res.json();
+			const data = await res.json();
+			return { data, credentialFormats };
 		},
-		onSuccess: (data) => {
+		onSuccess: ({ data, credentialFormats }) => {
 			if (data.mode === "direct_post") {
 				setState({
 					status: "awaiting_verification",
 					mode: "direct_post",
 					requestId: data.requestId,
 					authorizeUrl: data.authorizeUrl,
+					credentialFormats,
 					requestedClaims: data.requestedClaims,
 					purpose: data.purpose,
 				});
@@ -112,6 +116,7 @@ function PaymentConfirmPage() {
 					mode: "dc_api",
 					requestId: data.requestId,
 					dcApiRequest: data.dcApiRequest,
+					credentialFormats,
 					requestedClaims: data.requestedClaims,
 					purpose: data.purpose,
 				});
@@ -391,6 +396,7 @@ function PaymentConfirmPage() {
 									state.mode === "direct_post" && (
 										<div className="space-y-4">
 											<CredentialDisclosure
+												credentialFormats={state.credentialFormats}
 												requestedClaims={state.requestedClaims}
 												purpose={state.purpose}
 											/>
@@ -404,6 +410,7 @@ function PaymentConfirmPage() {
 									state.mode === "dc_api" && (
 										<div className="space-y-4">
 											<CredentialDisclosure
+												credentialFormats={state.credentialFormats}
 												requestedClaims={state.requestedClaims}
 												purpose={state.purpose}
 											/>
