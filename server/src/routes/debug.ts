@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import { debugSseEventNames, debugSseEventSchema } from "shared/api/debug-sse";
-import { debugEmitters } from "../lib/debug-events";
 import { appEvents } from "../lib/events";
 import {
 	getDebugSessionIdFromRequest,
@@ -69,8 +68,6 @@ export const debugRouter = new Hono().get("/stream/:requestId", (c) => {
 		>();
 		let isReplaying = true;
 
-		let closeReason = "client_disconnect";
-
 		const debugEventListener = (payload: {
 			requestId: string;
 			event: ReturnType<typeof debugSseEventSchema.parse>;
@@ -81,14 +78,12 @@ export const debugRouter = new Hono().get("/stream/:requestId", (c) => {
 
 			const latestScope = getPendingRequestDebugScope(requestId);
 			if (!latestScope) {
-				closeReason = "request_not_found";
 				connection.close();
 				return;
 			}
 
 			const liveScopeAuth = authorizeScope(latestScope);
 			if (!liveScopeAuth.ok) {
-				closeReason = "scope_mismatch";
 				connection.close();
 				return;
 			}
@@ -109,7 +104,6 @@ export const debugRouter = new Hono().get("/stream/:requestId", (c) => {
 				return;
 			}
 			if (STREAM_CLOSE_STATUSES.has(payload.event.eventType)) {
-				closeReason = `terminal_status:${payload.event.eventType}`;
 				connection.close();
 			}
 		};
@@ -133,20 +127,16 @@ export const debugRouter = new Hono().get("/stream/:requestId", (c) => {
 			sender.send(event);
 		}
 
-		debugEmitters.auth.streamConnected(scope);
-
 		if (
 			scope.terminalStatus &&
 			STREAM_CLOSE_STATUSES.has(scope.terminalStatus)
 		) {
-			closeReason = `already_terminal:${scope.terminalStatus}`;
 			connection.close();
 		}
 
 		connection.onClose(() => {
 			appEvents.off("debugEvent", debugEventListener);
 			appEvents.off("authorizationRequestEvent", authEventListener);
-			debugEmitters.auth.streamClosed(scope, closeReason);
 		});
 	});
 });

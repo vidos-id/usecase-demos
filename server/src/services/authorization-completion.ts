@@ -64,9 +64,10 @@ async function completeSignin(
 
 	const user = getUserByIdentifier(claims.personal_administrative_number);
 	if (!user) {
-		debugEmitters.auth.transitionFailure(
+		debugEmitters.error(
 			{ requestId: pendingRequest.id, flowType: pendingRequest.type },
 			"Signin completed with unknown account.",
+			undefined,
 		);
 		updateRequestToFailed(
 			pendingRequest.id,
@@ -105,9 +106,10 @@ async function completeSignup(
 		claims.personal_administrative_number,
 	);
 	if (existingUser) {
-		debugEmitters.auth.transitionFailure(
+		debugEmitters.error(
 			{ requestId: pendingRequest.id, flowType: pendingRequest.type },
 			"Signup attempted for existing account.",
+			undefined,
 		);
 		updateRequestToFailed(
 			pendingRequest.id,
@@ -154,10 +156,11 @@ async function completePayment(
 	const metadata = pendingRequest.metadata;
 	const parsed = paymentAuthMetadataSchema.safeParse(metadata);
 	if (!parsed.success) {
-		debugEmitters.auth.transitionFailure(
+		debugEmitters.error(
 			{ requestId: pendingRequest.id, flowType: pendingRequest.type },
 			"Payment completion metadata validation failed.",
-			parsed.error.issues,
+			undefined,
+			{ issues: parsed.error.issues } as Record<string, unknown>,
 		);
 		updateRequestToFailed(
 			pendingRequest.id,
@@ -177,9 +180,10 @@ async function completePayment(
 	const user = getUserById(parsed.data.userId);
 
 	if (!user || user.identifier !== claims.personal_administrative_number) {
-		debugEmitters.auth.transitionFailure(
+		debugEmitters.error(
 			{ requestId: pendingRequest.id, flowType: pendingRequest.type },
 			"Payment completion identity mismatch.",
+			undefined,
 		);
 		updateRequestToFailed(
 			pendingRequest.id,
@@ -218,10 +222,11 @@ async function completeLoan(pendingRequest: PendingAuthRequest): Promise<void> {
 	const metadata = pendingRequest.metadata;
 	const parsed = loanAuthMetadataSchema.safeParse(metadata);
 	if (!parsed.success) {
-		debugEmitters.auth.transitionFailure(
+		debugEmitters.error(
 			{ requestId: pendingRequest.id, flowType: pendingRequest.type },
 			"Loan completion metadata validation failed.",
-			parsed.error.issues,
+			undefined,
+			{ issues: parsed.error.issues } as Record<string, unknown>,
 		);
 		updateRequestToFailed(
 			pendingRequest.id,
@@ -241,9 +246,10 @@ async function completeLoan(pendingRequest: PendingAuthRequest): Promise<void> {
 	const user = getUserById(parsed.data.userId);
 
 	if (!user || user.identifier !== claims.personal_administrative_number) {
-		debugEmitters.auth.transitionFailure(
+		debugEmitters.error(
 			{ requestId: pendingRequest.id, flowType: pendingRequest.type },
 			"Loan completion identity mismatch.",
+			undefined,
 		);
 		updateRequestToFailed(
 			pendingRequest.id,
@@ -288,10 +294,11 @@ async function completeProfileUpdate(
 		pendingRequest.metadata,
 	);
 	if (!parsed.success) {
-		debugEmitters.auth.transitionFailure(
+		debugEmitters.error(
 			{ requestId: pendingRequest.id, flowType: pendingRequest.type },
 			"Profile update metadata validation failed.",
-			parsed.error.issues,
+			undefined,
+			{ issues: parsed.error.issues } as Record<string, unknown>,
 		);
 		updateRequestToFailed(
 			pendingRequest.id,
@@ -311,9 +318,10 @@ async function completeProfileUpdate(
 	const user = getUserById(parsed.data.userId);
 
 	if (!user) {
-		debugEmitters.auth.transitionFailure(
+		debugEmitters.error(
 			{ requestId: pendingRequest.id, flowType: pendingRequest.type },
 			"Profile update attempted with missing user.",
+			undefined,
 		);
 		updateRequestToFailed(pendingRequest.id, "Unauthorized");
 		return;
@@ -323,9 +331,10 @@ async function completeProfileUpdate(
 		claims.personal_administrative_number &&
 		claims.personal_administrative_number !== user.identifier
 	) {
-		debugEmitters.auth.transitionFailure(
+		debugEmitters.error(
 			{ requestId: pendingRequest.id, flowType: pendingRequest.type },
 			"Profile update identity mismatch.",
+			undefined,
 		);
 		updateRequestToFailed(
 			pendingRequest.id,

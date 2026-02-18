@@ -38,14 +38,19 @@ export const signinRouter = new Hono()
 		const debugSessionId =
 			session?.id ?? existingDebugSessionId ?? randomUUID();
 		const shouldSetDebugCookie = !session && !existingDebugSessionId;
+		const requestId = randomUUID();
 
-		const result = await createAuthorizationRequest({
-			...body,
-			requestedClaims: SIGNIN_CLAIMS,
-			purpose: SIGNIN_PURPOSE,
-		});
+		const result = await createAuthorizationRequest(
+			{
+				...body,
+				requestedClaims: SIGNIN_CLAIMS,
+				purpose: SIGNIN_PURPOSE,
+			},
+			{ requestId, flowType: "signin" },
+		);
 
 		const pendingRequest = createPendingRequest({
+			id: requestId,
 			vidosAuthorizationId: result.authorizationId,
 			type: "signin",
 			mode: body.mode,

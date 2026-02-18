@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { zValidator } from "@hono/zod-validator";
 import { type Context, Hono } from "hono";
 import {
@@ -60,14 +61,19 @@ export const profileUpdateRouter = new Hono()
 				"personal_administrative_number",
 				...requestedClaims,
 			];
+			const requestId = randomUUID();
 
-			const result = await createAuthorizationRequest({
-				...modeParams,
-				requestedClaims: claimsForVerification,
-				purpose: PROFILE_UPDATE_PURPOSE,
-			});
+			const result = await createAuthorizationRequest(
+				{
+					...modeParams,
+					requestedClaims: claimsForVerification,
+					purpose: PROFILE_UPDATE_PURPOSE,
+				},
+				{ requestId, flowType: "profile_update" },
+			);
 
 			const pendingRequest = createPendingRequest({
+				id: requestId,
 				vidosAuthorizationId: result.authorizationId,
 				type: "profile_update",
 				mode: modeParams.mode,

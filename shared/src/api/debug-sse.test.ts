@@ -7,16 +7,41 @@ import {
 } from "./debug-sse";
 
 describe("debug SSE contracts", () => {
-	test("parses a valid debug event", () => {
+	test("parses a valid error debug event", () => {
 		const event = debugSseEventSchema.parse({
-			eventType: "system",
-			level: "info",
+			eventType: "error",
+			level: "error",
 			timestamp: new Date().toISOString(),
 			message: "Debug event ok",
 			code: "ok",
 		});
 
-		expect(event.eventType).toBe("system");
+		expect(event.eventType).toBe("error");
+	});
+
+	test("parses a valid vidos_request event", () => {
+		const event = debugSseEventSchema.parse({
+			eventType: "vidos_request",
+			level: "info",
+			timestamp: new Date().toISOString(),
+			message: "→ Vidos: createAuthorization",
+			operation: "createAuthorization",
+			method: "POST",
+			url: "/openid4/vp/v1_0/authorizations",
+		});
+
+		expect(event.eventType).toBe("vidos_request");
+	});
+
+	test("rejects unknown event types", () => {
+		const result = debugSseEventSchema.safeParse({
+			eventType: "system",
+			level: "info",
+			timestamp: new Date().toISOString(),
+			message: "old event type",
+		});
+
+		expect(result.success).toBeFalse();
 	});
 
 	test("rejects business payload on debug channel", () => {
@@ -35,7 +60,7 @@ describe("debug SSE contracts", () => {
 		const businessResult = businessChannelEventSchema.safeParse({
 			channel: "authorization",
 			event: {
-				eventType: "system",
+				eventType: "error",
 				level: "info",
 				timestamp: new Date().toISOString(),
 				message: "wrong channel",
@@ -45,7 +70,7 @@ describe("debug SSE contracts", () => {
 		const debugResult = sseChannelEventSchema.safeParse({
 			channel: "debug",
 			event: {
-				eventType: "system",
+				eventType: "error",
 				level: "warn",
 				timestamp: new Date().toISOString(),
 				message: "debug-only",

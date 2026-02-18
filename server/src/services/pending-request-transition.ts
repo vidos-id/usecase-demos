@@ -37,39 +37,21 @@ export async function applyPendingRequestTransition(
 	};
 
 	if (status === "authorized") {
-		debugEmitters.auth.transitionApplied(
-			scope,
-			"pending",
-			"authorized",
-			"Authorization transitioned to authorized.",
-		);
 		await onAuthorized();
 		return;
 	}
 
 	if (status === "expired") {
-		debugEmitters.auth.transitionApplied(
-			scope,
-			"pending",
-			"expired",
-			"Authorization transitioned to expired.",
-		);
 		updateRequestToExpired(pendingRequest.id);
 		return;
 	}
 
-	debugEmitters.auth.transitionApplied(
-		scope,
-		"pending",
-		status,
-		"Authorization transitioned to failure state.",
-	);
-
 	if (errorInfo) {
-		debugEmitters.auth.transitionFailure(
+		debugEmitters.error(
 			scope,
 			"Authorization returned error details.",
-			errorInfo,
+			"authorization_error_detail",
+			errorInfo as Record<string, unknown>,
 		);
 	}
 

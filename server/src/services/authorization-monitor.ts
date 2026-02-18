@@ -13,6 +13,7 @@ const MONITOR_INTERVAL_MS = 1000;
 type MonitorState = {
 	interval: ReturnType<typeof setInterval>;
 	running: boolean;
+	pollCount: number;
 };
 
 const monitors = new Map<string, MonitorState>();
@@ -41,7 +42,9 @@ async function monitorTick(requestId: string): Promise<void> {
 				requestId: pendingRequest.id,
 				flowType: pendingRequest.type,
 			},
+			state.pollCount === 0,
 		);
+		state.pollCount += 1;
 
 		await applyPendingRequestTransition({
 			pendingRequest,
@@ -60,10 +63,11 @@ async function monitorTick(requestId: string): Promise<void> {
 		console.error("[Monitor] Failed to process request:", requestId, error);
 		const pendingRequest = getPendingRequestById(requestId);
 		if (pendingRequest) {
-			debugEmitters.auth.transitionFailure(
+			debugEmitters.error(
 				{ requestId, flowType: pendingRequest.type },
 				"Authorization monitor tick failed.",
-				error,
+				"monitor_tick_failed",
+				{ error: error instanceof Error ? error.message : String(error) },
 			);
 		}
 		updateRequestToFailed(
@@ -86,14 +90,6 @@ export function startAuthorizationMonitor(requestId: string): void {
 		return;
 	}
 
-	const pendingRequest = getPendingRequestById(requestId);
-	if (pendingRequest) {
-		debugEmitters.auth.monitorStarted({
-			requestId,
-			flowType: pendingRequest.type,
-		});
-	}
-
 	const interval = setInterval(() => {
 		void monitorTick(requestId);
 	}, MONITOR_INTERVAL_MS);
@@ -101,6 +97,7 @@ export function startAuthorizationMonitor(requestId: string): void {
 	monitors.set(requestId, {
 		interval,
 		running: false,
+		pollCount: 0,
 	});
 
 	void monitorTick(requestId);
@@ -111,18 +108,8 @@ export function stopAuthorizationMonitor(requestId: string): void {
 	if (!state) {
 		return;
 	}
-	const pendingRequest = getPendingRequestById(requestId);
 	clearInterval(state.interval);
 	monitors.delete(requestId);
-	if (pendingRequest) {
-		debugEmitters.auth.monitorStopped(
-			{
-				requestId,
-				flowType: pendingRequest.type,
-			},
-			"terminal_or_missing",
-		);
-	}
 }
 
 export function getActiveMonitorCount(): number {

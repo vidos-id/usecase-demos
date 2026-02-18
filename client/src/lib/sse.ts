@@ -113,12 +113,20 @@ export function useTypedEventSource<TEvent>(
 		};
 
 		const handleError = () => {
+			if (closed || eventSource.readyState === EventSource.CLOSED) {
+				console.info("[SSE][client] stream closed:", url);
+				return;
+			}
 			console.error("[SSE][client] stream error:", url);
 			setIsConnected(false);
 			setError("stream_error");
 		};
 
-		const parseAndDispatch = (evt: MessageEvent<string>) => {
+		const parseAndDispatch = (evt: Event) => {
+			if (!(evt instanceof MessageEvent) || typeof evt.data !== "string") {
+				return;
+			}
+
 			try {
 				console.debug("[SSE][client] raw event received:", {
 					url,

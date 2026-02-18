@@ -1,4 +1,4 @@
-import { Bug, ChevronDown, Trash2 } from "lucide-react";
+import { Bug, ChevronDown, Info, Trash2, X } from "lucide-react";
 import {
 	type MouseEvent as ReactMouseEvent,
 	useEffect,
@@ -6,7 +6,13 @@ import {
 	useRef,
 	useState,
 } from "react";
-import type { DebugLevel, DebugSseEvent } from "shared/api/debug-sse";
+import { createPortal } from "react-dom";
+import {
+	DEBUG_EVENT_META,
+	type DebugEventType,
+	type DebugLevel,
+	type DebugSseEvent,
+} from "shared/api/debug-sse";
 import { Button } from "@/components/ui/button";
 import { useDebugStream } from "@/lib/use-debug-stream";
 import { cn } from "@/lib/utils";
@@ -25,12 +31,13 @@ const DEFAULT_LEVEL_VISIBILITY: Record<DebugLevel, boolean> = {
 	debug: false,
 };
 
-const DEFAULT_TYPE_VISIBILITY: Record<DebugSseEvent["eventType"], boolean> = {
-	request_lifecycle: true,
-	upstream_call: true,
-	validation_error: true,
-	state_transition: true,
-	system: true,
+const DEFAULT_TYPE_VISIBILITY: Record<DebugEventType, boolean> = {
+	vidos_request: true,
+	vidos_response: true,
+	dc_api_forwarded: true,
+	credential_result: true,
+	policy_result: true,
+	error: true,
 };
 
 const PANEL_WIDTH = 900;
@@ -66,6 +73,14 @@ export function PersistentDebugConsole({
 		DEFAULT_LEVEL_VISIBILITY,
 	);
 	const [typeVisibility, setTypeVisibility] = useState(DEFAULT_TYPE_VISIBILITY);
+	const [selectedEvent, setSelectedEvent] = useState<DebugSseEvent | null>(
+		null,
+	);
+	const [tooltipState, setTooltipState] = useState<{
+		type: DebugEventType;
+		x: number;
+		y: number;
+	} | null>(null);
 	const listRef = useRef<HTMLDivElement | null>(null);
 	const resizingRef = useRef(false);
 	const draggingRef = useRef(false);
@@ -99,7 +114,7 @@ export function PersistentDebugConsole({
 		},
 		onParseError: (error) => {
 			const parseErrorEvent: DebugSseEvent = {
-				eventType: "system",
+				eventType: "error",
 				level: "error",
 				timestamp: new Date().toISOString(),
 				message: "Failed to parse debug event payload.",
@@ -136,11 +151,46 @@ export function PersistentDebugConsole({
 		setLevelVisibility((prev) => ({ ...prev, [level]: !prev[level] }));
 	};
 
-	const toggleType = (eventType: DebugSseEvent["eventType"]) => {
+	const toggleType = (eventType: DebugEventType) => {
 		setTypeVisibility((prev) => ({ ...prev, [eventType]: !prev[eventType] }));
 	};
 
+	const hasPayload = (event: DebugSseEvent): boolean => {
+		return (
+			(event.eventType === "vidos_request" && event.payload != null) ||
+			(event.eventType === "vidos_response" && event.payload != null) ||
+			(event.eventType === "credential_result" && event.claims != null) ||
+			event.eventType === "policy_result"
+		);
+	};
+
+	const getPayloadData = (event: DebugSseEvent): unknown => {
+		if (event.eventType === "vidos_request") return event.payload;
+		if (event.eventType === "vidos_response") return event.payload;
+		if (event.eventType === "credential_result") return event.claims;
+		if (event.eventType === "policy_result") {
+			const payload = {
+				outcome: event.outcome,
+				authorizationId: event.authorizationId,
+				...(event.policies && { policies: event.policies }),
+				...(event.errorInfo && { errorInfo: event.errorInfo }),
+			};
+			return payload;
+		}
+		return null;
+	};
+
 	const hasEvents = events.length > 0;
+
+	// Close modal on Escape key
+	useEffect(() => {
+		if (!selectedEvent) return;
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if (e.key === "Escape") setSelectedEvent(null);
+		};
+		window.addEventListener("keydown", handleKeyDown);
+		return () => window.removeEventListener("keydown", handleKeyDown);
+	}, [selectedEvent]);
 
 	// Global mouse move/up handler — handles both resize and drag
 	useEffect(() => {
@@ -278,29 +328,39 @@ export function PersistentDebugConsole({
 								<span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
 									Types
 								</span>
-								{(
-									[
-										"request_lifecycle",
-										"state_transition",
-										"upstream_call",
-										"validation_error",
-										"system",
-									] as const
-								).map((eventType) => (
-									<button
-										key={eventType}
-										type="button"
-										onClick={() => toggleType(eventType)}
-										className={cn(
-											"rounded-md border px-2 py-1 text-[10px] font-mono transition-colors text-left",
-											typeVisibility[eventType]
-												? "border-primary/40 bg-primary/10 text-primary"
-												: "border-border/60 text-muted-foreground hover:border-border hover:text-foreground",
-										)}
-									>
-										{eventType}
-									</button>
-								))}
+								{(Object.keys(DEFAULT_TYPE_VISIBILITY) as DebugEventType[]).map(
+									(eventType) => (
+										<div key={eventType} className="flex items-center gap-1">
+											<button
+												type="button"
+												onClick={() => toggleType(eventType)}
+												className={cn(
+													"rounded-md border px-2 py-1 text-[10px] font-mono transition-colors text-left flex-1",
+													typeVisibility[eventType]
+														? "border-primary/40 bg-primary/10 text-primary"
+														: "border-border/60 text-muted-foreground hover:border-border hover:text-foreground",
+												)}
+											>
+												{DEBUG_EVENT_META[eventType].label}
+											</button>
+											<div className="relative flex items-center">
+												<Info
+													className="h-3 w-3 text-muted-foreground/60 cursor-help"
+													onMouseEnter={(e) => {
+														const rect =
+															e.currentTarget.getBoundingClientRect();
+														setTooltipState({
+															type: eventType,
+															x: rect.right + 6,
+															y: rect.top,
+														});
+													}}
+													onMouseLeave={() => setTooltipState(null)}
+												/>
+											</div>
+										</div>
+									),
+								)}
 							</div>
 						</div>
 
@@ -324,45 +384,144 @@ export function PersistentDebugConsole({
 								</div>
 							) : (
 								<div className="space-y-1.5">
-									{visibleEvents.map((event, index) => (
-										<div
-											key={`${event.timestamp}-${index}-${event.message}`}
-											className="rounded-md border border-border/60 bg-card px-2.5 py-2 hover:border-border transition-colors"
-										>
-											<div className="flex flex-wrap items-center gap-2 text-xs mb-1.5">
-												<span className="font-mono text-muted-foreground text-[10px]">
-													{new Date(event.timestamp).toLocaleTimeString()}
-												</span>
-												<span
-													className={cn(
-														"rounded px-1.5 py-0.5 font-mono uppercase text-[9px] font-bold tracking-wider",
-														event.level === "error" &&
-															"bg-destructive/20 text-destructive",
-														event.level === "warn" &&
-															"bg-amber-500/20 text-amber-700 dark:text-amber-400",
-														event.level === "info" &&
-															"bg-blue-500/20 text-blue-700 dark:text-blue-400",
-														event.level === "debug" &&
-															"bg-muted text-muted-foreground",
+									{visibleEvents.map((event, index) => {
+										const clickable = hasPayload(event);
+										return (
+											<div
+												key={`${event.timestamp}-${index}-${event.message}`}
+												className={cn(
+													"rounded-md border border-border/60 bg-card px-2.5 py-2 hover:border-border transition-colors",
+													clickable && "cursor-pointer hover:bg-muted/20",
+												)}
+												onClick={() => clickable && setSelectedEvent(event)}
+											>
+												<div className="flex flex-wrap items-center gap-2 text-xs mb-1.5">
+													<span className="font-mono text-muted-foreground text-[10px]">
+														{new Date(event.timestamp).toLocaleTimeString()}
+													</span>
+													<span
+														className={cn(
+															"rounded px-1.5 py-0.5 font-mono uppercase text-[9px] font-bold tracking-wider",
+															event.level === "error" &&
+																"bg-destructive/20 text-destructive",
+															event.level === "warn" &&
+																"bg-amber-500/20 text-amber-700 dark:text-amber-400",
+															event.level === "info" &&
+																"bg-blue-500/20 text-blue-700 dark:text-blue-400",
+															event.level === "debug" &&
+																"bg-muted text-muted-foreground",
+														)}
+													>
+														{event.level}
+													</span>
+													<span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[9px] text-muted-foreground">
+														{DEBUG_EVENT_META[event.eventType].label}
+													</span>
+													{event.eventType === "vidos_request" && (
+														<>
+															<span className="rounded px-1.5 py-0.5 font-mono text-[9px] font-bold bg-amber-500/20 text-amber-700 dark:text-amber-400 uppercase tracking-wider">
+																→ REQ
+															</span>
+															<span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[9px] text-muted-foreground">
+																{event.method} {event.operation}
+															</span>
+														</>
 													)}
-												>
-													{event.level}
-												</span>
-												<span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[9px] text-muted-foreground">
-													{event.eventType}
-												</span>
+													{event.eventType === "vidos_response" && (
+														<>
+															<span
+																className={cn(
+																	"rounded px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider",
+																	event.ok
+																		? "bg-blue-500/20 text-blue-700 dark:text-blue-400"
+																		: "bg-destructive/20 text-destructive",
+																)}
+															>
+																← RES
+															</span>
+															<span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[9px] text-muted-foreground">
+																{event.operation}
+															</span>
+															<span
+																className={cn(
+																	"rounded px-1.5 py-0.5 font-mono text-[9px]",
+																	event.ok
+																		? "bg-green-500/20 text-green-700 dark:text-green-400"
+																		: "bg-destructive/20 text-destructive",
+																)}
+															>
+																{event.httpStatus}
+															</span>
+															<span className="font-mono text-[9px] text-muted-foreground">
+																{event.durationMs}ms
+															</span>
+														</>
+													)}
+													{event.eventType === "credential_result" && (
+														<>
+															<span className="rounded bg-green-500/20 px-1.5 py-0.5 font-mono text-[9px] text-green-700 dark:text-green-400">
+																{event.source}
+															</span>
+															{event.httpStatus != null && (
+																<span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[9px] text-muted-foreground">
+																	{event.httpStatus}
+																</span>
+															)}
+															{event.durationMs != null && (
+																<span className="font-mono text-[9px] text-muted-foreground">
+																	{event.durationMs}ms
+																</span>
+															)}
+														</>
+													)}
+													{event.eventType === "policy_result" && (
+														<>
+															<span className="rounded bg-primary/10 px-1.5 py-0.5 font-mono text-[9px] text-primary">
+																{event.source}
+															</span>
+															<span
+																className={cn(
+																	"rounded px-1.5 py-0.5 font-mono text-[9px]",
+																	event.outcome === "authorized"
+																		? "bg-green-500/20 text-green-700 dark:text-green-400"
+																		: "bg-destructive/20 text-destructive",
+																)}
+															>
+																{event.outcome}
+															</span>
+														</>
+													)}
+													{event.eventType === "error" && event.code && (
+														<span className="rounded bg-destructive/20 px-1.5 py-0.5 font-mono text-[9px] text-destructive">
+															{event.code}
+														</span>
+													)}
+												</div>
+												<p className="text-[11px] leading-relaxed text-foreground">
+													{event.message}
+												</p>
 											</div>
-											<p className="text-[11px] leading-relaxed text-foreground">
-												{event.message}
-											</p>
-										</div>
-									))}
+										);
+									})}
 								</div>
 							)}
 						</div>
 					</div>
 				</div>
 			)}
+
+			{tooltipState &&
+				createPortal(
+					<div
+						className="fixed z-[9999] w-56 rounded-lg border border-border/60 bg-popover p-2 shadow-lg pointer-events-none"
+						style={{ top: tooltipState.y, left: tooltipState.x }}
+					>
+						<p className="text-[10px] leading-relaxed text-muted-foreground">
+							{DEBUG_EVENT_META[tooltipState.type].description}
+						</p>
+					</div>,
+					document.body,
+				)}
 
 			{/* Toggle button — always below panel */}
 			<button
@@ -390,6 +549,94 @@ export function PersistentDebugConsole({
 					)
 				)}
 			</button>
+
+			{/* Payload Detail Modal */}
+			{selectedEvent && (
+				<div
+					className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+					onClick={() => setSelectedEvent(null)}
+				>
+					<div
+						className="w-[min(90vw,800px)] max-h-[80vh] flex flex-col rounded-2xl border border-border/60 bg-background shadow-2xl"
+						onClick={(e) => e.stopPropagation()}
+					>
+						{/* Modal Header */}
+						<div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border/60 bg-muted/30 shrink-0 rounded-t-2xl">
+							<div className="flex items-center gap-2.5">
+								<span className="text-sm font-semibold text-foreground">
+									{DEBUG_EVENT_META[selectedEvent.eventType].label}
+								</span>
+								<span
+									className={cn(
+										"rounded px-1.5 py-0.5 font-mono uppercase text-[9px] font-bold tracking-wider",
+										selectedEvent.level === "error" &&
+											"bg-destructive/20 text-destructive",
+										selectedEvent.level === "warn" &&
+											"bg-amber-500/20 text-amber-700 dark:text-amber-400",
+										selectedEvent.level === "info" &&
+											"bg-blue-500/20 text-blue-700 dark:text-blue-400",
+										selectedEvent.level === "debug" &&
+											"bg-muted text-muted-foreground",
+									)}
+								>
+									{selectedEvent.level}
+								</span>
+							</div>
+							<button
+								type="button"
+								onClick={() => setSelectedEvent(null)}
+								className="rounded-lg p-1 hover:bg-muted transition-colors"
+								aria-label="Close modal"
+							>
+								<X className="h-4 w-4 text-muted-foreground" />
+							</button>
+						</div>
+
+						{/* Modal Body */}
+						<div className="flex-1 overflow-y-auto p-4">
+							<div className="space-y-3">
+								<div>
+									<span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+										Message
+									</span>
+									<p className="text-sm text-foreground mt-1">
+										{selectedEvent.message}
+									</p>
+								</div>
+
+								<div>
+									<span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+										Timestamp
+									</span>
+									<p className="text-sm text-foreground font-mono mt-1">
+										{new Date(selectedEvent.timestamp).toLocaleString()}
+									</p>
+								</div>
+
+								{selectedEvent.requestId && (
+									<div>
+										<span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+											Request ID
+										</span>
+										<p className="text-sm text-foreground font-mono mt-1">
+											{selectedEvent.requestId}
+										</p>
+									</div>
+								)}
+
+								<div>
+									<span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+										Payload
+									</span>
+									<pre className="text-[11px] leading-relaxed text-foreground font-mono mt-1 p-3 rounded-lg bg-muted/30 border border-border/60 overflow-x-auto">
+										{JSON.stringify(getPayloadData(selectedEvent), null, 2)}
+									</pre>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }

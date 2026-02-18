@@ -205,15 +205,10 @@ function buildPIDDCQLQuery(
  */
 export async function createAuthorizationRequest(
 	params: CreateAuthRequestParams,
+	debugContext?: DebugContext,
 ): Promise<CreateAuthRequestResult> {
-	const { mode, requestedClaims, purpose, credentialFormats } = params;
+	const { requestedClaims, purpose, credentialFormats } = params;
 	const client = getAuthorizerClient();
-
-	console.log("[Vidos] createAuthorizationRequest", {
-		mode,
-		requestedClaims,
-		credentialFormats,
-	});
 
 	// Build DCQL query with proper SD-JWT paths and meta
 	const dcqlQuery = buildPIDDCQLQuery(
@@ -222,31 +217,85 @@ export async function createAuthorizationRequest(
 		credentialFormats,
 	);
 
+	const endpoint = "/openid4/vp/v1_0/authorizations";
+
 	if (params.mode === "direct_post") {
-		const { data, error } = await client.POST(
-			"/openid4/vp/v1_0/authorizations",
-			{
-				body: {
-					query: {
-						type: "DCQL",
-						dcql: dcqlQuery,
-					},
-					responseMode: "direct_post.jwt",
-					responseTypeParameters: {
-						transaction_data: params.transactionData,
-						verifier_info: params.verifierInfo,
-					},
+		const debugPayload = {
+			query: { type: "DCQL", dcql: dcqlQuery },
+			responseMode: "direct_post.jwt",
+			responseTypeParameters: {
+				transaction_data: params.transactionData,
+				verifier_info: params.verifierInfo,
+			},
+		};
+
+		if (debugContext) {
+			debugEmitters.vidosRequest(
+				debugContext,
+				"createAuthorization",
+				"POST",
+				endpoint,
+				debugPayload as Record<string, unknown>,
+			);
+		}
+
+		const startedAt = Date.now();
+		const { data, error, response } = await client.POST(endpoint, {
+			body: {
+				query: { type: "DCQL", dcql: dcqlQuery },
+				responseMode: "direct_post.jwt",
+				responseTypeParameters: {
+					transaction_data: params.transactionData,
+					verifier_info: params.verifierInfo,
 				},
 			},
-		);
+		});
+		const durationMs = Date.now() - startedAt;
 
 		if (error) {
+			if (debugContext) {
+				debugEmitters.vidosResponse(
+					debugContext,
+					"createAuthorization",
+					response?.status ?? 0,
+					durationMs,
+					false,
+					undefined,
+					error.message,
+				);
+			}
 			console.error("[Vidos] createAuthorizationRequest error:", error);
 			throw new Error(`Vidos API error: ${error.message}`);
 		}
 
 		if (!data || !("authorizeUrl" in data)) {
+			if (debugContext) {
+				debugEmitters.vidosResponse(
+					debugContext,
+					"createAuthorization",
+					response?.status ?? 0,
+					durationMs,
+					false,
+					undefined,
+					"Unexpected response format",
+				);
+			}
 			throw new Error("Vidos API returned unexpected response format");
+		}
+
+		if (debugContext) {
+			debugEmitters.vidosResponse(
+				debugContext,
+				"createAuthorization",
+				response.status,
+				durationMs,
+				true,
+				{
+					authorizationId: data.authorizationId,
+					authorizeUrl: data.authorizeUrl,
+					mode: "direct_post",
+				},
+			);
 		}
 
 		console.log(
@@ -260,13 +309,30 @@ export async function createAuthorizationRequest(
 		};
 	}
 
-	// dc_api mode - origin is guaranteed by discriminated union type
-	const { data, error } = await client.POST("/openid4/vp/v1_0/authorizations", {
-		body: {
-			query: {
-				type: "DCQL",
-				dcql: dcqlQuery,
+	// dc_api mode
+	if (debugContext) {
+		debugEmitters.vidosRequest(
+			debugContext,
+			"createAuthorization",
+			"POST",
+			endpoint,
+			{
+				query: { type: "DCQL", dcql: dcqlQuery },
+				responseMode: "dc_api.jwt",
+				protocol: "openid4vp-v1-signed",
+				expectedOrigins: [params.origin],
+				responseTypeParameters: {
+					transaction_data: params.transactionData,
+					verifier_info: params.verifierInfo,
+				},
 			},
+		);
+	}
+
+	const startedAt = Date.now();
+	const { data, error, response } = await client.POST(endpoint, {
+		body: {
+			query: { type: "DCQL", dcql: dcqlQuery },
 			responseMode: "dc_api.jwt",
 			protocol: "openid4vp-v1-signed",
 			expectedOrigins: [params.origin],
@@ -276,15 +342,53 @@ export async function createAuthorizationRequest(
 			},
 		},
 	});
+	const durationMs = Date.now() - startedAt;
 
 	if (error) {
+		if (debugContext) {
+			debugEmitters.vidosResponse(
+				debugContext,
+				"createAuthorization",
+				response?.status ?? 0,
+				durationMs,
+				false,
+				undefined,
+				error.message,
+			);
+		}
 		console.error("[Vidos] createAuthorizationRequest error:", error);
 		throw new Error(`Vidos API error: ${error.message}`);
 	}
 
 	if (!data || !("digitalCredentialGetRequest" in data)) {
+		if (debugContext) {
+			debugEmitters.vidosResponse(
+				debugContext,
+				"createAuthorization",
+				response?.status ?? 0,
+				durationMs,
+				false,
+				undefined,
+				"Unexpected response format",
+			);
+		}
 		console.error("[Vidos] unexpected response format:", data);
 		throw new Error("Vidos API returned unexpected response format");
+	}
+
+	if (debugContext) {
+		debugEmitters.vidosResponse(
+			debugContext,
+			"createAuthorization",
+			response.status,
+			durationMs,
+			true,
+			{
+				authorizationId: data.authorizationId,
+				responseUrl: data.responseUrl,
+				mode: "dc_api",
+			},
+		);
 	}
 
 	console.log(
@@ -301,11 +405,12 @@ export async function createAuthorizationRequest(
 
 /**
  * Fetches policy response errors for a rejected/error authorization.
- * Returns the first error found or null if no errors.
+ * Returns the raw policy data + parsed error info.
  */
-async function getPolicyErrors(
-	authorizationId: string,
-): Promise<AuthorizationErrorInfo | undefined> {
+async function getPolicyErrors(authorizationId: string): Promise<{
+	errorInfo?: AuthorizationErrorInfo;
+	policies?: Record<string, unknown>[];
+}> {
 	const client = getAuthorizerClient();
 
 	try {
@@ -318,8 +423,10 @@ async function getPolicyErrors(
 
 		if (error || !data?.data) {
 			console.error("[Vidos] getPolicyErrors error:", error);
-			return undefined;
+			return {};
 		}
+
+		const policies = data.data as Record<string, unknown>[];
 
 		// Find first policy with an error
 		for (const policyResult of data.data) {
@@ -327,43 +434,59 @@ async function getPolicyErrors(
 				const parsed = parseVidosError(policyResult);
 				if (parsed) {
 					console.log("[Vidos] parsed policy error:", parsed);
-					return parsed;
+					return { errorInfo: parsed, policies };
 				}
 			}
 		}
 
-		return undefined;
+		return { policies };
 	} catch (err) {
 		console.error("[Vidos] getPolicyErrors exception:", err);
-		return undefined;
+		return {};
 	}
 }
 
 /**
  * Polls the authorization status from the Vidos Authorizer API.
  * Used to check if the user has completed the verification flow.
+ *
+ * Debug events are suppressed for intermediate pending polls to reduce noise:
+ * - isFirstPoll=true: emits a "polling started" summary request event
+ * - subsequent pending polls: no debug events emitted
+ * - terminal poll: emits the final response event
  */
 export async function pollAuthorizationStatus(
 	authorizationId: string,
 	debugContext?: DebugContext,
+	isFirstPoll?: boolean,
 ): Promise<PollStatusResult> {
 	const client = getAuthorizerClient();
-	const startedAt = Date.now();
+	const endpoint =
+		"/openid4/vp/v1_0/authorizations/{authorizationId}/status" as const;
 
-	const { data, error } = await client.GET(
-		"/openid4/vp/v1_0/authorizations/{authorizationId}/status",
-		{
-			params: { path: { authorizationId } },
-		},
-	);
+	if (debugContext && isFirstPoll) {
+		debugEmitters.vidosRequest(debugContext, "pollStatus", "GET", endpoint, {
+			authorizationId,
+			note: "Polling started — intermediate pending polls are suppressed",
+		});
+	}
+
+	const startedAt = Date.now();
+	const { data, error, response } = await client.GET(endpoint, {
+		params: { path: { authorizationId } },
+	});
+	const durationMs = Date.now() - startedAt;
 
 	if (error) {
 		if (debugContext) {
-			debugEmitters.vidos.upstreamCallFinished(
+			debugEmitters.vidosResponse(
 				debugContext,
-				"pollAuthorizationStatus",
-				"error",
-				Date.now() - startedAt,
+				"pollStatus",
+				response?.status ?? 0,
+				durationMs,
+				false,
+				undefined,
+				error.message,
 			);
 		}
 		console.error("[Vidos] pollAuthorizationStatus error:", error);
@@ -391,37 +514,53 @@ export async function pollAuthorizationStatus(
 		mappedStatus,
 	);
 
-	// For rejected/error status, fetch detailed error info
+	// Only emit response debug event for non-pending (terminal or notable) statuses
+	if (mappedStatus !== "pending" && debugContext) {
+		debugEmitters.vidosResponse(
+			debugContext,
+			"pollStatus",
+			response.status,
+			durationMs,
+			true,
+			{ authorizationId, status: mappedStatus },
+		);
+	}
+
+	// For rejected/error status, fetch detailed policy errors and emit policy_result
 	if (mappedStatus === "rejected" || mappedStatus === "error") {
-		const errorInfo = await getPolicyErrors(authorizationId);
+		const { errorInfo, policies } = await getPolicyErrors(authorizationId);
+
 		if (debugContext) {
-			debugEmitters.vidos.upstreamCallFinished(
+			debugEmitters.policyResult(
 				debugContext,
-				"pollAuthorizationStatus",
+				authorizationId,
+				"direct_post_poll",
 				mappedStatus,
-				Date.now() - startedAt,
+				policies,
+				errorInfo,
 			);
 		}
-		return {
-			status: mappedStatus,
+
+		return { status: mappedStatus, errorInfo };
+	}
+
+	// Emit policy_result for other terminal statuses too
+	if (
+		(mappedStatus === "authorized" || mappedStatus === "expired") &&
+		debugContext
+	) {
+		const { errorInfo, policies } = await getPolicyErrors(authorizationId);
+		debugEmitters.policyResult(
+			debugContext,
+			authorizationId,
+			"direct_post_poll",
+			mappedStatus,
+			policies,
 			errorInfo,
-		};
+		);
 	}
 
-	if (debugContext) {
-		if (mappedStatus !== "pending") {
-			debugEmitters.vidos.upstreamCallFinished(
-				debugContext,
-				"pollAuthorizationStatus",
-				mappedStatus,
-				Date.now() - startedAt,
-			);
-		}
-	}
-
-	return {
-		status: mappedStatus,
-	};
+	return { status: mappedStatus };
 }
 
 /**
@@ -434,11 +573,17 @@ export async function forwardDCAPIResponse(
 ): Promise<ForwardDCAPIResult> {
 	const { authorizationId, origin, dcResponse } = params;
 	const client = getAuthorizerClient();
-	const startedAt = Date.now();
+
+	const responseFormat: "jwt" | "vp_token" =
+		"response" in dcResponse ? "jwt" : "vp_token";
+
+	// Emit dc_api_forwarded event (shows the client→server→Vidos handoff)
 	if (debugContext) {
-		debugEmitters.vidos.upstreamCallStarted(
+		debugEmitters.dcApiForwarded(
 			debugContext,
-			"forwardDCAPIResponse",
+			authorizationId,
+			origin,
+			responseFormat,
 		);
 	}
 
@@ -446,25 +591,42 @@ export async function forwardDCAPIResponse(
 
 	// Determine which endpoint to use based on response format
 	if ("response" in dcResponse) {
-		// JWT response format
-		const { data, error } = await client.POST(
-			"/openid4/vp/v1_0/{authorizationId}/dc_api.jwt",
-			{
-				params: { path: { authorizationId } },
-				body: {
+		const endpoint = "/openid4/vp/v1_0/{authorizationId}/dc_api.jwt" as const;
+
+		if (debugContext) {
+			debugEmitters.vidosRequest(
+				debugContext,
+				"forwardDCAPI",
+				"POST",
+				endpoint,
+				{
+					authorizationId,
 					origin,
-					digitalCredentialGetResponse: dcResponse,
+					responseFormat,
 				},
+			);
+		}
+
+		const startedAt = Date.now();
+		const { data, error, response } = await client.POST(endpoint, {
+			params: { path: { authorizationId } },
+			body: {
+				origin,
+				digitalCredentialGetResponse: dcResponse,
 			},
-		);
+		});
+		const durationMs = Date.now() - startedAt;
 
 		if (error) {
 			if (debugContext) {
-				debugEmitters.vidos.upstreamCallFinished(
+				debugEmitters.vidosResponse(
 					debugContext,
-					"forwardDCAPIResponse",
-					"error",
-					Date.now() - startedAt,
+					"forwardDCAPI",
+					response?.status ?? 0,
+					durationMs,
+					false,
+					undefined,
+					error.message,
 				);
 			}
 			console.error("[Vidos] forwardDCAPIResponse error:", error);
@@ -475,60 +637,89 @@ export async function forwardDCAPIResponse(
 			throw new Error("Vidos API returned empty response");
 		}
 
-		console.log("[Vidos] forwardDCAPIResponse result:", data.status);
-
-		// Fetch error info for rejected/error status
-		if (data.status === "rejected" || data.status === "error") {
-			const errorInfo = await getPolicyErrors(authorizationId);
-			if (debugContext) {
-				debugEmitters.vidos.upstreamCallFinished(
-					debugContext,
-					"forwardDCAPIResponse",
-					data.status,
-					Date.now() - startedAt,
-				);
-			}
-			return { status: data.status, errorInfo };
-		}
+		const mappedStatus = data.status as AuthorizationStatus;
+		console.log("[Vidos] forwardDCAPIResponse result:", mappedStatus);
 
 		if (debugContext) {
-			debugEmitters.vidos.upstreamCallFinished(
+			debugEmitters.vidosResponse(
 				debugContext,
-				"forwardDCAPIResponse",
-				data.status,
-				Date.now() - startedAt,
+				"forwardDCAPI",
+				response.status,
+				durationMs,
+				true,
+				{ authorizationId, status: mappedStatus },
 			);
 		}
 
-		return { status: data.status };
+		// Fetch error info for rejected/error status, emit policy_result
+		if (mappedStatus === "rejected" || mappedStatus === "error") {
+			const { errorInfo, policies } = await getPolicyErrors(authorizationId);
+			if (debugContext) {
+				debugEmitters.policyResult(
+					debugContext,
+					authorizationId,
+					"dc_api",
+					mappedStatus,
+					policies,
+					errorInfo,
+				);
+			}
+			return { status: mappedStatus, errorInfo };
+		}
+
+		if (debugContext && mappedStatus !== "pending") {
+			const { errorInfo, policies } = await getPolicyErrors(authorizationId);
+			debugEmitters.policyResult(
+				debugContext,
+				authorizationId,
+				"dc_api",
+				mappedStatus,
+				policies,
+				errorInfo,
+			);
+		}
+
+		return { status: mappedStatus };
 	}
 
-	// vp_token response format - cast to expected type
-	const { data, error } = await client.POST(
-		"/openid4/vp/v1_0/{authorizationId}/dc_api",
-		{
-			params: { path: { authorizationId } },
-			body: {
-				origin,
-				digitalCredentialGetResponse: dcResponse as {
-					vp_token: {
-						[key: string]:
-							| string
-							| (string | { [key: string]: unknown })[]
-							| { [key: string]: unknown };
-					};
-				},
+	// vp_token response format
+	const endpoint = "/openid4/vp/v1_0/{authorizationId}/dc_api" as const;
+
+	if (debugContext) {
+		debugEmitters.vidosRequest(debugContext, "forwardDCAPI", "POST", endpoint, {
+			authorizationId,
+			origin,
+			responseFormat,
+		});
+	}
+
+	const startedAt = Date.now();
+	const { data, error, response } = await client.POST(endpoint, {
+		params: { path: { authorizationId } },
+		body: {
+			origin,
+			digitalCredentialGetResponse: dcResponse as {
+				vp_token: {
+					[key: string]:
+						| string
+						| (string | { [key: string]: unknown })[]
+						| { [key: string]: unknown };
+				};
 			},
 		},
-	);
+	});
+	const durationMs = Date.now() - startedAt;
 
 	if (error) {
 		if (debugContext) {
-			debugEmitters.vidos.upstreamCallFinished(
+			debugEmitters.vidosResponse(
 				debugContext,
-				"forwardDCAPIResponse",
-				"error",
-				Date.now() - startedAt,
+				"forwardDCAPI",
+				response?.status ?? 0,
+				durationMs,
+				false,
+				undefined,
+				error.message,
 			);
 		}
 		console.error("[Vidos] forwardDCAPIResponse error:", error);
@@ -539,41 +730,49 @@ export async function forwardDCAPIResponse(
 		throw new Error("Vidos API returned empty response");
 	}
 
-	console.log("[Vidos] forwardDCAPIResponse result:", data.status);
-
-	// Fetch error info for rejected/error status
-	if (data.status === "rejected" || data.status === "error") {
-		const errorInfo = await getPolicyErrors(authorizationId);
-		if (debugContext) {
-			debugEmitters.vidos.upstreamCallFinished(
-				debugContext,
-				"forwardDCAPIResponse",
-				data.status,
-				Date.now() - startedAt,
-			);
-		}
-		return { status: data.status, errorInfo };
-	}
+	const mappedStatus = data.status as AuthorizationStatus;
+	console.log("[Vidos] forwardDCAPIResponse result:", mappedStatus);
 
 	if (debugContext) {
-		debugEmitters.vidos.upstreamCallFinished(
+		debugEmitters.vidosResponse(
 			debugContext,
-			"forwardDCAPIResponse",
-			data.status,
-			Date.now() - startedAt,
+			"forwardDCAPI",
+			response.status,
+			durationMs,
+			true,
+			{ authorizationId, status: mappedStatus },
 		);
 	}
 
-	return { status: data.status };
-}
+	// Fetch error info for rejected/error status, emit policy_result
+	if (mappedStatus === "rejected" || mappedStatus === "error") {
+		const { errorInfo, policies } = await getPolicyErrors(authorizationId);
+		if (debugContext) {
+			debugEmitters.policyResult(
+				debugContext,
+				authorizationId,
+				"dc_api",
+				mappedStatus,
+				policies,
+				errorInfo,
+			);
+		}
+		return { status: mappedStatus, errorInfo };
+	}
 
-/**
- * Retrieves extracted credentials from a completed authorization.
- * Validates against provided schema for flow-specific requirements.
- */
-export interface ResolveResponseCodeResult {
-	authorizationId: string;
-	status: "authorized" | "rejected" | "error" | "expired";
+	if (debugContext && mappedStatus !== "pending") {
+		const { errorInfo, policies } = await getPolicyErrors(authorizationId);
+		debugEmitters.policyResult(
+			debugContext,
+			authorizationId,
+			"dc_api",
+			mappedStatus,
+			policies,
+			errorInfo,
+		);
+	}
+
+	return { status: mappedStatus };
 }
 
 /**
@@ -581,23 +780,48 @@ export interface ResolveResponseCodeResult {
  * The response_code is single-use and has a short TTL.
  * Throws on 404 (expired, already used, or non-existent code).
  */
+export interface ResolveResponseCodeResult {
+	authorizationId: string;
+	status: "authorized" | "rejected" | "error" | "expired";
+}
+
 export async function resolveResponseCode(
 	responseCode: string,
+	debugContext?: DebugContext,
 ): Promise<ResolveResponseCodeResult> {
 	const client = getAuthorizerClient();
+	const endpoint = "/openid4/vp/v1_0/response-code/resolve" as const;
 
 	console.log("[Vidos] resolveResponseCode:", `${responseCode.slice(0, 8)}...`);
 
-	const { data, error, response } = await client.POST(
-		"/openid4/vp/v1_0/response-code/resolve",
-		{
-			body: {
-				response_code: responseCode,
-			},
-		},
-	);
+	if (debugContext) {
+		debugEmitters.vidosRequest(
+			debugContext,
+			"resolveResponseCode",
+			"POST",
+			endpoint,
+			{ response_code: `${responseCode.slice(0, 8)}…` },
+		);
+	}
+
+	const startedAt = Date.now();
+	const { data, error, response } = await client.POST(endpoint, {
+		body: { response_code: responseCode },
+	});
+	const durationMs = Date.now() - startedAt;
 
 	if (error) {
+		if (debugContext) {
+			debugEmitters.vidosResponse(
+				debugContext,
+				"resolveResponseCode",
+				response?.status ?? 0,
+				durationMs,
+				false,
+				undefined,
+				error.message,
+			);
+		}
 		console.error("[Vidos] resolveResponseCode error:", error);
 		if (response?.status === 404) {
 			throw new Error("Response code not found, already used, or expired");
@@ -607,6 +831,20 @@ export async function resolveResponseCode(
 
 	if (!data) {
 		throw new Error("Vidos API returned empty response");
+	}
+
+	if (debugContext) {
+		debugEmitters.vidosResponse(
+			debugContext,
+			"resolveResponseCode",
+			response.status,
+			durationMs,
+			true,
+			{
+				authorization_id: data.authorization_id,
+				status: data.status,
+			},
+		);
 	}
 
 	console.log(
@@ -626,32 +864,30 @@ export async function getExtractedCredentials<T extends z.ZodTypeAny>(
 	authorizationId: string,
 	schema: T,
 	debugContext?: DebugContext,
+	source?: "direct_post_poll" | "dc_api",
 ): Promise<z.infer<T>> {
 	const client = getAuthorizerClient();
-	const startedAt = Date.now();
-	if (debugContext) {
-		debugEmitters.vidos.upstreamCallStarted(
-			debugContext,
-			"getExtractedCredentials",
-		);
-	}
+	const endpoint =
+		"/openid4/vp/v1_0/authorizations/{authorizationId}/credentials" as const;
 
 	console.log("[Vidos] getExtractedCredentials:", authorizationId);
 
-	const { data, error } = await client.GET(
-		"/openid4/vp/v1_0/authorizations/{authorizationId}/credentials",
-		{
-			params: { path: { authorizationId } },
-		},
-	);
+	const startedAt = Date.now();
+	const { data, error, response } = await client.GET(endpoint, {
+		params: { path: { authorizationId } },
+	});
+	const durationMs = Date.now() - startedAt;
 
 	if (error) {
 		if (debugContext) {
-			debugEmitters.vidos.upstreamCallFinished(
+			debugEmitters.vidosResponse(
 				debugContext,
-				"getExtractedCredentials",
-				"error",
-				Date.now() - startedAt,
+				"getCredentials",
+				response?.status ?? 0,
+				durationMs,
+				false,
+				undefined,
+				error.message,
 			);
 		}
 		console.error("[Vidos] getExtractedCredentials error:", error);
@@ -679,11 +915,13 @@ export async function getExtractedCredentials<T extends z.ZodTypeAny>(
 	console.log("[Vidos] extracted claims:", Object.keys(claims));
 
 	if (debugContext) {
-		debugEmitters.vidos.upstreamCallFinished(
+		debugEmitters.credentialResult(
 			debugContext,
-			"getExtractedCredentials",
-			"authorized",
-			Date.now() - startedAt,
+			authorizationId,
+			source ?? "direct_post_poll",
+			data as Record<string, unknown>,
+			response.status,
+			durationMs,
 		);
 	}
 

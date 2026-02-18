@@ -5,11 +5,7 @@ import {
 	authorizationConnectedEventSchema,
 	authorizationStreamEventSchema,
 } from "shared/api/authorization-sse";
-import {
-	type DebugSseEnvelope,
-	type DebugSseEvent,
-	debugSseEventSchema,
-} from "shared/api/debug-sse";
+import { type DebugSseEvent, debugSseEventSchema } from "shared/api/debug-sse";
 import {
 	type LoanAuthMetadata,
 	loanAuthMetadataSchema,
@@ -33,6 +29,7 @@ import { appEvents } from "../lib/events";
 export type { PendingAuthRequest };
 
 type BaseCreateInput = {
+	id?: string;
 	vidosAuthorizationId: string;
 	mode: "direct_post" | "dc_api";
 	responseUrl?: string;
@@ -210,7 +207,7 @@ const mapResolvedStatus = (
 
 export const appendDebugEventForRequest = (
 	requestId: string,
-	event: DebugSseEnvelope,
+	event: DebugSseEvent,
 ): DebugSseEvent => {
 	const parsedEvent = debugSseEventSchema.parse({
 		...event,
@@ -414,21 +411,6 @@ const emitAuthorizationEvent = (
 	}
 };
 
-const emitStoreDebugEvent = (
-	request: PendingAuthRequest,
-	event: DebugSseEvent,
-): void => {
-	const parsed = appendDebugEventForRequest(request.id, {
-		...event,
-		requestId: request.id,
-		flowType: request.type,
-	});
-	appEvents.emit("debugEvent", {
-		requestId: request.id,
-		event: parsed,
-	});
-};
-
 export const createPendingRequest = (
 	data: CreatePendingRequestInput,
 ): PendingAuthRequest => {
@@ -437,7 +419,7 @@ export const createPendingRequest = (
 		data.debugScope,
 	);
 
-	const id = randomUUID();
+	const id = data.id ?? randomUUID();
 	const createdAt = new Date();
 
 	const row: typeof pendingAuthRequestsTable.$inferInsert = {
@@ -466,17 +448,7 @@ export const createPendingRequest = (
 		createdAt,
 	};
 
-	emitStoreDebugEvent(createdRequest, {
-		eventType: "request_lifecycle",
-		level: "info",
-		timestamp: new Date().toISOString(),
-		message: "Authorization request created.",
-		stage: "request_created",
-		details: {
-			authorizationId: createdRequest.vidosAuthorizationId,
-			mode: createdRequest.mode,
-		},
-	});
+	// No debug event here — the vidos_request event fired in vidos.ts covers creation
 
 	return createdRequest;
 };
@@ -567,28 +539,7 @@ const updatePendingRequestTerminal = (
 
 	const updated = mapRowToPendingAuthRequest(row);
 	emitAuthorizationEvent(updated, "state");
-	emitStoreDebugEvent(updated, {
-		eventType: "state_transition",
-		level: "info",
-		timestamp: new Date().toISOString(),
-		message: "Pending auth request reached terminal state.",
-		from: "pending",
-		to: updated.result?.status ?? updated.status,
-		details: {
-			storeStatus: updated.status,
-			authorizationId: updated.vidosAuthorizationId,
-		},
-	});
-	emitStoreDebugEvent(updated, {
-		eventType: "request_lifecycle",
-		level: "info",
-		timestamp: new Date().toISOString(),
-		message: "Authorization request resolved.",
-		stage: "request_resolved",
-		details: {
-			resolvedAs: updated.result?.status ?? updated.status,
-		},
-	});
+	// Credential/policy result debug events are fired at the service layer (vidos.ts / authorization-completion.ts)
 	return updated;
 };
 

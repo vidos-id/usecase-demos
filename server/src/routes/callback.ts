@@ -7,7 +7,6 @@ import {
 	loanAuthMetadataSchema,
 	paymentAuthMetadataSchema,
 } from "shared/types/auth-metadata";
-import { debugEmitters } from "../lib/debug-events";
 import { appEvents } from "../lib/events";
 import { createSseResponse, createTypedSseSender } from "../lib/sse";
 import { resolveResponseCode } from "../services/vidos";
@@ -161,15 +160,6 @@ export const callbackRouter = new Hono().get("/stream", (c) => {
 			connection.close();
 			return;
 		}
-
-		debugEmitters.callback.resolvedResponseCode(
-			{
-				requestId: pendingRequest.id,
-				flowType: pendingRequest.type,
-			},
-			responseCode,
-			resolved.authorizationId,
-		);
 
 		const initialState = buildState(
 			pendingRequest,

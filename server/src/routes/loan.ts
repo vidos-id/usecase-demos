@@ -54,21 +54,26 @@ export const loanRouter = new Hono()
 				}),
 			).toString("base64url"),
 		];
+		const requestId = randomUUID();
 
-		const result = await createAuthorizationRequest({
-			...modeParams,
-			requestedClaims: LOAN_CLAIMS,
-			purpose: LOAN_PURPOSE,
-			transactionData,
-			verifierInfo: [
-				{
-					format: "plaintext",
-					data: "Demo Bank - Loan Application Identity Verification",
-				},
-			],
-		});
+		const result = await createAuthorizationRequest(
+			{
+				...modeParams,
+				requestedClaims: LOAN_CLAIMS,
+				purpose: LOAN_PURPOSE,
+				transactionData,
+				verifierInfo: [
+					{
+						format: "plaintext",
+						data: "Demo Bank - Loan Application Identity Verification",
+					},
+				],
+			},
+			{ requestId, flowType: "loan" },
+		);
 
 		const pendingRequest = createPendingRequest({
+			id: requestId,
 			vidosAuthorizationId: result.authorizationId,
 			type: "loan",
 			mode: modeParams.mode,

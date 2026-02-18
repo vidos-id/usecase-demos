@@ -54,21 +54,26 @@ export const paymentRouter = new Hono()
 				}),
 			).toString("base64url"),
 		];
+		const requestId = randomUUID();
 
-		const result = await createAuthorizationRequest({
-			...modeParams,
-			requestedClaims: PAYMENT_CLAIMS,
-			purpose: PAYMENT_PURPOSE,
-			transactionData,
-			verifierInfo: [
-				{
-					format: "plaintext",
-					data: "Demo Bank - Secure Payment Authorization",
-				},
-			],
-		});
+		const result = await createAuthorizationRequest(
+			{
+				...modeParams,
+				requestedClaims: PAYMENT_CLAIMS,
+				purpose: PAYMENT_PURPOSE,
+				transactionData,
+				verifierInfo: [
+					{
+						format: "plaintext",
+						data: "Demo Bank - Secure Payment Authorization",
+					},
+				],
+			},
+			{ requestId, flowType: "payment" },
+		);
 
 		const pendingRequest = createPendingRequest({
+			id: requestId,
 			vidosAuthorizationId: result.authorizationId,
 			type: "payment",
 			mode: modeParams.mode,

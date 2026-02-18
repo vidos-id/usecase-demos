@@ -170,8 +170,9 @@ describe("debug SSE route", () => {
 		emitDebugEvent(
 			{ requestId: requestB.id, flowType: requestB.type },
 			{
-				eventType: "system",
+				eventType: "error",
 				level: "info",
+				timestamp: new Date().toISOString(),
 				message: "requestB-event",
 				code: "isolation",
 			},
@@ -179,8 +180,9 @@ describe("debug SSE route", () => {
 		emitDebugEvent(
 			{ requestId: requestA.id, flowType: requestA.type },
 			{
-				eventType: "system",
+				eventType: "error",
 				level: "info",
+				timestamp: new Date().toISOString(),
 				message: "requestA-event",
 				code: "isolation",
 			},
@@ -256,8 +258,9 @@ describe("debug SSE route", () => {
 		emitDebugEvent(
 			{ requestId: request.id, flowType: request.type },
 			{
-				eventType: "system",
+				eventType: "error",
 				level: "info",
+				timestamp: new Date().toISOString(),
 				message: "history-1",
 				code: "replay",
 			},
@@ -265,8 +268,9 @@ describe("debug SSE route", () => {
 		emitDebugEvent(
 			{ requestId: request.id, flowType: request.type },
 			{
-				eventType: "system",
+				eventType: "error",
 				level: "info",
+				timestamp: new Date().toISOString(),
 				message: "history-2",
 				code: "replay",
 			},
@@ -291,8 +295,9 @@ describe("debug SSE route", () => {
 		emitDebugEvent(
 			{ requestId: request.id, flowType: request.type },
 			{
-				eventType: "system",
+				eventType: "error",
 				level: "info",
+				timestamp: new Date().toISOString(),
 				message: "live-1",
 				code: "replay",
 			},
@@ -372,8 +377,9 @@ describe("debug SSE route", () => {
 			emitDebugEvent(
 				{ requestId: request.id, flowType: request.type },
 				{
-					eventType: "system",
+					eventType: "error",
 					level: "info",
+					timestamp: new Date().toISOString(),
 					message: `history-${index}`,
 					code: "handoff",
 				},
@@ -390,8 +396,9 @@ describe("debug SSE route", () => {
 		emitDebugEvent(
 			{ requestId: request.id, flowType: request.type },
 			{
-				eventType: "system",
+				eventType: "error",
 				level: "info",
+				timestamp: new Date().toISOString(),
 				message: "live-after-open",
 				code: "handoff",
 			},
