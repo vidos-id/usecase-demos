@@ -1,9 +1,15 @@
 import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import {
+	type AuthorizationFlowType,
 	authorizationConnectedEventSchema,
 	authorizationStreamEventSchema,
 } from "shared/api/authorization-sse";
+import {
+	type DebugSseEnvelope,
+	type DebugSseEvent,
+	debugSseEventSchema,
+} from "shared/api/debug-sse";
 import {
 	type LoanAuthMetadata,
 	loanAuthMetadataSchema,
@@ -13,6 +19,7 @@ import {
 	profileUpdateAuthMetadataSchema,
 } from "shared/types/auth-metadata";
 import type { AuthorizationErrorInfo } from "shared/types/vidos-errors";
+import { z } from "zod";
 import { db } from "../db";
 import {
 	type PendingAuthMetadata,
@@ -31,6 +38,7 @@ type BaseCreateInput = {
 	responseUrl?: string;
 	completedAt?: Date;
 	result?: PendingAuthRequest["result"];
+	debugScope?: PendingRequestAccessScope;
 };
 
 type SignupCreateInput = BaseCreateInput & {
@@ -68,6 +76,51 @@ export type CreatePendingRequestInput =
 export type PendingRequestResultPatch = Partial<
 	NonNullable<PendingAuthRequest["result"]>
 >;
+
+export type PendingRequestTerminalStatus =
+	| "authorized"
+	| "rejected"
+	| "expired"
+	| "error"
+	| "not_found"
+	| "account_exists";
+
+export const isPendingRequestTerminalStatus = (
+	status: string | undefined,
+): status is PendingRequestTerminalStatus => {
+	return (
+		status === "authorized" ||
+		status === "rejected" ||
+		status === "expired" ||
+		status === "error" ||
+		status === "not_found" ||
+		status === "account_exists"
+	);
+};
+
+export type PendingRequestDebugScope = {
+	requestId: string;
+	flowType: AuthorizationFlowType;
+	ownerUserId?: string;
+	ownerSessionId?: string;
+	terminalStatus?: PendingRequestTerminalStatus;
+};
+
+export type PendingRequestAccessScope = {
+	ownerUserId?: string;
+	ownerSessionId?: string;
+};
+
+const DEBUG_BUFFER_LIMIT = 500;
+const debugEventsByRequestId = new Map<string, DebugSseEvent[]>();
+const DEBUG_SCOPE_METADATA_KEY = "__debugScope";
+
+const pendingRequestAccessScopeSchema = z
+	.object({
+		ownerUserId: z.string().min(1).optional(),
+		ownerSessionId: z.string().min(1).optional(),
+	})
+	.strict();
 
 function validateMetadata(
 	type: CreatePendingRequestInput["type"],
@@ -153,6 +206,120 @@ const mapResolvedStatus = (
 		return "expired";
 	}
 	return "failed";
+};
+
+export const appendDebugEventForRequest = (
+	requestId: string,
+	event: DebugSseEnvelope,
+): DebugSseEvent => {
+	const parsedEvent = debugSseEventSchema.parse({
+		...event,
+		requestId,
+	});
+	const current = debugEventsByRequestId.get(requestId) ?? [];
+	current.push(parsedEvent);
+	if (current.length > DEBUG_BUFFER_LIMIT) {
+		current.splice(0, current.length - DEBUG_BUFFER_LIMIT);
+	}
+	debugEventsByRequestId.set(requestId, current);
+	return parsedEvent;
+};
+
+export const getDebugEventsForRequest = (
+	requestId: string,
+): DebugSseEvent[] => {
+	return [...(debugEventsByRequestId.get(requestId) ?? [])];
+};
+
+export const clearDebugEventsForRequest = (requestId: string): void => {
+	debugEventsByRequestId.delete(requestId);
+};
+
+export const getPendingRequestOwnerUserId = (
+	request: PendingAuthRequest,
+): string | undefined => {
+	const debugScope = getPendingRequestAccessScope(request);
+	if (debugScope?.ownerUserId) {
+		return debugScope.ownerUserId;
+	}
+
+	if (request.type === "payment") {
+		const parsed = paymentAuthMetadataSchema.safeParse(request.metadata);
+		return parsed.success ? parsed.data.userId : undefined;
+	}
+
+	if (request.type === "loan") {
+		const parsed = loanAuthMetadataSchema.safeParse(request.metadata);
+		return parsed.success ? parsed.data.userId : undefined;
+	}
+
+	if (request.type === "profile_update") {
+		const parsed = profileUpdateAuthMetadataSchema.safeParse(request.metadata);
+		return parsed.success ? parsed.data.userId : undefined;
+	}
+
+	return undefined;
+};
+
+const getPendingRequestAccessScope = (
+	request: PendingAuthRequest,
+): PendingRequestAccessScope | undefined => {
+	if (!request.metadata) {
+		return undefined;
+	}
+
+	const rawScope = request.metadata[DEBUG_SCOPE_METADATA_KEY];
+	const parsedScope = pendingRequestAccessScopeSchema.safeParse(rawScope);
+	if (!parsedScope.success) {
+		return undefined;
+	}
+
+	if (!parsedScope.data.ownerUserId && !parsedScope.data.ownerSessionId) {
+		return undefined;
+	}
+
+	return parsedScope.data;
+};
+
+const attachPendingRequestAccessScope = (
+	metadata: PendingAuthMetadata | undefined,
+	scope: PendingRequestAccessScope | undefined,
+): PendingAuthMetadata | undefined => {
+	if (!scope?.ownerUserId && !scope?.ownerSessionId) {
+		return metadata;
+	}
+
+	const base = metadata ?? {};
+	return pendingAuthMetadataSchema.parse({
+		...base,
+		[DEBUG_SCOPE_METADATA_KEY]: {
+			...(scope.ownerUserId ? { ownerUserId: scope.ownerUserId } : {}),
+			...(scope.ownerSessionId ? { ownerSessionId: scope.ownerSessionId } : {}),
+		},
+	});
+};
+
+export const getPendingRequestDebugScope = (
+	requestId: string,
+): PendingRequestDebugScope | undefined => {
+	const request = getPendingRequestById(requestId);
+	if (!request) {
+		return undefined;
+	}
+
+	const terminalStatus = isPendingRequestTerminalStatus(request.result?.status)
+		? request.result?.status
+		: request.status === "expired"
+			? "expired"
+			: undefined;
+
+	return {
+		requestId,
+		flowType: request.type,
+		ownerUserId: getPendingRequestOwnerUserId(request),
+		ownerSessionId: getPendingRequestAccessScope(request)?.ownerSessionId,
+		terminalStatus,
+	};
 };
 
 const toAuthorizationStateEvent = (
@@ -247,10 +414,28 @@ const emitAuthorizationEvent = (
 	}
 };
 
+const emitStoreDebugEvent = (
+	request: PendingAuthRequest,
+	event: DebugSseEvent,
+): void => {
+	const parsed = appendDebugEventForRequest(request.id, {
+		...event,
+		requestId: request.id,
+		flowType: request.type,
+	});
+	appEvents.emit("debugEvent", {
+		requestId: request.id,
+		event: parsed,
+	});
+};
+
 export const createPendingRequest = (
 	data: CreatePendingRequestInput,
 ): PendingAuthRequest => {
-	const normalizedMetadata = validateMetadata(data.type, data.metadata);
+	const normalizedMetadata = attachPendingRequestAccessScope(
+		validateMetadata(data.type, data.metadata),
+		data.debugScope,
+	);
 
 	const id = randomUUID();
 	const createdAt = new Date();
@@ -270,7 +455,7 @@ export const createPendingRequest = (
 
 	db.insert(pendingAuthRequestsTable).values(row).run();
 
-	return {
+	const createdRequest: PendingAuthRequest = {
 		id,
 		vidosAuthorizationId: data.vidosAuthorizationId,
 		type: data.type,
@@ -280,6 +465,20 @@ export const createPendingRequest = (
 		metadata: normalizedMetadata,
 		createdAt,
 	};
+
+	emitStoreDebugEvent(createdRequest, {
+		eventType: "request_lifecycle",
+		level: "info",
+		timestamp: new Date().toISOString(),
+		message: "Authorization request created.",
+		stage: "request_created",
+		details: {
+			authorizationId: createdRequest.vidosAuthorizationId,
+			mode: createdRequest.mode,
+		},
+	});
+
+	return createdRequest;
 };
 
 function getRequestTtl(type: string): number {
@@ -368,6 +567,28 @@ const updatePendingRequestTerminal = (
 
 	const updated = mapRowToPendingAuthRequest(row);
 	emitAuthorizationEvent(updated, "state");
+	emitStoreDebugEvent(updated, {
+		eventType: "state_transition",
+		level: "info",
+		timestamp: new Date().toISOString(),
+		message: "Pending auth request reached terminal state.",
+		from: "pending",
+		to: updated.result?.status ?? updated.status,
+		details: {
+			storeStatus: updated.status,
+			authorizationId: updated.vidosAuthorizationId,
+		},
+	});
+	emitStoreDebugEvent(updated, {
+		eventType: "request_lifecycle",
+		level: "info",
+		timestamp: new Date().toISOString(),
+		message: "Authorization request resolved.",
+		stage: "request_resolved",
+		details: {
+			resolvedAs: updated.result?.status ?? updated.status,
+		},
+	});
 	return updated;
 };
 
@@ -440,8 +661,10 @@ export const deletePendingRequest = (id: string): void => {
 	db.delete(pendingAuthRequestsTable)
 		.where(eq(pendingAuthRequestsTable.id, id))
 		.run();
+	clearDebugEventsForRequest(id);
 };
 
 export const clearAllPendingRequests = (): void => {
 	db.delete(pendingAuthRequestsTable).run();
+	debugEventsByRequestId.clear();
 };

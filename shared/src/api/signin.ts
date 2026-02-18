@@ -20,6 +20,7 @@ export type SigninRequest = z.infer<typeof signinRequestSchema>;
 
 const signinRequestResponseBaseSchema = z.object({
 	requestId: z.string(),
+	debugSessionId: z.string(),
 });
 
 export const signinRequestResponseSchema = z.discriminatedUnion("mode", [

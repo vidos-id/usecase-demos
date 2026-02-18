@@ -21,6 +21,7 @@ export type SignupRequest = z.infer<typeof signupRequestSchema>;
 const signupRequestResponseBaseSchema = z.object({
 	requestId: z.string(),
 	authorizationId: z.string(),
+	debugSessionId: z.string(),
 });
 
 export const signupRequestResponseSchema = z.discriminatedUnion("mode", [

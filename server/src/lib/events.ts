@@ -3,6 +3,7 @@ import type {
 	AuthorizationFlowType,
 	AuthorizationStreamEvent,
 } from "shared/api/authorization-sse";
+import type { DebugSseEvent } from "shared/api/debug-sse";
 
 /**
  * Typed application events.
@@ -23,6 +24,11 @@ export interface AppEventMap {
 	authRequestResolved: {
 		authorizationId: string;
 		status: "completed" | "failed" | "expired";
+	};
+
+	debugEvent: {
+		requestId: string;
+		event: DebugSseEvent;
 	};
 }
 

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import {
@@ -8,6 +9,11 @@ import {
 } from "shared/api/signin";
 import { SIGNIN_CLAIMS, SIGNIN_PURPOSE } from "shared/lib/claims";
 import { signinClaimsSchema } from "shared/types/auth";
+import {
+	createDebugSessionCookie,
+	getDebugSessionIdFromRequest,
+	getSessionFromRequest,
+} from "../lib/request-session";
 import { startAuthorizationMonitor } from "../services/authorization-monitor";
 import { streamAuthorizationRequest } from "../services/authorization-stream";
 import {
@@ -27,6 +33,11 @@ import { getUserByIdentifier } from "../stores/users";
 export const signinRouter = new Hono()
 	.post("/request", zValidator("json", signinRequestSchema), async (c) => {
 		const body = c.req.valid("json");
+		const session = getSessionFromRequest(c) ?? undefined;
+		const existingDebugSessionId = getDebugSessionIdFromRequest(c);
+		const debugSessionId =
+			session?.id ?? existingDebugSessionId ?? randomUUID();
+		const shouldSetDebugCookie = !session && !existingDebugSessionId;
 
 		const result = await createAuthorizationRequest({
 			...body,
@@ -39,6 +50,10 @@ export const signinRouter = new Hono()
 			type: "signin",
 			mode: body.mode,
 			responseUrl: result.mode === "dc_api" ? result.responseUrl : undefined,
+			debugScope: {
+				ownerUserId: session?.userId,
+				ownerSessionId: debugSessionId,
+			},
 		});
 
 		startAuthorizationMonitor(pendingRequest.id);
@@ -48,6 +63,7 @@ export const signinRouter = new Hono()
 				? {
 						mode: "direct_post",
 						requestId: pendingRequest.id,
+						debugSessionId,
 						authorizeUrl: result.authorizeUrl,
 						requestedClaims: SIGNIN_CLAIMS,
 						purpose: SIGNIN_PURPOSE,
@@ -55,11 +71,16 @@ export const signinRouter = new Hono()
 				: {
 						mode: "dc_api",
 						requestId: pendingRequest.id,
+						debugSessionId,
 						dcApiRequest: result.dcApiRequest,
 						requestedClaims: SIGNIN_CLAIMS,
 						purpose: SIGNIN_PURPOSE,
 					},
 		);
+
+		if (shouldSetDebugCookie) {
+			c.header("Set-Cookie", createDebugSessionCookie(debugSessionId));
+		}
 
 		return c.json(response);
 	})
@@ -82,13 +103,19 @@ export const signinRouter = new Hono()
 			}
 
 			// Forward DC API response to Vidos
-			const result = await forwardDCAPIResponse({
-				authorizationId: pendingRequest.vidosAuthorizationId,
-				origin,
-				dcResponse: dcResponse as
-					| { response: string }
-					| { vp_token: Record<string, unknown> },
-			});
+			const result = await forwardDCAPIResponse(
+				{
+					authorizationId: pendingRequest.vidosAuthorizationId,
+					origin,
+					dcResponse: dcResponse as
+						| { response: string }
+						| { vp_token: Record<string, unknown> },
+				},
+				{
+					requestId: pendingRequest.id,
+					flowType: pendingRequest.type,
+				},
+			);
 
 			if (result.status !== "authorized") {
 				return c.json(

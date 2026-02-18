@@ -3,6 +3,7 @@ import { compress } from "hono/compress";
 import { cors } from "hono/cors";
 import { adminRouter } from "./routes/admin";
 import { callbackRouter } from "./routes/callback";
+import { debugRouter } from "./routes/debug";
 import { healthRouter } from "./routes/health";
 import { loanRouter } from "./routes/loan";
 import { paymentRouter } from "./routes/payment";
@@ -22,6 +23,7 @@ export const app = new Hono()
 	.route("/api/loan", loanRouter)
 	.route("/api/profile/update", profileUpdateRouter)
 	.route("/api/callback", callbackRouter)
+	.route("/api/debug", debugRouter)
 	.route("/api/session", sessionRouter)
 	.route("/api/users/me", usersMeRouter)
 	.route("/api/admin", adminRouter);

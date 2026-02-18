@@ -36,6 +36,7 @@ import {
 } from "@/components/layout/auth-page";
 import { Button } from "@/components/ui/button";
 import { getStoredCredentialFormats, getStoredMode } from "@/lib/auth-helpers";
+import { useDebugConsole } from "@/lib/debug-console-context";
 import { useAuthorizationStream } from "@/lib/use-authorization-stream";
 import { useProfileUpdate } from "@/lib/use-profile-update";
 import { cn } from "@/lib/utils";
@@ -99,6 +100,16 @@ function ProfilePage() {
 	const [isUpdateOpen, setIsUpdateOpen] = useState(false);
 	const [selectedClaims, setSelectedClaims] = useState<string[]>([]);
 	const [state, setState] = useState<ProfileUpdateState>({ status: "idle" });
+	const { setDebugInfo } = useDebugConsole();
+
+	useEffect(() => {
+		if (state.status === "awaiting_verification") {
+			setDebugInfo(state.requestId);
+			return;
+		}
+
+		setDebugInfo(null, undefined);
+	}, [state, setDebugInfo]);
 
 	const { data: user, isLoading } = useQuery({
 		queryKey: ["user", "me"],

@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { AlertCircle, Clock, Loader2 } from "lucide-react";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type {
 	CredentialFormats,
 	DcApiRequest,
@@ -23,6 +23,7 @@ import {
 	setStoredCredentialFormats,
 	setStoredMode,
 } from "@/lib/auth-helpers";
+import { useDebugConsole } from "@/lib/debug-console-context";
 import { useAuthorizationStream } from "@/lib/use-authorization-stream";
 
 // ============================================================================
@@ -35,6 +36,7 @@ export type AuthState =
 			status: "awaiting_verification";
 			mode: "direct_post";
 			requestId: string;
+			debugSessionId: string;
 			authorizeUrl: string;
 			credentialFormats: CredentialFormats;
 			requestedClaims: string[];
@@ -44,6 +46,7 @@ export type AuthState =
 			status: "awaiting_verification";
 			mode: "dc_api";
 			requestId: string;
+			debugSessionId: string;
 			dcApiRequest: DcApiRequest;
 			credentialFormats: CredentialFormats;
 			requestedClaims: string[];
@@ -61,6 +64,7 @@ export type AuthState =
 type DirectPostRequestResult = {
 	mode: "direct_post";
 	requestId: string;
+	debugSessionId: string;
 	authorizeUrl: string;
 	requestedClaims: string[];
 	purpose: string;
@@ -69,6 +73,7 @@ type DirectPostRequestResult = {
 type DcApiRequestResult = {
 	mode: "dc_api";
 	requestId: string;
+	debugSessionId: string;
 	dcApiRequest: DcApiRequest;
 	requestedClaims: string[];
 	purpose: string;
@@ -154,6 +159,16 @@ export function AuthFlow({ config }: { config: AuthFlowConfig }) {
 		getStoredCredentialFormats,
 	);
 	const [state, setState] = useState<AuthState>({ status: "idle" });
+	const { setDebugInfo } = useDebugConsole();
+
+	// Update debug console context when state changes
+	useEffect(() => {
+		if (state.status === "awaiting_verification") {
+			setDebugInfo(state.requestId, state.debugSessionId);
+		} else {
+			setDebugInfo(null, undefined);
+		}
+	}, [state, setDebugInfo]);
 
 	const handleModeChange = (newMode: PresentationMode) => {
 		setMode(newMode);
@@ -184,6 +199,7 @@ export function AuthFlow({ config }: { config: AuthFlowConfig }) {
 					status: "awaiting_verification",
 					mode: "direct_post",
 					requestId: data.requestId,
+					debugSessionId: data.debugSessionId,
 					authorizeUrl: data.authorizeUrl,
 					credentialFormats,
 					requestedClaims: data.requestedClaims,
@@ -194,6 +210,7 @@ export function AuthFlow({ config }: { config: AuthFlowConfig }) {
 					status: "awaiting_verification",
 					mode: "dc_api",
 					requestId: data.requestId,
+					debugSessionId: data.debugSessionId,
 					dcApiRequest: data.dcApiRequest,
 					credentialFormats,
 					requestedClaims: data.requestedClaims,

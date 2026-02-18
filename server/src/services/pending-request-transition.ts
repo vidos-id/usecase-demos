@@ -1,4 +1,5 @@
 import type { AuthorizationErrorInfo } from "shared/types/vidos-errors";
+import { debugEmitters } from "../lib/debug-events";
 import {
 	type PendingAuthRequest,
 	updateRequestToExpired,
@@ -30,14 +31,46 @@ export async function applyPendingRequestTransition(
 		return;
 	}
 
+	const scope = {
+		requestId: pendingRequest.id,
+		flowType: pendingRequest.type,
+	};
+
 	if (status === "authorized") {
+		debugEmitters.auth.transitionApplied(
+			scope,
+			"pending",
+			"authorized",
+			"Authorization transitioned to authorized.",
+		);
 		await onAuthorized();
 		return;
 	}
 
 	if (status === "expired") {
+		debugEmitters.auth.transitionApplied(
+			scope,
+			"pending",
+			"expired",
+			"Authorization transitioned to expired.",
+		);
 		updateRequestToExpired(pendingRequest.id);
 		return;
+	}
+
+	debugEmitters.auth.transitionApplied(
+		scope,
+		"pending",
+		status,
+		"Authorization transitioned to failure state.",
+	);
+
+	if (errorInfo) {
+		debugEmitters.auth.transitionFailure(
+			scope,
+			"Authorization returned error details.",
+			errorInfo,
+		);
 	}
 
 	updateRequestToFailed(

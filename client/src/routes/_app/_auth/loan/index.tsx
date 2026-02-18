@@ -18,7 +18,7 @@ import {
 	Percent,
 	ShieldCheck,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LOAN_AMOUNTS, LOAN_PURPOSES, LOAN_TERMS } from "shared/api/loan";
 import type { CredentialFormats, DcApiRequest } from "shared/types/auth";
 import type { AuthorizationErrorInfo } from "shared/types/vidos-errors";
@@ -34,6 +34,7 @@ import {
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { getStoredCredentialFormats, getStoredMode } from "@/lib/auth-helpers";
+import { useDebugConsole } from "@/lib/debug-console-context";
 import { useAuthorizationStream } from "@/lib/use-authorization-stream";
 
 import { cn } from "@/lib/utils";
@@ -98,6 +99,16 @@ function LoanPage() {
 	const [purpose, setPurpose] = useState<string>("");
 	const [term, setTerm] = useState<string>("");
 	const [state, setState] = useState<FlowState>({ status: "form" });
+	const { setDebugInfo } = useDebugConsole();
+
+	useEffect(() => {
+		if (state.status === "verifying") {
+			setDebugInfo(state.requestId);
+			return;
+		}
+
+		setDebugInfo(null, undefined);
+	}, [state, setDebugInfo]);
 
 	const isFormValid = amount && purpose && term;
 

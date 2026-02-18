@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { zValidator } from "@hono/zod-validator";
-import { Hono, type Context } from "hono";
+import { type Context, Hono } from "hono";
 import {
 	loanCompleteRequestSchema,
 	loanCompleteResponseSchema,
@@ -8,8 +8,8 @@ import {
 	loanRequestSchema,
 } from "shared/api/loan";
 import { LOAN_CLAIMS, LOAN_PURPOSE } from "shared/lib/claims";
-import { loanAuthMetadataSchema } from "shared/types/auth-metadata";
 import { loanClaimsSchema } from "shared/types/auth";
+import { loanAuthMetadataSchema } from "shared/types/auth-metadata";
 import { vidosErrorTypes } from "shared/types/vidos-errors";
 import { getSessionFromRequest } from "../lib/request-session";
 import { startAuthorizationMonitor } from "../services/authorization-monitor";
@@ -146,13 +146,19 @@ export const loanRouter = new Hono()
 				return c.json({ error: "Unauthorized" }, 403);
 			}
 
-			const result = await forwardDCAPIResponse({
-				authorizationId: pendingRequest.vidosAuthorizationId,
-				origin,
-				dcResponse: dcResponse as
-					| { response: string }
-					| { vp_token: Record<string, unknown> },
-			});
+			const result = await forwardDCAPIResponse(
+				{
+					authorizationId: pendingRequest.vidosAuthorizationId,
+					origin,
+					dcResponse: dcResponse as
+						| { response: string }
+						| { vp_token: Record<string, unknown> },
+				},
+				{
+					requestId: pendingRequest.id,
+					flowType: pendingRequest.type,
+				},
+			);
 
 			if (result.status !== "authorized") {
 				return c.json(

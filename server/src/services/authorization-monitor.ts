@@ -1,11 +1,12 @@
-import { completeAuthorizedPendingRequest } from "./authorization-completion";
-import { applyPendingRequestTransition } from "./pending-request-transition";
-import { pollAuthorizationStatus } from "./vidos";
+import { debugEmitters } from "../lib/debug-events";
 import {
 	getPendingRequestById,
 	type PendingAuthRequest,
 	updateRequestToFailed,
 } from "../stores/pending-auth-requests";
+import { completeAuthorizedPendingRequest } from "./authorization-completion";
+import { applyPendingRequestTransition } from "./pending-request-transition";
+import { pollAuthorizationStatus } from "./vidos";
 
 const MONITOR_INTERVAL_MS = 1000;
 
@@ -36,6 +37,10 @@ async function monitorTick(requestId: string): Promise<void> {
 
 		const statusResult = await pollAuthorizationStatus(
 			pendingRequest.vidosAuthorizationId,
+			{
+				requestId: pendingRequest.id,
+				flowType: pendingRequest.type,
+			},
 		);
 
 		await applyPendingRequestTransition({
@@ -53,6 +58,14 @@ async function monitorTick(requestId: string): Promise<void> {
 		}
 	} catch (error) {
 		console.error("[Monitor] Failed to process request:", requestId, error);
+		const pendingRequest = getPendingRequestById(requestId);
+		if (pendingRequest) {
+			debugEmitters.auth.transitionFailure(
+				{ requestId, flowType: pendingRequest.type },
+				"Authorization monitor tick failed.",
+				error,
+			);
+		}
 		updateRequestToFailed(
 			requestId,
 			error instanceof Error
@@ -73,6 +86,14 @@ export function startAuthorizationMonitor(requestId: string): void {
 		return;
 	}
 
+	const pendingRequest = getPendingRequestById(requestId);
+	if (pendingRequest) {
+		debugEmitters.auth.monitorStarted({
+			requestId,
+			flowType: pendingRequest.type,
+		});
+	}
+
 	const interval = setInterval(() => {
 		void monitorTick(requestId);
 	}, MONITOR_INTERVAL_MS);
@@ -90,8 +111,18 @@ export function stopAuthorizationMonitor(requestId: string): void {
 	if (!state) {
 		return;
 	}
+	const pendingRequest = getPendingRequestById(requestId);
 	clearInterval(state.interval);
 	monitors.delete(requestId);
+	if (pendingRequest) {
+		debugEmitters.auth.monitorStopped(
+			{
+				requestId,
+				flowType: pendingRequest.type,
+			},
+			"terminal_or_missing",
+		);
+	}
 }
 
 export function getActiveMonitorCount(): number {

@@ -15,6 +15,7 @@ import {
 	authorizationErrorInfoSchema,
 	vidosErrorTypes,
 } from "shared/types/vidos-errors";
+import { debugEmitters } from "../lib/debug-events";
 import { buildProfileUpdate } from "../lib/profile-update";
 import { getExtractedCredentials } from "../services/vidos";
 import type { PendingAuthRequest } from "../stores/pending-auth-requests";
@@ -55,10 +56,18 @@ async function completeSignin(
 	const claims = await getExtractedCredentials(
 		pendingRequest.vidosAuthorizationId,
 		signinClaimsSchema,
+		{
+			requestId: pendingRequest.id,
+			flowType: pendingRequest.type,
+		},
 	);
 
 	const user = getUserByIdentifier(claims.personal_administrative_number);
 	if (!user) {
+		debugEmitters.auth.transitionFailure(
+			{ requestId: pendingRequest.id, flowType: pendingRequest.type },
+			"Signin completed with unknown account.",
+		);
 		updateRequestToFailed(
 			pendingRequest.id,
 			"No account found with this credential.",
@@ -86,12 +95,20 @@ async function completeSignup(
 	const claims = await getExtractedCredentials(
 		pendingRequest.vidosAuthorizationId,
 		signupClaimsSchema,
+		{
+			requestId: pendingRequest.id,
+			flowType: pendingRequest.type,
+		},
 	);
 
 	const existingUser = getUserByIdentifier(
 		claims.personal_administrative_number,
 	);
 	if (existingUser) {
+		debugEmitters.auth.transitionFailure(
+			{ requestId: pendingRequest.id, flowType: pendingRequest.type },
+			"Signup attempted for existing account.",
+		);
 		updateRequestToFailed(
 			pendingRequest.id,
 			"Account already exists",
@@ -137,6 +154,11 @@ async function completePayment(
 	const metadata = pendingRequest.metadata;
 	const parsed = paymentAuthMetadataSchema.safeParse(metadata);
 	if (!parsed.success) {
+		debugEmitters.auth.transitionFailure(
+			{ requestId: pendingRequest.id, flowType: pendingRequest.type },
+			"Payment completion metadata validation failed.",
+			parsed.error.issues,
+		);
 		updateRequestToFailed(
 			pendingRequest.id,
 			"Invalid payment metadata for pending request.",
@@ -147,10 +169,18 @@ async function completePayment(
 	const claims = await getExtractedCredentials(
 		pendingRequest.vidosAuthorizationId,
 		paymentClaimsSchema,
+		{
+			requestId: pendingRequest.id,
+			flowType: pendingRequest.type,
+		},
 	);
 	const user = getUserById(parsed.data.userId);
 
 	if (!user || user.identifier !== claims.personal_administrative_number) {
+		debugEmitters.auth.transitionFailure(
+			{ requestId: pendingRequest.id, flowType: pendingRequest.type },
+			"Payment completion identity mismatch.",
+		);
 		updateRequestToFailed(
 			pendingRequest.id,
 			identityMismatchErrorInfo.detail,
@@ -188,6 +218,11 @@ async function completeLoan(pendingRequest: PendingAuthRequest): Promise<void> {
 	const metadata = pendingRequest.metadata;
 	const parsed = loanAuthMetadataSchema.safeParse(metadata);
 	if (!parsed.success) {
+		debugEmitters.auth.transitionFailure(
+			{ requestId: pendingRequest.id, flowType: pendingRequest.type },
+			"Loan completion metadata validation failed.",
+			parsed.error.issues,
+		);
 		updateRequestToFailed(
 			pendingRequest.id,
 			"Invalid loan metadata for pending request.",
@@ -198,10 +233,18 @@ async function completeLoan(pendingRequest: PendingAuthRequest): Promise<void> {
 	const claims = await getExtractedCredentials(
 		pendingRequest.vidosAuthorizationId,
 		loanClaimsSchema,
+		{
+			requestId: pendingRequest.id,
+			flowType: pendingRequest.type,
+		},
 	);
 	const user = getUserById(parsed.data.userId);
 
 	if (!user || user.identifier !== claims.personal_administrative_number) {
+		debugEmitters.auth.transitionFailure(
+			{ requestId: pendingRequest.id, flowType: pendingRequest.type },
+			"Loan completion identity mismatch.",
+		);
 		updateRequestToFailed(
 			pendingRequest.id,
 			identityMismatchErrorInfo.detail,
@@ -245,6 +288,11 @@ async function completeProfileUpdate(
 		pendingRequest.metadata,
 	);
 	if (!parsed.success) {
+		debugEmitters.auth.transitionFailure(
+			{ requestId: pendingRequest.id, flowType: pendingRequest.type },
+			"Profile update metadata validation failed.",
+			parsed.error.issues,
+		);
 		updateRequestToFailed(
 			pendingRequest.id,
 			"Invalid profile update metadata for pending request.",
@@ -255,10 +303,18 @@ async function completeProfileUpdate(
 	const claims = await getExtractedCredentials(
 		pendingRequest.vidosAuthorizationId,
 		profileUpdateClaimsSchema,
+		{
+			requestId: pendingRequest.id,
+			flowType: pendingRequest.type,
+		},
 	);
 	const user = getUserById(parsed.data.userId);
 
 	if (!user) {
+		debugEmitters.auth.transitionFailure(
+			{ requestId: pendingRequest.id, flowType: pendingRequest.type },
+			"Profile update attempted with missing user.",
+		);
 		updateRequestToFailed(pendingRequest.id, "Unauthorized");
 		return;
 	}
@@ -267,6 +323,10 @@ async function completeProfileUpdate(
 		claims.personal_administrative_number &&
 		claims.personal_administrative_number !== user.identifier
 	) {
+		debugEmitters.auth.transitionFailure(
+			{ requestId: pendingRequest.id, flowType: pendingRequest.type },
+			"Profile update identity mismatch.",
+		);
 		updateRequestToFailed(
 			pendingRequest.id,
 			identityMismatchErrorInfo.detail,

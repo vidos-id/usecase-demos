@@ -144,13 +144,19 @@ export const profileUpdateRouter = new Hono()
 				return c.json({ error: "Unauthorized" }, 403);
 			}
 
-			const result = await forwardDCAPIResponse({
-				authorizationId: pendingRequest.vidosAuthorizationId,
-				origin,
-				dcResponse: dcResponse as
-					| { response: string }
-					| { vp_token: Record<string, unknown> },
-			});
+			const result = await forwardDCAPIResponse(
+				{
+					authorizationId: pendingRequest.vidosAuthorizationId,
+					origin,
+					dcResponse: dcResponse as
+						| { response: string }
+						| { vp_token: Record<string, unknown> },
+				},
+				{
+					requestId: pendingRequest.id,
+					flowType: pendingRequest.type,
+				},
+			);
 
 			if (result.status !== "authorized") {
 				return c.json(

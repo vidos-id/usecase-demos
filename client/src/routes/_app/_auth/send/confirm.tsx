@@ -14,7 +14,7 @@ import {
 	Loader2,
 	ShieldCheck,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { CredentialFormats, DcApiRequest } from "shared/types/auth";
 import type { AuthorizationErrorInfo } from "shared/types/vidos-errors";
 import { z } from "zod";
@@ -25,6 +25,7 @@ import { VerificationStatus } from "@/components/auth/verification-status";
 import { VidosErrorDisplay } from "@/components/auth/vidos-error-display";
 import { Button } from "@/components/ui/button";
 import { getStoredCredentialFormats, getStoredMode } from "@/lib/auth-helpers";
+import { useDebugConsole } from "@/lib/debug-console-context";
 import { useAuthorizationStream } from "@/lib/use-authorization-stream";
 
 import { cn } from "@/lib/utils";
@@ -70,6 +71,16 @@ function PaymentConfirmPage() {
 	const { apiClient } = useRouteContext({ from: "__root__" });
 	const search = Route.useSearch();
 	const [state, setState] = useState<PaymentState>({ status: "idle" });
+	const { setDebugInfo } = useDebugConsole();
+
+	useEffect(() => {
+		if (state.status === "awaiting_verification") {
+			setDebugInfo(state.requestId);
+			return;
+		}
+
+		setDebugInfo(null, undefined);
+	}, [state, setDebugInfo]);
 
 	// Mutation for starting payment verification
 	const requestMutation = useMutation({
