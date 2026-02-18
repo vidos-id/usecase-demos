@@ -91,6 +91,8 @@ export function useTypedEventSource<TEvent>(
 		const eventSource = new EventSource(url);
 		sourceRef.current = eventSource;
 		let closed = false;
+		let hasConnected = false;
+		let retryLogged = false;
 
 		const close = () => {
 			if (closed) {
@@ -107,6 +109,8 @@ export function useTypedEventSource<TEvent>(
 
 		const handleOpen = () => {
 			console.info("[SSE][client] stream connected:", url);
+			hasConnected = true;
+			retryLogged = false;
 			setIsConnected(true);
 			setHasEverConnected(true);
 			setError(null);
@@ -117,6 +121,16 @@ export function useTypedEventSource<TEvent>(
 				console.info("[SSE][client] stream closed:", url);
 				return;
 			}
+
+			if (hasConnected && eventSource.readyState === EventSource.CONNECTING) {
+				if (!retryLogged) {
+					console.warn("[SSE][client] stream disconnected, retrying:", url);
+					retryLogged = true;
+				}
+				setIsConnected(false);
+				return;
+			}
+
 			console.error("[SSE][client] stream error:", url);
 			setIsConnected(false);
 			setError("stream_error");
