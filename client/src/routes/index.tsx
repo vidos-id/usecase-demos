@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
-import { useEffect, useState } from "react";
 import {
 	FeaturesSection,
 	PoweredByVidos,
@@ -8,20 +7,14 @@ import {
 	WalletCardVisual,
 } from "@/components/landing";
 import { Button } from "@/components/ui/button";
-import { getSessionId, subscribeSession } from "@/lib/auth";
+import { useIsAuthenticated } from "@/lib/auth";
 
 export const Route = createFileRoute("/")({
 	component: LandingPage,
 });
 
 function LandingPage() {
-	const [isAuthenticated, setIsAuthenticated] = useState(!!getSessionId());
-
-	useEffect(() => {
-		return subscribeSession(() => {
-			setIsAuthenticated(!!getSessionId());
-		});
-	}, []);
+	const isAuthenticated = useIsAuthenticated();
 
 	return (
 		<div className="flex flex-col min-h-[calc(100vh-4rem)]">

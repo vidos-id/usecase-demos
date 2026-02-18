@@ -1,5 +1,5 @@
-// Placeholder session check - returns false for now
-// Will be replaced with actual session check in auth-flows change
+import { useSyncExternalStore } from "react";
+
 type SessionListener = () => void;
 
 const sessionListeners = new Set<SessionListener>();
@@ -18,14 +18,24 @@ export function subscribeSession(listener: SessionListener): () => void {
 }
 
 export async function checkSession(): Promise<boolean> {
-	// Check localStorage for session ID
-	const sessionId = localStorage.getItem("sessionId");
-	return !!sessionId;
+	return !!getSessionId();
 }
 
 // Get stored session ID
 export function getSessionId(): string | null {
+	if (typeof window === "undefined") {
+		return null;
+	}
+
 	return localStorage.getItem("sessionId");
+}
+
+export function useSessionId(): string | null {
+	return useSyncExternalStore(subscribeSession, getSessionId, () => null);
+}
+
+export function useIsAuthenticated(): boolean {
+	return useSessionId() !== null;
 }
 
 // Store session ID

@@ -1,6 +1,6 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, CheckCircle2, Copy, ExternalLink } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -19,18 +19,8 @@ export const Route = createFileRoute("/_auth/send/success")({
 });
 
 function PaymentSuccessPage() {
-	const navigate = useNavigate();
 	const search = Route.useSearch();
 	const [copied, setCopied] = useState(false);
-
-	// Redirect if no search params
-	useEffect(() => {
-		if (!search) {
-			navigate({ to: "/dashboard" });
-		}
-	}, [search, navigate]);
-
-	if (!search) return null;
 
 	const confirmedDate = new Date(search.confirmedAt);
 

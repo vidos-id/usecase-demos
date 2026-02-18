@@ -14,7 +14,7 @@ import {
 	Loader2,
 	ShieldCheck,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { DcApiRequest } from "shared/types/auth";
 import type { AuthorizationErrorInfo } from "shared/types/vidos-errors";
 import { z } from "zod";
@@ -69,18 +69,9 @@ function PaymentConfirmPage() {
 	const search = Route.useSearch();
 	const [state, setState] = useState<PaymentState>({ status: "idle" });
 
-	// Redirect if no search params
-	useEffect(() => {
-		if (!search) {
-			navigate({ to: "/send" });
-		}
-	}, [search, navigate]);
-
 	// Mutation for starting payment verification
 	const requestMutation = useMutation({
 		mutationFn: async () => {
-			if (!search) throw new Error("No search params");
-
 			const mode = getStoredMode();
 			const baseParams = {
 				recipient: search.recipient,
@@ -147,10 +138,6 @@ function PaymentConfirmPage() {
 		withSession: true,
 		onEvent: (event, controls) => {
 			if (event.eventType === "connected" || event.eventType === "pending") {
-				return;
-			}
-
-			if (!search) {
 				return;
 			}
 
@@ -301,8 +288,6 @@ function PaymentConfirmPage() {
 	const handleCancel = () => {
 		setState({ status: "idle" });
 	};
-
-	if (!search) return null;
 
 	return (
 		<div className="min-h-[calc(100vh-4rem)] py-8 px-4 sm:px-6 lg:px-8">

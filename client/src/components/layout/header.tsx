@@ -1,22 +1,15 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { BookOpen, Shield } from "lucide-react";
-import { useEffect, useState } from "react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { getSessionId, subscribeSession } from "@/lib/auth";
+import { useIsAuthenticated } from "@/lib/auth";
 import { AccountMenu } from "./account-menu";
 
 export function Header() {
 	const matches = useRouterState({ select: (state) => state.matches });
-	const [isAuthenticated, setIsAuthenticated] = useState(!!getSessionId());
+	const isAuthenticated = useIsAuthenticated();
 	const isAuthRoute = matches.some((match) =>
 		match.routeId?.startsWith("/_auth"),
 	);
-
-	useEffect(() => {
-		return subscribeSession(() => {
-			setIsAuthenticated(!!getSessionId());
-		});
-	}, []);
 
 	return (
 		<header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80">

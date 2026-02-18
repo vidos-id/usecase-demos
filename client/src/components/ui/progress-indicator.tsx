@@ -1,7 +1,6 @@
 import { useLocation } from "@tanstack/react-router";
 import { Check, CircleDot } from "lucide-react";
-import { useEffect, useState } from "react";
-import { getSessionId, subscribeSession } from "@/lib/auth";
+import { useIsAuthenticated } from "@/lib/auth";
 import { getJourneyStep, type JourneyStep } from "@/lib/route-config";
 import { cn } from "@/lib/utils";
 
@@ -43,13 +42,7 @@ export function ProgressIndicator() {
 	const currentStep = getJourneyStep(location.pathname);
 	const currentStepIndex =
 		currentStep !== null ? getStepIndex(currentStep) : -1;
-	const [isAuthenticated, setIsAuthenticated] = useState(!!getSessionId());
-
-	useEffect(() => {
-		return subscribeSession(() => {
-			setIsAuthenticated(!!getSessionId());
-		});
-	}, []);
+	const isAuthenticated = useIsAuthenticated();
 
 	const steps = getSteps(isAuthenticated);
 
