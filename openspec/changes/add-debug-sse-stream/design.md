@@ -2,7 +2,7 @@
 
 The app is moving to SSE for authorization/callback updates, but developers and demo viewers still lack an in-app view of server-side execution details. Today that information is fragmented across server logs and route-specific console output, which slows debugging and weakens showcase narratives.
 
-This change adds a dedicated debug SSE stream and UI console. It must reuse the same transport composition introduced for authorization SSE (typed envelope, serializer, channel routing) while keeping debug payload semantics isolated from business status payloads.
+This change adds a dedicated debug SSE stream and UI console. It reuses existing transport utilities in `server/src/lib/sse.ts` and `client/src/lib/sse.ts` while keeping debug payload semantics isolated from business status payloads.
 
 ## Goals / Non-Goals
 
@@ -22,8 +22,9 @@ This change adds a dedicated debug SSE stream and UI console. It must reuse the 
 
 ### 1) Add a dedicated debug channel over shared SSE transport
 Decision:
-- Expose a separate debug SSE endpoint/channel that reuses common SSE transport primitives.
+- Expose a separate debug SSE endpoint at `/api/debug/stream/:requestId` that reuses common SSE transport primitives.
 - Keep business status channels (`authorization`, `callback`) and debug channel payloads separate.
+- Close debug stream automatically when associated request reaches terminal state (`authorized`, `rejected`, `expired`, `error`).
 
 Rationale:
 - Shared transport reduces implementation duplication.
@@ -37,8 +38,9 @@ Why not:
 ### 2) Use typed debug event schemas with a discriminated union
 Decision:
 - Define `sse-debug-event-console` contracts in `shared/src/api/` as a discriminated union (for example: `request_lifecycle`, `upstream_call`, `validation_error`, `state_transition`, `system`).
-- Include common envelope fields: `eventType`, `level`, `timestamp`, `requestId?`, `flowType?`, `message`, `data`.
+- Include debug-event envelope fields: `eventType`, `level`, `timestamp`, `requestId?`, `flowType?`, `message`, `data`.
 - Validate server emissions and client parsing with the same schema.
+- Keep authorization/callback SSE payload schemas unchanged; do not backport debug envelope fields into business contracts.
 
 Rationale:
 - Prevents drift between producers and consumers.
@@ -49,7 +51,22 @@ Alternative considered:
 Why not:
 - Too brittle and hard to evolve safely.
 
-### 3) Implement debug production via composable emitters, not ad-hoc `console.log`
+### 3) Replay buffered debug history on connect
+Decision:
+- Buffer debug events per active `requestId` on the server.
+- On new subscription to `/api/debug/stream/:requestId`, replay buffered history before streaming live events.
+- Drop per-request buffer once the request reaches terminal state and retention window expires.
+
+Rationale:
+- Preserves full narrative for users who refresh or open console mid-flow.
+- Matches debug/demo expectations without introducing long-term log storage.
+
+Alternative considered:
+- Live-only stream with no replay.
+Why not:
+- Late subscribers miss critical context and cannot diagnose earlier failures.
+
+### 4) Implement debug production via composable emitters, not ad-hoc `console.log`
 Decision:
 - Add a debug event emitter utility in server layer with small helpers per domain (auth requests, callback resolution, Vidos integration, store transitions).
 - Route handlers/services call typed helpers instead of writing custom stream payloads inline.
@@ -63,7 +80,7 @@ Alternative considered:
 Why not:
 - Produces noisy, inconsistent payloads and weak typing guarantees.
 
-### 4) Keep verbosity controlled by level + category filters
+### 5) Keep verbosity controlled by level + category filters
 Decision:
 - Emit at levels (`info`, `warn`, `error`, `debug`) with curated event points only.
 - Default client view shows `info|warn|error`; users can enable `debug`.
@@ -78,7 +95,7 @@ Alternative considered:
 Why not:
 - Overwhelms users and degrades signal-to-noise.
 
-### 5) Provide a console-like client panel with bounded in-memory buffer
+### 6) Provide a console-like client panel with bounded in-memory buffer
 Decision:
 - Add a reusable debug console component with:
   - live streaming list ordered by timestamp
@@ -97,7 +114,7 @@ Alternative considered:
 Why not:
 - Out of scope for this change and not required for demo goals.
 
-### 6) Scope debug streams to the active user session/request only
+### 7) Scope debug streams to the active user session/request only
 Decision:
 - Debug stream subscriptions MUST be bound to the caller session identity and request correlation (`requestId`/flow context).
 - Server MUST emit to a subscriber only events relevant to that subscriber's own requests.
@@ -117,22 +134,24 @@ Why not:
 - [Debug stream floods the UI under bursty workloads] -> Mitigation: bounded buffer, level filtering, optional batching of repetitive events.
 - [Schema churn across producers] -> Mitigation: shared discriminated union with central emitter helpers and compile-time type checks.
 - [Data leakage concerns outside demos] -> Mitigation: mark feature as demo-mode behavior and keep endpoint easy to gate/disable in future.
-- [Dependency on shared SSE transport refactor] -> Mitigation: consume transport via stable module boundary; avoid direct cross-feature imports of business payload types.
+- [Replay buffer increases memory usage under many concurrent requests] -> Mitigation: per-request bounded buffers with TTL cleanup after terminal states.
 - [Cross-user event leakage] -> Mitigation: session-bound subscription auth + server-side event filtering by owner session/request correlation before emit.
 
 ## Migration Plan
 
-1. Add shared debug SSE schemas/types in `shared/src/api/`.
-2. Add server debug emitter helpers and debug channel route using shared SSE transport utilities.
-3. Add debug event instrumentation at key points in auth/callback/services/stores.
-4. Build client debug console component and subscription hook with typed parsing and buffering.
-5. Integrate console as a dedicated panel that can be toggled from client UI.
-6. Validate event quality with representative flows (success, rejected, error, expired).
-7. Validate isolation by running concurrent sessions and confirming each session only receives its own debug events.
-8. Run type/lint checks and adjust event taxonomy if noisy.
+1. Add shared debug SSE schemas/types in `shared/src/api/debug-sse.ts`.
+2. Add server debug emitter helpers and `/api/debug/stream/:requestId` route using existing shared SSE transport utilities.
+3. Add per-request debug buffering + replay flow in stores/stream route.
+4. Add debug event instrumentation at key points in auth/callback/services/stores.
+5. Build client debug console component and subscription hook with typed parsing and buffering.
+6. Integrate console as a dedicated panel that can be toggled from client UI.
+7. Validate event quality with representative flows (success, rejected, error, expired).
+8. Validate isolation by running concurrent sessions and confirming each session only receives its own debug events.
+9. Validate late-subscription behavior by connecting after flow start and asserting replay ordering.
+10. Run type/lint checks and adjust event taxonomy if noisy.
 
 Rollback:
-- Remove debug route and client console wiring while keeping shared transport primitives intact.
+- Remove debug route and client console wiring while keeping existing shared transport primitives intact.
 
 ## Open Questions
 

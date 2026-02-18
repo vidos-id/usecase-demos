@@ -5,10 +5,12 @@ Developers and demo viewers currently have limited visibility into what the serv
 ## What Changes
 
 - Add a dedicated server-to-client SSE debug stream for server-side events relevant to authorization and related requests.
+- Expose the debug stream at `/api/debug/stream/:requestId` and scope delivery to the caller session + request correlation.
+- Replay buffered debug history for an active `requestId` on connect so late subscribers still see prior steps.
 - Add client UI for a console-like log panel that subscribes to the debug stream and renders structured, timestamped events.
 - Define typed debug event schemas in `shared` so payloads are validated and strongly typed end-to-end.
 - Include moderately verbose event content (request lifecycle transitions, upstream calls, validation failures, state changes) suitable for demo/debug use.
-- Keep debug stream separated from business status streams so core authorization/callback SSE flows remain focused and maintainable.
+- Keep debug stream separated from business status streams so core authorization/callback SSE payload contracts remain unchanged.
 
 ## Capabilities
 
@@ -18,7 +20,7 @@ Developers and demo viewers currently have limited visibility into what the serv
 
 ### Modified Capabilities
 
-- `authorization-and-callback-sse`: Introduce reusable SSE transport primitives (envelope, serializer, routing/channel composition) that can be shared by both business status streams and debug streams without coupling payload semantics.
+- `authorization-and-callback-sse`: Reuse existing SSE transport primitives (`server/src/lib/sse.ts`, `client/src/lib/sse.ts`) for debug routing/serialization while keeping payload semantics decoupled.
 
 ## Impact
 
@@ -27,9 +29,9 @@ Developers and demo viewers currently have limited visibility into what the serv
   - `client/src/components/*` (new log console component(s))
   - `client/src/lib/*` (SSE subscription utilities/parsers)
 - Affected server routes/services:
-  - `server/src/routes/*` (new debug SSE endpoint)
+  - `server/src/routes/*` (new `/api/debug/stream/:requestId` endpoint)
   - `server/src/lib/events.ts` (debug event topics/types)
-  - `server/src/services/*` and `server/src/stores/*` (debug event emission points)
+  - `server/src/services/*` and `server/src/stores/*` (debug event emission points + per-request buffered history)
 - Affected shared contracts:
   - `shared/src/api/*` for typed debug SSE event schemas.
 - Security/data handling:
