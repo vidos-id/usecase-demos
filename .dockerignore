@@ -5,6 +5,9 @@ node_modules
 # Client: exclude all, keep only package.json for workspace resolution
 client/*
 !client/package.json
+# Infrastructure: exclude all, keep only package.json for workspace resolution
+infrastructure/*
+!infrastructure/package.json
 
 # Git
 .git

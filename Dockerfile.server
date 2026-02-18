@@ -6,7 +6,7 @@ WORKDIR /app
 COPY . .
 
 # Install all workspace deps (simpler than filtering)
-RUN bun install --frozen-lockfile --production
+RUN bun install --frozen-lockfile --production --filter '!client' --filter '!infrastructure'
 
 RUN mkdir -p /app/data && chown bun:bun /app/data
 
