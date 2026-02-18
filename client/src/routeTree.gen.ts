@@ -9,137 +9,149 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SignupRouteImport } from './routes/signup'
-import { Route as SigninRouteImport } from './routes/signin'
-import { Route as GuideRouteImport } from './routes/guide'
-import { Route as CallbackRouteImport } from './routes/callback'
-import { Route as AuthRouteImport } from './routes/_auth'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthProfileRouteImport } from './routes/_auth/profile'
-import { Route as AuthDashboardRouteImport } from './routes/_auth/dashboard'
-import { Route as AuthSendIndexRouteImport } from './routes/_auth/send/index'
-import { Route as AuthLoanIndexRouteImport } from './routes/_auth/loan/index'
-import { Route as AuthSendSuccessRouteImport } from './routes/_auth/send/success'
-import { Route as AuthSendConfirmRouteImport } from './routes/_auth/send/confirm'
-import { Route as AuthLoanSuccessRouteImport } from './routes/_auth/loan/success'
+import { Route as CallbackRouteImport } from './routes/_callback'
+import { Route as AppRouteImport } from './routes/_app'
+import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as CallbackCallbackRouteImport } from './routes/_callback/callback'
+import { Route as AppSignupRouteImport } from './routes/_app/signup'
+import { Route as AppSigninRouteImport } from './routes/_app/signin'
+import { Route as AppGuideRouteImport } from './routes/_app/guide'
+import { Route as AppAuthRouteImport } from './routes/_app/_auth'
+import { Route as AppAuthProfileRouteImport } from './routes/_app/_auth/profile'
+import { Route as AppAuthDashboardRouteImport } from './routes/_app/_auth/dashboard'
+import { Route as AppAuthSendIndexRouteImport } from './routes/_app/_auth/send/index'
+import { Route as AppAuthLoanIndexRouteImport } from './routes/_app/_auth/loan/index'
+import { Route as AppAuthSendSuccessRouteImport } from './routes/_app/_auth/send/success'
+import { Route as AppAuthSendConfirmRouteImport } from './routes/_app/_auth/send/confirm'
+import { Route as AppAuthLoanSuccessRouteImport } from './routes/_app/_auth/loan/success'
 
-const SignupRoute = SignupRouteImport.update({
-  id: '/signup',
-  path: '/signup',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SigninRoute = SigninRouteImport.update({
-  id: '/signin',
-  path: '/signin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GuideRoute = GuideRouteImport.update({
-  id: '/guide',
-  path: '/guide',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const CallbackRoute = CallbackRouteImport.update({
-  id: '/callback',
-  path: '/callback',
+  id: '/_callback',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/_auth',
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
+const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
 } as any)
-const AuthProfileRoute = AuthProfileRouteImport.update({
+const CallbackCallbackRoute = CallbackCallbackRouteImport.update({
+  id: '/callback',
+  path: '/callback',
+  getParentRoute: () => CallbackRoute,
+} as any)
+const AppSignupRoute = AppSignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSigninRoute = AppSigninRouteImport.update({
+  id: '/signin',
+  path: '/signin',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGuideRoute = AppGuideRouteImport.update({
+  id: '/guide',
+  path: '/guide',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAuthRoute = AppAuthRouteImport.update({
+  id: '/_auth',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAuthProfileRoute = AppAuthProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
-  getParentRoute: () => AuthRoute,
+  getParentRoute: () => AppAuthRoute,
 } as any)
-const AuthDashboardRoute = AuthDashboardRouteImport.update({
+const AppAuthDashboardRoute = AppAuthDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
-  getParentRoute: () => AuthRoute,
+  getParentRoute: () => AppAuthRoute,
 } as any)
-const AuthSendIndexRoute = AuthSendIndexRouteImport.update({
+const AppAuthSendIndexRoute = AppAuthSendIndexRouteImport.update({
   id: '/send/',
   path: '/send/',
-  getParentRoute: () => AuthRoute,
+  getParentRoute: () => AppAuthRoute,
 } as any)
-const AuthLoanIndexRoute = AuthLoanIndexRouteImport.update({
+const AppAuthLoanIndexRoute = AppAuthLoanIndexRouteImport.update({
   id: '/loan/',
   path: '/loan/',
-  getParentRoute: () => AuthRoute,
+  getParentRoute: () => AppAuthRoute,
 } as any)
-const AuthSendSuccessRoute = AuthSendSuccessRouteImport.update({
+const AppAuthSendSuccessRoute = AppAuthSendSuccessRouteImport.update({
   id: '/send/success',
   path: '/send/success',
-  getParentRoute: () => AuthRoute,
+  getParentRoute: () => AppAuthRoute,
 } as any)
-const AuthSendConfirmRoute = AuthSendConfirmRouteImport.update({
+const AppAuthSendConfirmRoute = AppAuthSendConfirmRouteImport.update({
   id: '/send/confirm',
   path: '/send/confirm',
-  getParentRoute: () => AuthRoute,
+  getParentRoute: () => AppAuthRoute,
 } as any)
-const AuthLoanSuccessRoute = AuthLoanSuccessRouteImport.update({
+const AppAuthLoanSuccessRoute = AppAuthLoanSuccessRouteImport.update({
   id: '/loan/success',
   path: '/loan/success',
-  getParentRoute: () => AuthRoute,
+  getParentRoute: () => AppAuthRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/callback': typeof CallbackRoute
-  '/guide': typeof GuideRoute
-  '/signin': typeof SigninRoute
-  '/signup': typeof SignupRoute
-  '/dashboard': typeof AuthDashboardRoute
-  '/profile': typeof AuthProfileRoute
-  '/loan/success': typeof AuthLoanSuccessRoute
-  '/send/confirm': typeof AuthSendConfirmRoute
-  '/send/success': typeof AuthSendSuccessRoute
-  '/loan/': typeof AuthLoanIndexRoute
-  '/send/': typeof AuthSendIndexRoute
+  '/': typeof AppIndexRoute
+  '/guide': typeof AppGuideRoute
+  '/signin': typeof AppSigninRoute
+  '/signup': typeof AppSignupRoute
+  '/callback': typeof CallbackCallbackRoute
+  '/dashboard': typeof AppAuthDashboardRoute
+  '/profile': typeof AppAuthProfileRoute
+  '/loan/success': typeof AppAuthLoanSuccessRoute
+  '/send/confirm': typeof AppAuthSendConfirmRoute
+  '/send/success': typeof AppAuthSendSuccessRoute
+  '/loan/': typeof AppAuthLoanIndexRoute
+  '/send/': typeof AppAuthSendIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/callback': typeof CallbackRoute
-  '/guide': typeof GuideRoute
-  '/signin': typeof SigninRoute
-  '/signup': typeof SignupRoute
-  '/dashboard': typeof AuthDashboardRoute
-  '/profile': typeof AuthProfileRoute
-  '/loan/success': typeof AuthLoanSuccessRoute
-  '/send/confirm': typeof AuthSendConfirmRoute
-  '/send/success': typeof AuthSendSuccessRoute
-  '/loan': typeof AuthLoanIndexRoute
-  '/send': typeof AuthSendIndexRoute
+  '/': typeof AppIndexRoute
+  '/guide': typeof AppGuideRoute
+  '/signin': typeof AppSigninRoute
+  '/signup': typeof AppSignupRoute
+  '/callback': typeof CallbackCallbackRoute
+  '/dashboard': typeof AppAuthDashboardRoute
+  '/profile': typeof AppAuthProfileRoute
+  '/loan/success': typeof AppAuthLoanSuccessRoute
+  '/send/confirm': typeof AppAuthSendConfirmRoute
+  '/send/success': typeof AppAuthSendSuccessRoute
+  '/loan': typeof AppAuthLoanIndexRoute
+  '/send': typeof AppAuthSendIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/_auth': typeof AuthRouteWithChildren
-  '/callback': typeof CallbackRoute
-  '/guide': typeof GuideRoute
-  '/signin': typeof SigninRoute
-  '/signup': typeof SignupRoute
-  '/_auth/dashboard': typeof AuthDashboardRoute
-  '/_auth/profile': typeof AuthProfileRoute
-  '/_auth/loan/success': typeof AuthLoanSuccessRoute
-  '/_auth/send/confirm': typeof AuthSendConfirmRoute
-  '/_auth/send/success': typeof AuthSendSuccessRoute
-  '/_auth/loan/': typeof AuthLoanIndexRoute
-  '/_auth/send/': typeof AuthSendIndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/_callback': typeof CallbackRouteWithChildren
+  '/_app/_auth': typeof AppAuthRouteWithChildren
+  '/_app/guide': typeof AppGuideRoute
+  '/_app/signin': typeof AppSigninRoute
+  '/_app/signup': typeof AppSignupRoute
+  '/_callback/callback': typeof CallbackCallbackRoute
+  '/_app/': typeof AppIndexRoute
+  '/_app/_auth/dashboard': typeof AppAuthDashboardRoute
+  '/_app/_auth/profile': typeof AppAuthProfileRoute
+  '/_app/_auth/loan/success': typeof AppAuthLoanSuccessRoute
+  '/_app/_auth/send/confirm': typeof AppAuthSendConfirmRoute
+  '/_app/_auth/send/success': typeof AppAuthSendSuccessRoute
+  '/_app/_auth/loan/': typeof AppAuthLoanIndexRoute
+  '/_app/_auth/send/': typeof AppAuthSendIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/callback'
     | '/guide'
     | '/signin'
     | '/signup'
+    | '/callback'
     | '/dashboard'
     | '/profile'
     | '/loan/success'
@@ -150,10 +162,10 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/callback'
     | '/guide'
     | '/signin'
     | '/signup'
+    | '/callback'
     | '/dashboard'
     | '/profile'
     | '/loan/success'
@@ -163,155 +175,194 @@ export interface FileRouteTypes {
     | '/send'
   id:
     | '__root__'
-    | '/'
-    | '/_auth'
-    | '/callback'
-    | '/guide'
-    | '/signin'
-    | '/signup'
-    | '/_auth/dashboard'
-    | '/_auth/profile'
-    | '/_auth/loan/success'
-    | '/_auth/send/confirm'
-    | '/_auth/send/success'
-    | '/_auth/loan/'
-    | '/_auth/send/'
+    | '/_app'
+    | '/_callback'
+    | '/_app/_auth'
+    | '/_app/guide'
+    | '/_app/signin'
+    | '/_app/signup'
+    | '/_callback/callback'
+    | '/_app/'
+    | '/_app/_auth/dashboard'
+    | '/_app/_auth/profile'
+    | '/_app/_auth/loan/success'
+    | '/_app/_auth/send/confirm'
+    | '/_app/_auth/send/success'
+    | '/_app/_auth/loan/'
+    | '/_app/_auth/send/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  AuthRoute: typeof AuthRouteWithChildren
-  CallbackRoute: typeof CallbackRoute
-  GuideRoute: typeof GuideRoute
-  SigninRoute: typeof SigninRoute
-  SignupRoute: typeof SignupRoute
+  AppRoute: typeof AppRouteWithChildren
+  CallbackRoute: typeof CallbackRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/signup': {
-      id: '/signup'
-      path: '/signup'
-      fullPath: '/signup'
-      preLoaderRoute: typeof SignupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/signin': {
-      id: '/signin'
-      path: '/signin'
-      fullPath: '/signin'
-      preLoaderRoute: typeof SigninRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/guide': {
-      id: '/guide'
-      path: '/guide'
-      fullPath: '/guide'
-      preLoaderRoute: typeof GuideRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/callback': {
-      id: '/callback'
-      path: '/callback'
-      fullPath: '/callback'
+    '/_callback': {
+      id: '/_callback'
+      path: ''
+      fullPath: '/'
       preLoaderRoute: typeof CallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_auth': {
-      id: '/_auth'
+    '/_app': {
+      id: '/_app'
       path: ''
       fullPath: '/'
-      preLoaderRoute: typeof AuthRouteImport
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
+    '/_app/': {
+      id: '/_app/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/_auth/profile': {
-      id: '/_auth/profile'
+    '/_callback/callback': {
+      id: '/_callback/callback'
+      path: '/callback'
+      fullPath: '/callback'
+      preLoaderRoute: typeof CallbackCallbackRouteImport
+      parentRoute: typeof CallbackRoute
+    }
+    '/_app/signup': {
+      id: '/_app/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof AppSignupRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/signin': {
+      id: '/_app/signin'
+      path: '/signin'
+      fullPath: '/signin'
+      preLoaderRoute: typeof AppSigninRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/guide': {
+      id: '/_app/guide'
+      path: '/guide'
+      fullPath: '/guide'
+      preLoaderRoute: typeof AppGuideRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/_auth': {
+      id: '/_app/_auth'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppAuthRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/_auth/profile': {
+      id: '/_app/_auth/profile'
       path: '/profile'
       fullPath: '/profile'
-      preLoaderRoute: typeof AuthProfileRouteImport
-      parentRoute: typeof AuthRoute
+      preLoaderRoute: typeof AppAuthProfileRouteImport
+      parentRoute: typeof AppAuthRoute
     }
-    '/_auth/dashboard': {
-      id: '/_auth/dashboard'
+    '/_app/_auth/dashboard': {
+      id: '/_app/_auth/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
-      preLoaderRoute: typeof AuthDashboardRouteImport
-      parentRoute: typeof AuthRoute
+      preLoaderRoute: typeof AppAuthDashboardRouteImport
+      parentRoute: typeof AppAuthRoute
     }
-    '/_auth/send/': {
-      id: '/_auth/send/'
+    '/_app/_auth/send/': {
+      id: '/_app/_auth/send/'
       path: '/send'
       fullPath: '/send/'
-      preLoaderRoute: typeof AuthSendIndexRouteImport
-      parentRoute: typeof AuthRoute
+      preLoaderRoute: typeof AppAuthSendIndexRouteImport
+      parentRoute: typeof AppAuthRoute
     }
-    '/_auth/loan/': {
-      id: '/_auth/loan/'
+    '/_app/_auth/loan/': {
+      id: '/_app/_auth/loan/'
       path: '/loan'
       fullPath: '/loan/'
-      preLoaderRoute: typeof AuthLoanIndexRouteImport
-      parentRoute: typeof AuthRoute
+      preLoaderRoute: typeof AppAuthLoanIndexRouteImport
+      parentRoute: typeof AppAuthRoute
     }
-    '/_auth/send/success': {
-      id: '/_auth/send/success'
+    '/_app/_auth/send/success': {
+      id: '/_app/_auth/send/success'
       path: '/send/success'
       fullPath: '/send/success'
-      preLoaderRoute: typeof AuthSendSuccessRouteImport
-      parentRoute: typeof AuthRoute
+      preLoaderRoute: typeof AppAuthSendSuccessRouteImport
+      parentRoute: typeof AppAuthRoute
     }
-    '/_auth/send/confirm': {
-      id: '/_auth/send/confirm'
+    '/_app/_auth/send/confirm': {
+      id: '/_app/_auth/send/confirm'
       path: '/send/confirm'
       fullPath: '/send/confirm'
-      preLoaderRoute: typeof AuthSendConfirmRouteImport
-      parentRoute: typeof AuthRoute
+      preLoaderRoute: typeof AppAuthSendConfirmRouteImport
+      parentRoute: typeof AppAuthRoute
     }
-    '/_auth/loan/success': {
-      id: '/_auth/loan/success'
+    '/_app/_auth/loan/success': {
+      id: '/_app/_auth/loan/success'
       path: '/loan/success'
       fullPath: '/loan/success'
-      preLoaderRoute: typeof AuthLoanSuccessRouteImport
-      parentRoute: typeof AuthRoute
+      preLoaderRoute: typeof AppAuthLoanSuccessRouteImport
+      parentRoute: typeof AppAuthRoute
     }
   }
 }
 
-interface AuthRouteChildren {
-  AuthDashboardRoute: typeof AuthDashboardRoute
-  AuthProfileRoute: typeof AuthProfileRoute
-  AuthLoanSuccessRoute: typeof AuthLoanSuccessRoute
-  AuthSendConfirmRoute: typeof AuthSendConfirmRoute
-  AuthSendSuccessRoute: typeof AuthSendSuccessRoute
-  AuthLoanIndexRoute: typeof AuthLoanIndexRoute
-  AuthSendIndexRoute: typeof AuthSendIndexRoute
+interface AppAuthRouteChildren {
+  AppAuthDashboardRoute: typeof AppAuthDashboardRoute
+  AppAuthProfileRoute: typeof AppAuthProfileRoute
+  AppAuthLoanSuccessRoute: typeof AppAuthLoanSuccessRoute
+  AppAuthSendConfirmRoute: typeof AppAuthSendConfirmRoute
+  AppAuthSendSuccessRoute: typeof AppAuthSendSuccessRoute
+  AppAuthLoanIndexRoute: typeof AppAuthLoanIndexRoute
+  AppAuthSendIndexRoute: typeof AppAuthSendIndexRoute
 }
 
-const AuthRouteChildren: AuthRouteChildren = {
-  AuthDashboardRoute: AuthDashboardRoute,
-  AuthProfileRoute: AuthProfileRoute,
-  AuthLoanSuccessRoute: AuthLoanSuccessRoute,
-  AuthSendConfirmRoute: AuthSendConfirmRoute,
-  AuthSendSuccessRoute: AuthSendSuccessRoute,
-  AuthLoanIndexRoute: AuthLoanIndexRoute,
-  AuthSendIndexRoute: AuthSendIndexRoute,
+const AppAuthRouteChildren: AppAuthRouteChildren = {
+  AppAuthDashboardRoute: AppAuthDashboardRoute,
+  AppAuthProfileRoute: AppAuthProfileRoute,
+  AppAuthLoanSuccessRoute: AppAuthLoanSuccessRoute,
+  AppAuthSendConfirmRoute: AppAuthSendConfirmRoute,
+  AppAuthSendSuccessRoute: AppAuthSendSuccessRoute,
+  AppAuthLoanIndexRoute: AppAuthLoanIndexRoute,
+  AppAuthSendIndexRoute: AppAuthSendIndexRoute,
 }
 
-const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+const AppAuthRouteWithChildren =
+  AppAuthRoute._addFileChildren(AppAuthRouteChildren)
+
+interface AppRouteChildren {
+  AppAuthRoute: typeof AppAuthRouteWithChildren
+  AppGuideRoute: typeof AppGuideRoute
+  AppSigninRoute: typeof AppSigninRoute
+  AppSignupRoute: typeof AppSignupRoute
+  AppIndexRoute: typeof AppIndexRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppAuthRoute: AppAuthRouteWithChildren,
+  AppGuideRoute: AppGuideRoute,
+  AppSigninRoute: AppSigninRoute,
+  AppSignupRoute: AppSignupRoute,
+  AppIndexRoute: AppIndexRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
+interface CallbackRouteChildren {
+  CallbackCallbackRoute: typeof CallbackCallbackRoute
+}
+
+const CallbackRouteChildren: CallbackRouteChildren = {
+  CallbackCallbackRoute: CallbackCallbackRoute,
+}
+
+const CallbackRouteWithChildren = CallbackRoute._addFileChildren(
+  CallbackRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  AuthRoute: AuthRouteWithChildren,
-  CallbackRoute: CallbackRoute,
-  GuideRoute: GuideRoute,
-  SigninRoute: SigninRoute,
-  SignupRoute: SignupRoute,
+  AppRoute: AppRouteWithChildren,
+  CallbackRoute: CallbackRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -15,7 +15,7 @@ import { ProtocolCard, SectionHeader } from "@/components/guide/shared";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/guide")({
+export const Route = createFileRoute("/_app/guide")({
 	component: GuidePage,
 });
 
@@ -205,7 +205,7 @@ function GuidePage() {
 				</footer>
 			</div>
 		</div>
-	);
+	)
 }
 
 // ============================================================================
@@ -258,7 +258,7 @@ function WalletTab({
 				{status}
 			</span>
 		</button>
-	);
+	)
 }
 
 function QuickStartCard({
@@ -302,5 +302,5 @@ function QuickStartCard({
 				/>
 			</div>
 		</Link>
-	);
+	)
 }

@@ -8,7 +8,7 @@ export function Header() {
 	const matches = useRouterState({ select: (state) => state.matches });
 	const isAuthenticated = useIsAuthenticated();
 	const isAuthRoute = matches.some((match) =>
-		match.routeId?.startsWith("/_auth"),
+		match.routeId?.startsWith("/_app/_auth"),
 	);
 
 	return (

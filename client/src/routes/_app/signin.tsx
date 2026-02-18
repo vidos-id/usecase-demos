@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { setSessionId } from "@/lib/auth";
 import { createStreamUrl } from "@/lib/sse";
 
-export const Route = createFileRoute("/signin")({
+export const Route = createFileRoute("/_app/signin")({
 	component: SigninPage,
 });
 
@@ -39,7 +39,7 @@ function SigninPage() {
 				) => {
 					const res = await apiClient.api.signin.request.$post({
 						json: params,
-					});
+					})
 
 					if (res.status === 404) {
 						throw { type: "not_found" as const };
@@ -64,7 +64,7 @@ function SigninPage() {
 					const res = await apiClient.api.signin.complete[":requestId"].$post({
 						param: { requestId },
 						json: { origin, dcResponse: response },
-					});
+					})
 
 					if (res.status === 404) {
 						throw { type: "not_found" as const };
@@ -75,14 +75,14 @@ function SigninPage() {
 						if (res.status === 400) {
 							try {
 								const errorBody = (await res.json()) as {
-									error?: string;
-									errorInfo?: unknown;
-								};
+									error?: string
+									errorInfo?: unknown
+								}
 								if (errorBody.errorInfo) {
 									throw {
 										type: "vidos_error" as const,
 										errorInfo: errorBody.errorInfo,
-									};
+									}
 								}
 							} catch {
 								// If parsing fails, throw generic error
@@ -123,7 +123,7 @@ function SigninPage() {
 			},
 		}),
 		[apiClient, navigate],
-	);
+	)
 
 	return <AuthFlow config={config} />;
 }
@@ -139,7 +139,7 @@ function mapNotFoundError(
 		const typedErr = err as {
 			type: string;
 			errorInfo?: AuthorizationErrorInfo;
-		};
+		}
 
 		// Handle Vidos validation errors
 		if (typedErr.type === "vidos_error" && typedErr.errorInfo) {
@@ -150,7 +150,7 @@ function mapNotFoundError(
 					message: "Verification failed",
 					errorInfo: typedErr.errorInfo,
 				},
-			};
+			}
 		}
 
 		// Handle not found error
@@ -162,7 +162,7 @@ function mapNotFoundError(
 					message: "No account found with this identity.",
 					errorType: "not_found",
 				},
-			};
+			}
 		}
 	}
 	return { handled: false };
@@ -237,7 +237,7 @@ function SigninLeftPanel() {
 				</p>
 			</div>
 		</>
-	);
+	)
 }
 
 function SigninWalletFeatures() {
@@ -256,7 +256,7 @@ function SigninWalletFeatures() {
 				description="Same flow banks must support for Strong Customer Authentication by Dec 2027."
 			/>
 		</>
-	);
+	)
 }
 
 // ============================================================================
@@ -302,5 +302,5 @@ function NotFoundError({
 				</div>
 			</CardContent>
 		</Card>
-	);
+	)
 }

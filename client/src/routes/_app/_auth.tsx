@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { clearSession, getSessionId } from "@/lib/auth";
 
-export const Route = createFileRoute("/_auth")({
+export const Route = createFileRoute("/_app/_auth")({
 	beforeLoad: async ({ context }) => {
 		const { apiClient } = context;
 		const sessionId = getSessionId();

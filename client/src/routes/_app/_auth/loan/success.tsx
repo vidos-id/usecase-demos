@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export const Route = createFileRoute("/_auth/loan/success")({
+export const Route = createFileRoute("/_app/_auth/loan/success")({
 	component: LoanSuccessPage,
 });
 
@@ -107,7 +107,7 @@ function LoanSuccessPage() {
 				</div>
 			</div>
 		</div>
-	);
+	)
 }
 
 function StatusStep({
@@ -145,5 +145,5 @@ function StatusStep({
 				<p className="text-xs text-muted-foreground">{description}</p>
 			</div>
 		</div>
-	);
+	)
 }

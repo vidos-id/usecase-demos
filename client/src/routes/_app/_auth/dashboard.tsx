@@ -15,7 +15,7 @@ import type { ActivityItem } from "shared/api/users-me";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/_auth/dashboard")({
+export const Route = createFileRoute("/_app/_auth/dashboard")({
 	component: DashboardPage,
 });
 
@@ -32,7 +32,7 @@ function DashboardPage() {
 			if (!res.ok) throw new Error("Failed to fetch user");
 			return res.json();
 		},
-	});
+	})
 
 	const balance = user?.balance ?? 0;
 	const pendingLoans = user?.pendingLoansTotal ?? 0;
@@ -171,7 +171,7 @@ function DashboardPage() {
 				</div>
 			</div>
 		</div>
-	);
+	)
 }
 
 function ActivityRow({
@@ -243,7 +243,7 @@ function ActivityRow({
 				})}
 			</p>
 		</div>
-	);
+	)
 }
 
 function QuickAction({
@@ -278,5 +278,5 @@ function QuickAction({
 				<span className="text-sm font-medium">{label}</span>
 			</Link>
 		</Button>
-	);
+	)
 }

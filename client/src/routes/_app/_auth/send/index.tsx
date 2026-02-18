@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/_auth/send/")({
+export const Route = createFileRoute("/_app/_auth/send/")({
 	component: SendMoneyPage,
 });
 
@@ -35,13 +35,13 @@ function SendMoneyPage() {
 				amount: formattedAmount,
 				reference: reference || undefined,
 			},
-		});
-	};
+		})
+	}
 
 	const selectTemplate = (t: (typeof TEMPLATES)[0]) => {
 		setRecipient(t.recipient);
 		setAmount(t.amount.toString());
-	};
+	}
 
 	return (
 		<div className="min-h-[calc(100vh-4rem)] py-8 px-4 sm:px-6 lg:px-8">
@@ -184,5 +184,5 @@ function SendMoneyPage() {
 				/>
 			</div>
 		</div>
-	);
+	)
 }

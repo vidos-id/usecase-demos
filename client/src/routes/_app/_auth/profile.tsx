@@ -43,7 +43,7 @@ const profileSearchSchema = z.object({
 	),
 });
 
-export const Route = createFileRoute("/_auth/profile")({
+export const Route = createFileRoute("/_app/_auth/profile")({
 	validateSearch: profileSearchSchema,
 	component: ProfilePage,
 });
@@ -101,7 +101,7 @@ function ProfilePage() {
 			if (!res.ok) throw new Error("Failed to fetch user");
 			return res.json();
 		},
-	});
+	})
 
 	const requestMutation = useProfileUpdate({
 		onSuccess: (data) => {
@@ -113,7 +113,7 @@ function ProfilePage() {
 					authorizeUrl: data.authorizeUrl,
 					requestedClaims: data.requestedClaims,
 					purpose: data.purpose,
-				});
+				})
 			} else {
 				setState({
 					status: "awaiting_verification",
@@ -122,21 +122,21 @@ function ProfilePage() {
 					dcApiRequest: data.dcApiRequest,
 					requestedClaims: data.requestedClaims,
 					purpose: data.purpose,
-				});
+				})
 			}
 		},
 		onError: (err) => {
 			setState({
 				status: "error",
 				message: err instanceof Error ? err.message : "Unknown error",
-			});
+			})
 		},
-	});
+	})
 
 	const directPostRequestId =
 		state.status === "awaiting_verification" && state.mode === "direct_post"
 			? state.requestId
-			: null;
+			: null
 
 	const isDirectPostVerificationActive =
 		state.status === "awaiting_verification" && state.mode === "direct_post";
@@ -148,7 +148,7 @@ function ProfilePage() {
 		withSession: true,
 		onEvent: (event, controls) => {
 			if (event.eventType === "connected" || event.eventType === "pending") {
-				return;
+				return
 			}
 
 			if (event.eventType === "authorized") {
@@ -160,16 +160,16 @@ function ProfilePage() {
 						state.status === "awaiting_verification"
 							? state.requestedClaims
 							: selectedClaims,
-				});
+				})
 				setIsUpdateOpen(false);
 				controls.close();
-				return;
+				return
 			}
 
 			if (event.eventType === "expired") {
 				setState({ status: "expired" });
 				controls.close();
-				return;
+				return
 			}
 
 			if (event.eventType === "rejected") {
@@ -177,22 +177,22 @@ function ProfilePage() {
 					status: "error",
 					message: event.message,
 					errorInfo: event.errorInfo,
-				});
+				})
 				controls.close();
-				return;
+				return
 			}
 
 			setState({
 				status: "error",
 				message: event.message,
 				errorInfo: "errorInfo" in event ? event.errorInfo : undefined,
-			});
+			})
 			controls.close();
 		},
 		onParseError: () => {
 			setState({ status: "error", message: "Invalid stream payload" });
 		},
-	});
+	})
 
 	const completeMutation = useMutation({
 		mutationFn: async ({
@@ -207,20 +207,20 @@ function ProfilePage() {
 			].$post({
 				param: { requestId },
 				json: { origin: window.location.origin, dcResponse: response },
-			});
+			})
 
 			if (!res.ok) {
 				if (res.status === 400) {
 					try {
 						const errorBody = (await res.json()) as {
-							error?: string;
+							error?: string
 							errorInfo?: AuthorizationErrorInfo;
-						};
+						}
 						if (errorBody.errorInfo) {
 							throw {
 								type: "vidos_error" as const,
 								errorInfo: errorBody.errorInfo,
-							};
+							}
 						}
 					} catch (e) {
 						if (e && typeof e === "object" && "type" in e) throw e;
@@ -240,30 +240,30 @@ function ProfilePage() {
 					state.status === "awaiting_verification"
 						? state.requestedClaims
 						: selectedClaims,
-			});
+			})
 			setIsUpdateOpen(false);
 		},
 		onError: (err) => {
 			if (err && typeof err === "object" && "type" in err) {
 				const typedErr = err as {
-					type: string;
+					type: string
 					errorInfo?: AuthorizationErrorInfo;
-				};
+				}
 				if (typedErr.type === "vidos_error" && typedErr.errorInfo) {
 					setState({
 						status: "error",
 						message: "Verification failed",
 						errorInfo: typedErr.errorInfo,
-					});
-					return;
+					})
+					return
 				}
 			}
 			setState({
 				status: "error",
 				message: err instanceof Error ? err.message : "Completion failed",
-			});
+			})
 		},
-	});
+	})
 
 	const handleDCApiSuccess = (response: {
 		protocol: string;
@@ -273,8 +273,8 @@ function ProfilePage() {
 		completeMutation.mutate({
 			requestId: state.requestId,
 			response: response.data,
-		});
-	};
+		})
+	}
 
 	const handleRequestStart = () => {
 		const mode = getStoredMode();
@@ -282,22 +282,22 @@ function ProfilePage() {
 		requestMutation.mutate({
 			requestedClaims: selectedClaims,
 			mode,
-		});
-	};
+		})
+	}
 
 	const handleCancel = () => {
 		setState({ status: "idle" });
-	};
+	}
 
 	const handleResetSelection = () => {
 		setSelectedClaims([]);
 		setState({ status: "idle" });
 		setIsUpdateOpen(false);
-	};
+	}
 
 	const handleRetry = () => {
 		setState({ status: "idle" });
-	};
+	}
 
 	const isSelectionValid = selectedClaims.length > 0;
 	const isRequesting = requestMutation.isPending;
@@ -308,7 +308,7 @@ function ProfilePage() {
 			prev.status === "idle" || prev.status === "success"
 				? { status: "idle" }
 				: prev,
-		);
+		)
 		navigate({ to: "/profile", search: { edit: false }, replace: true });
 	}, [navigate, search.edit]);
 
@@ -320,7 +320,7 @@ function ProfilePage() {
 					<p className="text-sm text-muted-foreground">Loading profile...</p>
 				</div>
 			</div>
-		);
+		)
 	}
 
 	const portraitUrl = getImageDataUrl(user?.portrait);
@@ -334,7 +334,7 @@ function ProfilePage() {
 					const claim = UPDATED_FIELD_TO_CLAIM[field] ?? field;
 					return CLAIM_LABELS[claim] || field;
 				})
-			: [];
+			: []
 
 	return (
 		<div className="min-h-[calc(100vh-4rem)] py-8 px-4 sm:px-6 lg:px-8">
@@ -503,7 +503,7 @@ function ProfilePage() {
 																prev.includes(claim)
 																	? prev.filter((item) => item !== claim)
 																	: [...prev, claim],
-															);
+															)
 														}}
 														className={cn(
 															"flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition-all",
@@ -527,7 +527,7 @@ function ProfilePage() {
 															{isSelected ? "Selected" : "Select"}
 														</span>
 													</button>
-												);
+												)
 											})}
 										</div>
 										<div className="flex flex-col sm:flex-row gap-3">
@@ -620,9 +620,9 @@ function ProfilePage() {
 											<Button
 												onClick={() => {
 													if (state.status === "error") {
-														setState({ status: "idle" });
+														setState({ status: "idle" })
 													}
-													handleRequestStart();
+													handleRequestStart()
 												}}
 												disabled={!isSelectionValid || isRequesting}
 												className="h-12 flex-1"
@@ -692,7 +692,7 @@ function ProfilePage() {
 				</div>
 			</div>
 		</div>
-	);
+	)
 }
 
 function ProfileField({
@@ -716,5 +716,5 @@ function ProfileField({
 				<p className="font-medium truncate">{value || "—"}</p>
 			</div>
 		</div>
-	);
+	)
 }

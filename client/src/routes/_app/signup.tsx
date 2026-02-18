@@ -15,7 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { createStreamUrl } from "@/lib/sse";
 
-export const Route = createFileRoute("/signup")({
+export const Route = createFileRoute("/_app/signup")({
 	component: SignupPage,
 });
 
@@ -32,7 +32,7 @@ function SignupPage() {
 				) => {
 					const res = await apiClient.api.signup.request.$post({
 						json: params,
-					});
+					})
 
 					if (!res.ok) {
 						throw new Error("Failed to create signup request");
@@ -53,21 +53,21 @@ function SignupPage() {
 					const res = await apiClient.api.signup.complete[":requestId"].$post({
 						param: { requestId },
 						json: { origin, dcResponse: response },
-					});
+					})
 
 					if (!res.ok) {
 						if (res.status === 400) {
 							// Try to parse error response with errorInfo
 							try {
 								const errorBody = (await res.json()) as {
-									error?: string;
-									errorInfo?: unknown;
-								};
+									error?: string
+									errorInfo?: unknown
+								}
 								if (errorBody.errorInfo) {
 									throw {
 										type: "vidos_error" as const,
 										errorInfo: errorBody.errorInfo,
-									};
+									}
 								}
 							} catch {
 								// If parsing fails, throw generic account exists error
@@ -107,7 +107,7 @@ function SignupPage() {
 			},
 		}),
 		[apiClient],
-	);
+	)
 
 	return <AuthFlow config={config} />;
 }
@@ -123,7 +123,7 @@ function mapAccountExistsError(
 		const typedErr = err as {
 			type: string;
 			errorInfo?: AuthorizationErrorInfo;
-		};
+		}
 
 		// Handle Vidos validation errors
 		if (typedErr.type === "vidos_error" && typedErr.errorInfo) {
@@ -134,7 +134,7 @@ function mapAccountExistsError(
 					message: "Verification failed",
 					errorInfo: typedErr.errorInfo,
 				},
-			};
+			}
 		}
 
 		// Handle account exists error
@@ -147,7 +147,7 @@ function mapAccountExistsError(
 						"An account with this identity already exists. Please sign in instead or delete your existing account first.",
 					errorType: "account_exists",
 				},
-			};
+			}
 		}
 	}
 	return { handled: false };
@@ -254,7 +254,7 @@ function SignupLeftPanel() {
 				</p>
 			</div>
 		</>
-	);
+	)
 }
 
 function SignupWalletFeatures() {
@@ -273,7 +273,7 @@ function SignupWalletFeatures() {
 				description="Works with any EU Member State wallet. One integration, 27 countries."
 			/>
 		</>
-	);
+	)
 }
 
 // ============================================================================
@@ -309,7 +309,7 @@ function SuccessCard() {
 				</div>
 			</CardContent>
 		</Card>
-	);
+	)
 }
 
 function AccountExistsError({
@@ -365,5 +365,5 @@ function AccountExistsError({
 				</div>
 			</CardContent>
 		</Card>
-	);
+	)
 }

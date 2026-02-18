@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useIsAuthenticated } from "@/lib/auth";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_app/")({
 	component: LandingPage,
 });
 
@@ -97,5 +97,5 @@ function LandingPage() {
 			<PoweredByVidos />
 			<FeaturesSection />
 		</div>
-	);
+	)
 }
