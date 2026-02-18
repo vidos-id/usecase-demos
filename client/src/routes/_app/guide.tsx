@@ -205,7 +205,7 @@ function GuidePage() {
 				</footer>
 			</div>
 		</div>
-	)
+	);
 }
 
 // ============================================================================
@@ -258,7 +258,7 @@ function WalletTab({
 				{status}
 			</span>
 		</button>
-	)
+	);
 }
 
 function QuickStartCard({
@@ -302,5 +302,5 @@ function QuickStartCard({
 				/>
 			</div>
 		</Link>
-	)
+	);
 }

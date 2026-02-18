@@ -33,7 +33,7 @@ import {
 } from "@/components/layout/auth-page";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
-import { getStoredMode } from "@/lib/auth-helpers";
+import { getStoredCredentialFormats, getStoredMode } from "@/lib/auth-helpers";
 import { useAuthorizationStream } from "@/lib/use-authorization-stream";
 
 import { cn } from "@/lib/utils";
@@ -121,10 +121,12 @@ function LoanPage() {
 	const requestMutation = useMutation({
 		mutationFn: async () => {
 			const mode = getStoredMode();
+			const credentialFormats = getStoredCredentialFormats();
 			const baseParams = {
 				amount: amount as "5000" | "10000" | "25000" | "50000",
 				purpose: purpose as "Car" | "Home Improvement" | "Education" | "Other",
 				term: term as "12" | "24" | "36" | "48",
+				credentialFormats,
 			};
 
 			const res = await apiClient.api.loan.request.$post({

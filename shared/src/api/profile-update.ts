@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { dcApiRequestSchema } from "../types/auth";
+import { credentialFormatsSchema, dcApiRequestSchema } from "../types/auth";
 
 const profileUpdateRequestBaseSchema = z.object({
 	requestedClaims: z.array(z.string()).min(1),
@@ -8,10 +8,12 @@ const profileUpdateRequestBaseSchema = z.object({
 export const profileUpdateRequestSchema = z.discriminatedUnion("mode", [
 	profileUpdateRequestBaseSchema.extend({
 		mode: z.literal("direct_post"),
+		credentialFormats: credentialFormatsSchema,
 	}),
 	profileUpdateRequestBaseSchema.extend({
 		mode: z.literal("dc_api"),
 		origin: z.url(),
+		credentialFormats: credentialFormatsSchema,
 	}),
 ]);
 export type ProfileUpdateRequest = z.infer<typeof profileUpdateRequestSchema>;

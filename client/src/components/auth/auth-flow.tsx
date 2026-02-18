@@ -2,9 +2,14 @@ import { useMutation } from "@tanstack/react-query";
 import { AlertCircle, Clock, Loader2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import type { DcApiRequest, PresentationMode } from "shared/types/auth";
+import type {
+	CredentialFormats,
+	DcApiRequest,
+	PresentationMode,
+} from "shared/types/auth";
 import type { AuthorizationErrorInfo } from "shared/types/vidos-errors";
 import { CredentialDisclosure } from "@/components/auth/credential-disclosure";
+import { CredentialFormatSelector } from "@/components/auth/credential-format-selector";
 import { DCApiHandler } from "@/components/auth/dc-api-handler";
 import { ModeSelector } from "@/components/auth/mode-selector";
 import { PollingStatus } from "@/components/auth/polling-status";
@@ -12,7 +17,12 @@ import { QRCodeDisplay } from "@/components/auth/qr-code-display";
 import { VidosErrorDisplay } from "@/components/auth/vidos-error-display";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { getStoredMode, setStoredMode } from "@/lib/auth-helpers";
+import {
+	getStoredCredentialFormats,
+	getStoredMode,
+	setStoredCredentialFormats,
+	setStoredMode,
+} from "@/lib/auth-helpers";
 import { useAuthorizationStream } from "@/lib/use-authorization-stream";
 
 // ============================================================================
@@ -76,7 +86,13 @@ export type AuthFlowConfig = {
 	/** API functions */
 	api: {
 		createRequest: (
-			params: { mode: "direct_post" } | { mode: "dc_api"; origin: string },
+			params:
+				| { mode: "direct_post"; credentialFormats: CredentialFormats }
+				| {
+						mode: "dc_api";
+						origin: string;
+						credentialFormats: CredentialFormats;
+				  },
 		) => Promise<RequestResult>;
 		createStreamUrl: (requestId: string) => string;
 		completeRequest: (
@@ -132,6 +148,9 @@ export type AuthFlowConfig = {
 
 export function AuthFlow({ config }: { config: AuthFlowConfig }) {
 	const [mode, setMode] = useState<PresentationMode>(getStoredMode);
+	const [credentialFormats, setCredentialFormats] = useState<CredentialFormats>(
+		getStoredCredentialFormats,
+	);
 	const [state, setState] = useState<AuthState>({ status: "idle" });
 
 	const handleModeChange = (newMode: PresentationMode) => {
@@ -139,13 +158,22 @@ export function AuthFlow({ config }: { config: AuthFlowConfig }) {
 		setStoredMode(newMode);
 	};
 
+	const handleCredentialFormatsChange = (newFormats: CredentialFormats) => {
+		setCredentialFormats(newFormats);
+		setStoredCredentialFormats(newFormats);
+	};
+
 	// Request mutation
 	const requestMutation = useMutation({
 		mutationFn: () =>
 			config.api.createRequest(
 				mode === "direct_post"
-					? { mode: "direct_post" }
-					: { mode: "dc_api", origin: window.location.origin },
+					? { mode: "direct_post", credentialFormats }
+					: {
+							mode: "dc_api",
+							origin: window.location.origin,
+							credentialFormats,
+						},
 			),
 		onSuccess: (data) => {
 			console.log(`[${config.flowKey}] request created:`, data.requestId);
@@ -380,6 +408,10 @@ export function AuthFlow({ config }: { config: AuthFlowConfig }) {
 									<div className="space-y-4">{config.slots.walletFeatures}</div>
 
 									<div className="pt-6 space-y-4">
+										<CredentialFormatSelector
+											value={credentialFormats}
+											onChange={handleCredentialFormatsChange}
+										/>
 										<ModeSelector value={mode} onChange={handleModeChange} />
 										<Button
 											onClick={() => requestMutation.mutate()}

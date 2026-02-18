@@ -42,7 +42,7 @@ Cross-workspace: `import { x } from "shared/api/hello"`, `import { y } from "ser
 
 ## Code Style
 
-- Biome: tabs, double quotes. Run `bun run format` before commit.
+- Biome: tabs, double quotes. Run `bun run format` after making code changes.
 - TypeScript strict mode. Zod v4.
 - PascalCase components/types, camelCase vars/functions.
 - Zod schemas suffixed `Schema`.

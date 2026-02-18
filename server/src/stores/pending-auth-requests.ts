@@ -138,7 +138,13 @@ const mapRowToPendingAuthRequest = (
 };
 
 const mapResolvedStatus = (
-	eventType: "authorized" | "expired" | "not_found" | "account_exists" | "rejected" | "error",
+	eventType:
+		| "authorized"
+		| "expired"
+		| "not_found"
+		| "account_exists"
+		| "rejected"
+		| "error",
 ): "completed" | "failed" | "expired" => {
 	if (eventType === "authorized") {
 		return "completed";
@@ -187,8 +193,7 @@ const toAuthorizationStateEvent = (
 	if (resolvedStatus === "not_found") {
 		return authorizationStreamEventSchema.parse({
 			eventType: "not_found",
-			message:
-				result?.error ?? "No account found with this credential.",
+			message: result?.error ?? "No account found with this credential.",
 		});
 	}
 

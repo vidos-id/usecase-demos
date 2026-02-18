@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { dcApiRequestSchema } from "../types/auth";
+import { credentialFormatsSchema, dcApiRequestSchema } from "../types/auth";
 
 // EUR amount format: digits with exactly 2 decimal places
 export const eurAmountSchema = z.string().regex(/^\d+\.\d{2}$/, {
@@ -15,10 +15,12 @@ const paymentRequestBaseSchema = z.object({
 export const paymentRequestSchema = z.discriminatedUnion("mode", [
 	paymentRequestBaseSchema.extend({
 		mode: z.literal("direct_post"),
+		credentialFormats: credentialFormatsSchema,
 	}),
 	paymentRequestBaseSchema.extend({
 		mode: z.literal("dc_api"),
 		origin: z.url(),
+		credentialFormats: credentialFormatsSchema,
 	}),
 ]);
 export type PaymentRequest = z.infer<typeof paymentRequestSchema>;

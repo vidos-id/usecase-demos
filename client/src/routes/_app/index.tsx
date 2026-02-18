@@ -97,5 +97,5 @@ function LandingPage() {
 			<PoweredByVidos />
 			<FeaturesSection />
 		</div>
-	)
+	);
 }

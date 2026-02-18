@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { dcApiRequestSchema } from "../types/auth";
+import { credentialFormatsSchema, dcApiRequestSchema } from "../types/auth";
 import {
 	LOAN_AMOUNTS,
 	LOAN_PURPOSES,
@@ -21,10 +21,12 @@ const loanRequestBaseSchema = z.object({
 export const loanRequestSchema = z.discriminatedUnion("mode", [
 	loanRequestBaseSchema.extend({
 		mode: z.literal("direct_post"),
+		credentialFormats: credentialFormatsSchema,
 	}),
 	loanRequestBaseSchema.extend({
 		mode: z.literal("dc_api"),
 		origin: z.string().url(),
+		credentialFormats: credentialFormatsSchema,
 	}),
 ]);
 export type LoanRequest = z.infer<typeof loanRequestSchema>;

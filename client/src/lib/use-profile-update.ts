@@ -1,11 +1,12 @@
 import { type UseMutationOptions, useMutation } from "@tanstack/react-query";
 import { useRouteContext } from "@tanstack/react-router";
 import type { ProfileUpdateRequestResponse } from "shared/api/profile-update";
-import type { PresentationMode } from "shared/types/auth";
+import type { CredentialFormats, PresentationMode } from "shared/types/auth";
 
 type ProfileUpdateMutationVariables = {
 	requestedClaims: string[];
 	mode: PresentationMode;
+	credentialFormats: CredentialFormats;
 };
 
 export function useProfileUpdate(
@@ -22,7 +23,7 @@ export function useProfileUpdate(
 		Error,
 		ProfileUpdateMutationVariables
 	>({
-		mutationFn: async ({ requestedClaims, mode }) => {
+		mutationFn: async ({ requestedClaims, mode, credentialFormats }) => {
 			const res = await apiClient.api.profile.update.request.$post({
 				json:
 					mode === "dc_api"
@@ -30,10 +31,12 @@ export function useProfileUpdate(
 								mode: "dc_api" as const,
 								origin: window.location.origin,
 								requestedClaims,
+								credentialFormats,
 							}
 						: {
 								mode: "direct_post" as const,
 								requestedClaims,
+								credentialFormats,
 							},
 			});
 

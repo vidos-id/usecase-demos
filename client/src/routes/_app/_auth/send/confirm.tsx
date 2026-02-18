@@ -24,7 +24,7 @@ import { PollingStatus } from "@/components/auth/polling-status";
 import { QRCodeDisplay } from "@/components/auth/qr-code-display";
 import { VidosErrorDisplay } from "@/components/auth/vidos-error-display";
 import { Button } from "@/components/ui/button";
-import { getStoredMode } from "@/lib/auth-helpers";
+import { getStoredCredentialFormats, getStoredMode } from "@/lib/auth-helpers";
 import { useAuthorizationStream } from "@/lib/use-authorization-stream";
 
 import { cn } from "@/lib/utils";
@@ -73,11 +73,13 @@ function PaymentConfirmPage() {
 	const requestMutation = useMutation({
 		mutationFn: async () => {
 			const mode = getStoredMode();
+			const credentialFormats = getStoredCredentialFormats();
 			const baseParams = {
 				recipient: search.recipient,
 				amount: search.amount,
 				reference: search.reference,
-			}
+				credentialFormats,
+			};
 
 			const res = await apiClient.api.payment.request.$post({
 				json:
@@ -88,7 +90,7 @@ function PaymentConfirmPage() {
 								origin: window.location.origin,
 							}
 						: { ...baseParams, mode: "direct_post" as const },
-			})
+			});
 
 			if (!res.ok) throw new Error("Failed to create payment request");
 
@@ -103,7 +105,7 @@ function PaymentConfirmPage() {
 					authorizeUrl: data.authorizeUrl,
 					requestedClaims: data.requestedClaims,
 					purpose: data.purpose,
-				})
+				});
 			} else {
 				setState({
 					status: "awaiting_verification",
@@ -112,21 +114,21 @@ function PaymentConfirmPage() {
 					dcApiRequest: data.dcApiRequest,
 					requestedClaims: data.requestedClaims,
 					purpose: data.purpose,
-				})
+				});
 			}
 		},
 		onError: (err) => {
 			setState({
 				status: "error",
 				message: err instanceof Error ? err.message : "Unknown error",
-			})
+			});
 		},
-	})
+	});
 
 	const directPostRequestId =
 		state.status === "awaiting_verification" && state.mode === "direct_post"
 			? state.requestId
-			: null
+			: null;
 
 	const isDirectPostVerificationActive =
 		state.status === "awaiting_verification" && state.mode === "direct_post";
@@ -138,7 +140,7 @@ function PaymentConfirmPage() {
 		withSession: true,
 		onEvent: (event, controls) => {
 			if (event.eventType === "connected" || event.eventType === "pending") {
-				return
+				return;
 			}
 
 			if (event.eventType === "authorized") {
@@ -146,9 +148,9 @@ function PaymentConfirmPage() {
 					setState({
 						status: "error",
 						message: "Verification completed without transaction details",
-					})
+					});
 					controls.close();
-					return
+					return;
 				}
 
 				setState({ status: "success", transactionId: event.transactionId });
@@ -162,15 +164,15 @@ function PaymentConfirmPage() {
 						reference: search.reference,
 						confirmedAt: new Date().toISOString(),
 					},
-				})
+				});
 				controls.close();
-				return
+				return;
 			}
 
 			if (event.eventType === "expired") {
 				setState({ status: "expired" });
 				controls.close();
-				return
+				return;
 			}
 
 			if (event.eventType === "rejected") {
@@ -178,22 +180,22 @@ function PaymentConfirmPage() {
 					status: "error",
 					message: event.message,
 					errorInfo: event.errorInfo,
-				})
+				});
 				controls.close();
-				return
+				return;
 			}
 
 			setState({
 				status: "error",
 				message: event.message,
 				errorInfo: "errorInfo" in event ? event.errorInfo : undefined,
-			})
+			});
 			controls.close();
 		},
 		onParseError: () => {
 			setState({ status: "error", message: "Invalid stream payload" });
 		},
-	})
+	});
 
 	// Mutation for DC API completion
 	const completeMutation = useMutation({
@@ -207,21 +209,21 @@ function PaymentConfirmPage() {
 			const res = await apiClient.api.payment.complete[":requestId"].$post({
 				param: { requestId },
 				json: { origin: window.location.origin, dcResponse: response },
-			})
+			});
 
 			if (!res.ok) {
 				// Try to parse error response with errorInfo
 				if (res.status === 400) {
 					try {
 						const errorBody = (await res.json()) as {
-							error?: string
+							error?: string;
 							errorInfo?: AuthorizationErrorInfo;
-						}
+						};
 						if (errorBody.errorInfo) {
 							throw {
 								type: "vidos_error" as const,
 								errorInfo: errorBody.errorInfo,
-							}
+							};
 						}
 					} catch (e) {
 						if (e && typeof e === "object" && "type" in e) throw e;
@@ -244,30 +246,30 @@ function PaymentConfirmPage() {
 					reference: data.reference,
 					confirmedAt: data.confirmedAt,
 				},
-			})
+			});
 		},
 		onError: (err) => {
 			// Handle Vidos error
 			if (err && typeof err === "object" && "type" in err) {
 				const typedErr = err as {
-					type: string
+					type: string;
 					errorInfo?: AuthorizationErrorInfo;
-				}
+				};
 				if (typedErr.type === "vidos_error" && typedErr.errorInfo) {
 					setState({
 						status: "error",
 						message: "Verification failed",
 						errorInfo: typedErr.errorInfo,
-					})
-					return
+					});
+					return;
 				}
 			}
 			setState({
 				status: "error",
 				message: err instanceof Error ? err.message : "Completion failed",
-			})
+			});
 		},
-	})
+	});
 
 	const handleDCApiSuccess = (response: {
 		protocol: string;
@@ -278,16 +280,16 @@ function PaymentConfirmPage() {
 		completeMutation.mutate({
 			requestId: state.requestId,
 			response: response.data,
-		})
-	}
+		});
+	};
 
 	const handleDCApiError = (error: string) => {
 		setState({ status: "error", message: error });
-	}
+	};
 
 	const handleCancel = () => {
 		setState({ status: "idle" });
-	}
+	};
 
 	return (
 		<div className="min-h-[calc(100vh-4rem)] py-8 px-4 sm:px-6 lg:px-8">
@@ -523,5 +525,5 @@ function PaymentConfirmPage() {
 				)}
 			</div>
 		</div>
-	)
+	);
 }

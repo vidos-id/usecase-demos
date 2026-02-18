@@ -6,6 +6,7 @@ import {
 	PID_SDJWT_VCT,
 	type PIDAttributeMapping,
 } from "shared/lib/pid-attributes";
+import type { CredentialFormat, CredentialFormats } from "shared/types/auth";
 import {
 	type AuthorizationErrorInfo,
 	parseVidosError,
@@ -40,6 +41,7 @@ function getAuthorizerClient() {
 export type CreateAuthRequestParams = ModeParams & {
 	requestedClaims: readonly string[]; // Canonical attribute IDs from pid-attributes.ts
 	purpose: string;
+	credentialFormats: CredentialFormats;
 	transactionData?: string[]; // base64url-encoded JSON objects
 	verifierInfo?: Array<{
 		format: string;
@@ -123,8 +125,8 @@ function getAttributeMappings(
 }
 
 /**
- * Builds a DCQL query supporting both SD-JWT and mDoc PID credentials.
- * Uses credential_sets to allow the wallet to satisfy the request with either format.
+ * Builds a DCQL query for one or more PID credential formats.
+ * Uses credential_sets only when multiple formats are requested.
  *
  * The query structure follows OpenID4VP DCQL specification:
  * - Two credential queries: one for SD-JWT, one for mDoc
@@ -132,10 +134,12 @@ function getAttributeMappings(
  *
  * @param requestedClaims Canonical attribute IDs (e.g., "family_name", "birth_date")
  * @param purpose Human-readable purpose for the credential request
+ * @param credentialFormats One or more accepted credential formats
  */
 function buildPIDDCQLQuery(
 	requestedClaims: readonly string[],
-	purpose?: string,
+	purpose: string,
+	credentialFormats: CredentialFormats,
 ) {
 	const attributeMappings = getAttributeMappings(requestedClaims);
 
@@ -157,14 +161,31 @@ function buildPIDDCQLQuery(
 		})),
 	};
 
+	type CredentialQuery = typeof sdJwtCredential | typeof mdocCredential;
+	const credentialByFormat: Record<CredentialFormat, CredentialQuery> = {
+		"sd-jwt": sdJwtCredential,
+		mdoc: mdocCredential,
+	};
+
+	const selectedCredentials = credentialFormats.map(
+		(format) => credentialByFormat[format],
+	);
+
+	if (selectedCredentials.length === 1) {
+		return {
+			purpose,
+			credentials: selectedCredentials,
+		};
+	}
+
 	return {
 		purpose,
-		credentials: [sdJwtCredential, mdocCredential],
+		credentials: selectedCredentials,
 		// credential_sets allows wallet to satisfy request with EITHER format
 		credential_sets: [
 			{
 				// One option per format - wallet picks based on what it has
-				options: [["pid_sd_jwt"], ["pid_mdoc"]],
+				options: selectedCredentials.map((credential) => [credential.id]),
 			},
 		],
 	};
@@ -177,13 +198,21 @@ function buildPIDDCQLQuery(
 export async function createAuthorizationRequest(
 	params: CreateAuthRequestParams,
 ): Promise<CreateAuthRequestResult> {
-	const { mode, requestedClaims, purpose } = params;
+	const { mode, requestedClaims, purpose, credentialFormats } = params;
 	const client = getAuthorizerClient();
 
-	console.log("[Vidos] createAuthorizationRequest", { mode, requestedClaims });
+	console.log("[Vidos] createAuthorizationRequest", {
+		mode,
+		requestedClaims,
+		credentialFormats,
+	});
 
 	// Build DCQL query with proper SD-JWT paths and meta
-	const dcqlQuery = buildPIDDCQLQuery(requestedClaims, purpose);
+	const dcqlQuery = buildPIDDCQLQuery(
+		requestedClaims,
+		purpose,
+		credentialFormats,
+	);
 
 	if (params.mode === "direct_post") {
 		const { data, error } = await client.POST(

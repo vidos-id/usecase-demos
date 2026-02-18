@@ -28,7 +28,7 @@ function PaymentSuccessPage() {
 		navigator.clipboard.writeText(search.transactionId);
 		setCopied(true);
 		setTimeout(() => setCopied(false), 2000);
-	}
+	};
 
 	return (
 		<div className="min-h-[calc(100vh-4rem)] py-8 px-4 sm:px-6 lg:px-8">
@@ -155,7 +155,7 @@ function PaymentSuccessPage() {
 				</div>
 			</div>
 		</div>
-	)
+	);
 }
 
 function DetailRow({
@@ -172,5 +172,5 @@ function DetailRow({
 			<span className="text-sm text-muted-foreground">{label}</span>
 			<span className={cn("font-medium", mono && "font-mono")}>{value}</span>
 		</div>
-	)
+	);
 }

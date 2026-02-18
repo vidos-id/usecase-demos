@@ -84,11 +84,11 @@ function CallbackPage() {
 					setStreamError("resolve_failed");
 				}
 				controls.close();
-				return
+				return;
 			}
 
 			if (event.eventType === "connected") {
-				return
+				return;
 			}
 
 			setResult(event);
@@ -99,7 +99,7 @@ function CallbackPage() {
 		onParseError: () => {
 			setStreamError("resolve_failed");
 		},
-	})
+	});
 
 	// No response_code provided
 	if (!response_code) {
@@ -124,7 +124,7 @@ function CallbackPage() {
 					setRetryCount((count) => count + 1);
 				}}
 			/>
-		)
+		);
 	}
 
 	// Success - show result
@@ -150,7 +150,7 @@ function LoadingState() {
 				</div>
 			</div>
 		</div>
-	)
+	);
 }
 
 function InvalidCodeState() {
@@ -177,7 +177,7 @@ function InvalidCodeState() {
 				</div>
 			</div>
 		</div>
-	)
+	);
 }
 
 function ErrorState({ onRetry }: { onRetry: () => void }) {
@@ -200,7 +200,7 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
 				</Button>
 			</div>
 		</div>
-	)
+	);
 }
 
 function ResultDisplay({ result }: { result: CallbackSseState }) {
@@ -327,7 +327,7 @@ function ResultDisplay({ result }: { result: CallbackSseState }) {
 				</Button>
 			</div>
 		</div>
-	)
+	);
 }
 
 function StatusIcon({ status }: { status: CallbackSseState["status"] }) {
@@ -336,21 +336,21 @@ function StatusIcon({ status }: { status: CallbackSseState["status"] }) {
 			<div className="inline-flex items-center justify-center h-20 w-20 rounded-full bg-green-500/10">
 				<CheckCircle2 className="h-10 w-10 text-green-500" />
 			</div>
-		)
+		);
 	}
 	if (status === "failed") {
 		return (
 			<div className="inline-flex items-center justify-center h-20 w-20 rounded-full bg-destructive/10">
 				<XCircle className="h-10 w-10 text-destructive" />
 			</div>
-		)
+		);
 	}
 	// pending
 	return (
 		<div className="inline-flex items-center justify-center h-20 w-20 rounded-full bg-amber-500/10">
 			<Clock className="h-10 w-10 text-amber-500" />
 		</div>
-	)
+	);
 }
 
 function StatusTitle({
@@ -424,7 +424,7 @@ function TransactionDetails({
 				</>
 			)}
 		</div>
-	)
+	);
 }
 
 function DetailRow({
@@ -441,5 +441,5 @@ function DetailRow({
 			<span className="text-sm text-muted-foreground">{label}</span>
 			<span className={cn("font-medium", mono && "font-mono")}>{value}</span>
 		</div>
-	)
+	);
 }

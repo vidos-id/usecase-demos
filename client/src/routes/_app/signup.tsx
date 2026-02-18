@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useRouteContext } from "@tanstack/react-router";
 import { CheckCircle2, UserX } from "lucide-react";
 import { useMemo } from "react";
-import type { PresentationMode } from "shared/types/auth";
+import type { CredentialFormats, PresentationMode } from "shared/types/auth";
 import type { AuthorizationErrorInfo } from "shared/types/vidos-errors";
 import {
 	AuthFlow,
@@ -28,11 +28,17 @@ function SignupPage() {
 
 			api: {
 				createRequest: async (
-					params: { mode: "direct_post" } | { mode: "dc_api"; origin: string },
+					params:
+						| { mode: "direct_post"; credentialFormats: CredentialFormats }
+						| {
+								mode: "dc_api";
+								origin: string;
+								credentialFormats: CredentialFormats;
+						  },
 				) => {
 					const res = await apiClient.api.signup.request.$post({
 						json: params,
-					})
+					});
 
 					if (!res.ok) {
 						throw new Error("Failed to create signup request");
@@ -53,21 +59,21 @@ function SignupPage() {
 					const res = await apiClient.api.signup.complete[":requestId"].$post({
 						param: { requestId },
 						json: { origin, dcResponse: response },
-					})
+					});
 
 					if (!res.ok) {
 						if (res.status === 400) {
 							// Try to parse error response with errorInfo
 							try {
 								const errorBody = (await res.json()) as {
-									error?: string
-									errorInfo?: unknown
-								}
+									error?: string;
+									errorInfo?: unknown;
+								};
 								if (errorBody.errorInfo) {
 									throw {
 										type: "vidos_error" as const,
 										errorInfo: errorBody.errorInfo,
-									}
+									};
 								}
 							} catch {
 								// If parsing fails, throw generic account exists error
@@ -107,7 +113,7 @@ function SignupPage() {
 			},
 		}),
 		[apiClient],
-	)
+	);
 
 	return <AuthFlow config={config} />;
 }
@@ -123,7 +129,7 @@ function mapAccountExistsError(
 		const typedErr = err as {
 			type: string;
 			errorInfo?: AuthorizationErrorInfo;
-		}
+		};
 
 		// Handle Vidos validation errors
 		if (typedErr.type === "vidos_error" && typedErr.errorInfo) {
@@ -134,7 +140,7 @@ function mapAccountExistsError(
 					message: "Verification failed",
 					errorInfo: typedErr.errorInfo,
 				},
-			}
+			};
 		}
 
 		// Handle account exists error
@@ -147,7 +153,7 @@ function mapAccountExistsError(
 						"An account with this identity already exists. Please sign in instead or delete your existing account first.",
 					errorType: "account_exists",
 				},
-			}
+			};
 		}
 	}
 	return { handled: false };
@@ -254,7 +260,7 @@ function SignupLeftPanel() {
 				</p>
 			</div>
 		</>
-	)
+	);
 }
 
 function SignupWalletFeatures() {
@@ -273,7 +279,7 @@ function SignupWalletFeatures() {
 				description="Works with any EU Member State wallet. One integration, 27 countries."
 			/>
 		</>
-	)
+	);
 }
 
 // ============================================================================
@@ -309,7 +315,7 @@ function SuccessCard() {
 				</div>
 			</CardContent>
 		</Card>
-	)
+	);
 }
 
 function AccountExistsError({
@@ -365,5 +371,5 @@ function AccountExistsError({
 				</div>
 			</CardContent>
 		</Card>
-	)
+	);
 }

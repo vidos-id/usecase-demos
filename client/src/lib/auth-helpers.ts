@@ -1,4 +1,10 @@
-import type { DcApiProtocol, PresentationMode } from "shared/types/auth";
+import {
+	CREDENTIAL_FORMAT_SELECTIONS,
+	type CredentialFormats,
+	credentialFormatsSchema,
+	type DcApiProtocol,
+	type PresentationMode,
+} from "shared/types/auth";
 
 // Browser global type for DC API feature detection
 interface DigitalCredentialGlobal {
@@ -189,4 +195,27 @@ export function getStoredMode(): PresentationMode {
 
 export function setStoredMode(mode: PresentationMode): void {
 	localStorage.setItem("authMode", mode);
+}
+
+export function getStoredCredentialFormats(): CredentialFormats {
+	const stored = localStorage.getItem("credentialFormats");
+	if (!stored) {
+		return [...CREDENTIAL_FORMAT_SELECTIONS.all];
+	}
+
+	try {
+		const parsed = JSON.parse(stored) as unknown;
+		const validated = credentialFormatsSchema.safeParse(parsed);
+		if (validated.success) {
+			return validated.data;
+		}
+	} catch {
+		// ignore invalid persisted values
+	}
+
+	return [...CREDENTIAL_FORMAT_SELECTIONS.all];
+}
+
+export function setStoredCredentialFormats(formats: CredentialFormats): void {
+	localStorage.setItem("credentialFormats", JSON.stringify(formats));
 }

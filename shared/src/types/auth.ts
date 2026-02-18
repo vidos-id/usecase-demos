@@ -3,6 +3,25 @@ import { z } from "zod";
 export const presentationModeSchema = z.enum(["direct_post", "dc_api"]);
 export type PresentationMode = z.infer<typeof presentationModeSchema>;
 
+export const CREDENTIAL_FORMATS = ["sd-jwt", "mdoc"] as const;
+export const credentialFormatSchema = z.enum(CREDENTIAL_FORMATS);
+export type CredentialFormat = z.infer<typeof credentialFormatSchema>;
+
+export const credentialFormatsSchema = z
+	.array(credentialFormatSchema)
+	.min(1)
+	.refine(
+		(formats) => new Set(formats).size === formats.length,
+		"Duplicate credential formats are not allowed",
+	);
+export type CredentialFormats = z.infer<typeof credentialFormatsSchema>;
+
+export const CREDENTIAL_FORMAT_SELECTIONS = {
+	all: ["sd-jwt", "mdoc"],
+	sdJwtOnly: ["sd-jwt"],
+	mdocOnly: ["mdoc"],
+} as const satisfies Record<string, readonly CredentialFormat[]>;
+
 /**
  * DC API protocols supported by Vidos authorizer
  * - openid4vp-v1-unsigned: Unsigned OpenID4VP request
@@ -39,8 +58,7 @@ export type PlaceOfBirth = z.infer<typeof placeOfBirthSchema>;
  * Base PID claims schema - supports claims from both SD-JWT and mDoc formats.
  * Vidos Authorizer normalizes claim names, but some fields may vary by format.
  *
- * The system now requests credentials in BOTH formats via DCQL credential_sets,
- * allowing wallets to respond with whichever format they have available.
+ * The system can request SD-JWT, mDoc, or both by passing one or more formats.
  *
  * SD-JWT claim names are used as the canonical schema (Vidos normalizes mDoc to these).
  */

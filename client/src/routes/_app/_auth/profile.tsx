@@ -35,7 +35,7 @@ import {
 	AUTH_PAGE_OUTER_CLASS,
 } from "@/components/layout/auth-page";
 import { Button } from "@/components/ui/button";
-import { getStoredMode } from "@/lib/auth-helpers";
+import { getStoredCredentialFormats, getStoredMode } from "@/lib/auth-helpers";
 import { useAuthorizationStream } from "@/lib/use-authorization-stream";
 import { useProfileUpdate } from "@/lib/use-profile-update";
 import { cn } from "@/lib/utils";
@@ -282,10 +282,12 @@ function ProfilePage() {
 
 	const handleRequestStart = () => {
 		const mode = getStoredMode();
+		const credentialFormats = getStoredCredentialFormats();
 		setState({ status: "selecting" });
 		requestMutation.mutate({
 			requestedClaims: selectedClaims,
 			mode,
+			credentialFormats,
 		});
 	};
 

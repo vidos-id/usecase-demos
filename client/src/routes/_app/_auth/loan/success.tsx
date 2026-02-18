@@ -107,7 +107,7 @@ function LoanSuccessPage() {
 				</div>
 			</div>
 		</div>
-	)
+	);
 }
 
 function StatusStep({
@@ -145,5 +145,5 @@ function StatusStep({
 				<p className="text-xs text-muted-foreground">{description}</p>
 			</div>
 		</div>
-	)
+	);
 }
