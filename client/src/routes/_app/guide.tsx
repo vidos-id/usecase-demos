@@ -6,12 +6,14 @@ import {
 	FileText,
 	Github,
 	Shield,
+	Smartphone,
 	Wallet,
 } from "lucide-react";
 import { useState } from "react";
 import { EudiGuide } from "@/components/guide/eudi-guide";
 import { MultipazGuide } from "@/components/guide/multipaz-guide";
 import { ProtocolCard, SectionHeader } from "@/components/guide/shared";
+import { ValeraGuide } from "@/components/guide/valera-guide";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -19,7 +21,7 @@ export const Route = createFileRoute("/_app/guide")({
 	component: GuidePage,
 });
 
-type WalletTab = "eudi" | "multipaz";
+type WalletTab = "eudi" | "multipaz" | "valera";
 
 function GuidePage() {
 	const [activeTab, setActiveTab] = useState<WalletTab>("eudi");
@@ -69,6 +71,13 @@ function GuidePage() {
 							name="Multipaz"
 							status="direct_post + DC API"
 						/>
+						<WalletTab
+							active={activeTab === "valera"}
+							onClick={() => setActiveTab("valera")}
+							icon={<Smartphone className="h-4 w-4" />}
+							name="Valera"
+							status="direct_post + DC API"
+						/>
 					</div>
 				</header>
 
@@ -97,7 +106,13 @@ function GuidePage() {
 
 				{/* Active Wallet Guide */}
 				<section className="animate-fade-in">
-					{activeTab === "eudi" ? <EudiGuide /> : <MultipazGuide />}
+					{activeTab === "eudi" ? (
+						<EudiGuide />
+					) : activeTab === "multipaz" ? (
+						<MultipazGuide />
+					) : (
+						<ValeraGuide />
+					)}
 				</section>
 
 				{/* Protocol Reference */}
