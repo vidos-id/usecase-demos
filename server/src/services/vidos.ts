@@ -6,6 +6,7 @@ import {
 	PID_SDJWT_VCT,
 	type PIDAttributeMapping,
 } from "shared/lib/pid-attributes";
+import { normalizePidClaims } from "shared/lib/pid-claim-mapping";
 import type { CredentialFormat, CredentialFormats } from "shared/types/auth";
 import {
 	type AuthorizationErrorInfo,
@@ -567,5 +568,5 @@ export async function getExtractedCredentials<T extends z.ZodTypeAny>(
 	const claims = credential.claims as Record<string, unknown>;
 	console.log("[Vidos] extracted claims:", Object.keys(claims));
 
-	return schema.parse(claims);
+	return schema.parse(normalizePidClaims(claims));
 }

@@ -13,7 +13,7 @@ import {
 import { profileUpdateAuthMetadataSchema } from "shared/types/auth-metadata";
 import { profileUpdateClaimsSchema } from "shared/types/profile-update";
 import { vidosErrorTypes } from "shared/types/vidos-errors";
-import { z } from "zod";
+import { buildProfileUpdate } from "../lib/profile-update";
 import { getSessionFromRequest } from "../lib/request-session";
 import { startAuthorizationMonitor } from "../services/authorization-monitor";
 import { streamAuthorizationRequest } from "../services/authorization-stream";
@@ -28,119 +28,10 @@ import {
 	updateRequestToCompleted,
 	updateRequestToFailed,
 } from "../stores/pending-auth-requests";
-import type { User } from "../stores/users";
 import { getUserById, updateUser } from "../stores/users";
-
-const profileUpdateAddressSchema = z.union([
-	z.string(),
-	z.object({
-		formatted: z.string().optional(),
-		street_address: z.string().optional(),
-		locality: z.string().optional(),
-		region: z.string().optional(),
-		postal_code: z.string().optional(),
-		country: z.string().optional(),
-	}),
-]);
-
-const profileUpdateClaimsExtendedSchema = profileUpdateClaimsSchema.extend({
-	birth_date: z.string().optional(),
-	nationality: z.union([z.string(), z.array(z.string())]).optional(),
-	email_address: z.string().optional(),
-	portrait: z.string().optional(),
-	address: profileUpdateAddressSchema.optional(),
-	resident_address: z.string().optional(),
-});
-
-type ProfileUpdateClaims = z.infer<typeof profileUpdateClaimsExtendedSchema>;
 
 function getSession(c: Context) {
 	return getSessionFromRequest(c);
-}
-
-function buildProfileUpdate(
-	claims: ProfileUpdateClaims,
-	requestedClaims: string[],
-): { updates: Partial<User>; updatedFields: string[] } {
-	const updates: Partial<User> = {};
-	const updatedFields: string[] = [];
-
-	const requested = new Set(requestedClaims);
-
-	if (requested.has("family_name") && claims.family_name) {
-		updates.familyName = claims.family_name;
-		updatedFields.push("familyName");
-	}
-
-	if (requested.has("given_name") && claims.given_name) {
-		updates.givenName = claims.given_name;
-		updatedFields.push("givenName");
-	}
-
-	if (requested.has("birth_date")) {
-		const birthDate = claims.birthdate ?? claims.birth_date;
-		if (birthDate) {
-			updates.birthDate = birthDate;
-			updatedFields.push("birthDate");
-		}
-	}
-
-	if (requested.has("nationality")) {
-		const normalizedNationalities =
-			claims.nationalities ??
-			(Array.isArray(claims.nationality)
-				? claims.nationality
-				: claims.nationality
-					? [claims.nationality]
-					: undefined);
-		const nationality = normalizedNationalities?.join(", ");
-		if (nationality) {
-			updates.nationality = nationality;
-			updatedFields.push("nationality");
-		}
-	}
-
-	if (requested.has("email_address")) {
-		const email = claims.email ?? claims.email_address;
-		if (email) {
-			updates.email = email;
-			updatedFields.push("email");
-		}
-	}
-
-	if (requested.has("portrait")) {
-		const portrait = claims.picture ?? claims.portrait;
-		if (portrait) {
-			updates.portrait = portrait;
-			updatedFields.push("portrait");
-		}
-	}
-
-	if (requested.has("resident_address")) {
-		const addressFromObject =
-			claims.address && typeof claims.address === "object"
-				? (claims.address.formatted ??
-					[
-						claims.address.street_address,
-						claims.address.locality,
-						claims.address.region,
-						claims.address.postal_code,
-						claims.address.country,
-					]
-						.filter(Boolean)
-						.join(", "))
-				: undefined;
-		const address =
-			claims.resident_address ??
-			(typeof claims.address === "string" ? claims.address : undefined) ??
-			addressFromObject;
-		if (address) {
-			updates.address = address;
-			updatedFields.push("address");
-		}
-	}
-
-	return { updates, updatedFields };
 }
 
 export const profileUpdateRouter = new Hono()
@@ -273,7 +164,7 @@ export const profileUpdateRouter = new Hono()
 
 			const claims = await getExtractedCredentials(
 				pendingRequest.vidosAuthorizationId,
-				profileUpdateClaimsExtendedSchema,
+				profileUpdateClaimsSchema,
 			);
 			const user = getUserById(session.userId);
 

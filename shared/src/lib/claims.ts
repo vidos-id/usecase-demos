@@ -19,7 +19,7 @@ export const SIGNUP_CLAIMS = [
 	"given_name",
 	"birth_date", // Canonical ID - maps to "birthdate" (SD-JWT) or "birth_date" (mDoc)
 	// "email_address", // Removed - EUDI doesn't consistently provide email
-	"birth_place", // Canonical ID - maps to "place_of_birth" in both formats
+	// "birth_place", // Canonical ID - maps to "place_of_birth" in both formats
 	"nationality", // Canonical ID - maps to "nationalities" (SD-JWT) or "nationality" (mDoc)
 	"personal_administrative_number",
 	"document_number",
