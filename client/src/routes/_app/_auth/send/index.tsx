@@ -1,6 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Send, Sparkles } from "lucide-react";
 import { useState } from "react";
+import {
+	AUTH_PAGE_MAX_WIDTH_CLASS,
+	AUTH_PAGE_OUTER_CLASS,
+} from "@/components/layout/auth-page";
 import { PageHeader } from "@/components/layout/page-header";
 import { PageHero } from "@/components/layout/page-hero";
 import { TwoColumnLayout } from "@/components/layout/two-column-layout";
@@ -35,17 +39,17 @@ function SendMoneyPage() {
 				amount: formattedAmount,
 				reference: reference || undefined,
 			},
-		})
-	}
+		});
+	};
 
 	const selectTemplate = (t: (typeof TEMPLATES)[0]) => {
 		setRecipient(t.recipient);
 		setAmount(t.amount.toString());
-	}
+	};
 
 	return (
-		<div className="min-h-[calc(100vh-4rem)] py-8 px-4 sm:px-6 lg:px-8">
-			<div className="max-w-4xl mx-auto space-y-8">
+		<div className={AUTH_PAGE_OUTER_CLASS}>
+			<div className={`${AUTH_PAGE_MAX_WIDTH_CLASS} mx-auto space-y-8`}>
 				<PageHeader />
 
 				<PageHero
@@ -184,5 +188,5 @@ function SendMoneyPage() {
 				/>
 			</div>
 		</div>
-	)
+	);
 }

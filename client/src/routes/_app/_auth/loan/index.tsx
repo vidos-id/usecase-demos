@@ -27,6 +27,10 @@ import { DCApiHandler } from "@/components/auth/dc-api-handler";
 import { PollingStatus } from "@/components/auth/polling-status";
 import { QRCodeDisplay } from "@/components/auth/qr-code-display";
 import { VidosErrorDisplay } from "@/components/auth/vidos-error-display";
+import {
+	AUTH_PAGE_MAX_WIDTH_CLASS,
+	AUTH_PAGE_OUTER_CLASS,
+} from "@/components/layout/auth-page";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { getStoredMode } from "@/lib/auth-helpers";
@@ -81,7 +85,7 @@ function calculateMonthlyPayment(
 	return (
 		(principal * (monthlyRate * (1 + monthlyRate) ** months)) /
 		((1 + monthlyRate) ** months - 1)
-	)
+	);
 }
 
 function LoanPage() {
@@ -101,17 +105,17 @@ function LoanPage() {
 	const monthlyPayment =
 		loanAmount && loanTerm
 			? calculateMonthlyPayment(loanAmount, loanTerm, DEMO_APR)
-			: 0
+			: 0;
 	const totalPayment = monthlyPayment * loanTerm;
 	const totalInterest = totalPayment - loanAmount;
 
 	const handleContinue = () => {
 		setState({ status: "review" });
-	}
+	};
 
 	const handleBack = () => {
 		setState({ status: "form" });
-	}
+	};
 
 	// Mutation for submitting loan request
 	const requestMutation = useMutation({
@@ -121,7 +125,7 @@ function LoanPage() {
 				amount: amount as "5000" | "10000" | "25000" | "50000",
 				purpose: purpose as "Car" | "Home Improvement" | "Education" | "Other",
 				term: term as "12" | "24" | "36" | "48",
-			}
+			};
 
 			const res = await apiClient.api.loan.request.$post({
 				json:
@@ -132,7 +136,7 @@ function LoanPage() {
 								origin: window.location.origin,
 							}
 						: { ...baseParams, mode: "direct_post" as const },
-			})
+			});
 
 			if (!res.ok) throw new Error("Failed to create loan request");
 
@@ -147,7 +151,7 @@ function LoanPage() {
 					authorizeUrl: data.authorizeUrl,
 					requestedClaims: data.requestedClaims,
 					purpose: data.purpose,
-				})
+				});
 			} else {
 				setState({
 					status: "verifying",
@@ -156,21 +160,21 @@ function LoanPage() {
 					dcApiRequest: data.dcApiRequest,
 					requestedClaims: data.requestedClaims,
 					purpose: data.purpose,
-				})
+				});
 			}
 		},
 		onError: (err) => {
 			setState({
 				status: "error",
 				message: err instanceof Error ? err.message : "Unknown error",
-			})
+			});
 		},
-	})
+	});
 
 	const directPostRequestId =
 		state.status === "verifying" && state.mode === "direct_post"
 			? state.requestId
-			: null
+			: null;
 
 	const isDirectPostVerificationActive =
 		state.status === "verifying" && state.mode === "direct_post";
@@ -182,20 +186,20 @@ function LoanPage() {
 		withSession: true,
 		onEvent: (event, controls) => {
 			if (event.eventType === "connected" || event.eventType === "pending") {
-				return
+				return;
 			}
 
 			if (event.eventType === "authorized") {
 				queryClient.invalidateQueries({ queryKey: ["user", "me"] });
 				navigate({ to: "/loan/success" });
 				controls.close();
-				return
+				return;
 			}
 
 			if (event.eventType === "expired") {
 				setState({ status: "expired" });
 				controls.close();
-				return
+				return;
 			}
 
 			if (event.eventType === "rejected") {
@@ -203,22 +207,22 @@ function LoanPage() {
 					status: "error",
 					message: event.message,
 					errorInfo: event.errorInfo,
-				})
+				});
 				controls.close();
-				return
+				return;
 			}
 
 			setState({
 				status: "error",
 				message: event.message,
 				errorInfo: "errorInfo" in event ? event.errorInfo : undefined,
-			})
+			});
 			controls.close();
 		},
 		onParseError: () => {
 			setState({ status: "error", message: "Invalid stream payload" });
 		},
-	})
+	});
 
 	// Mutation for DC API completion
 	const completeMutation = useMutation({
@@ -232,21 +236,21 @@ function LoanPage() {
 			const res = await apiClient.api.loan.complete[":requestId"].$post({
 				param: { requestId },
 				json: { origin: window.location.origin, dcResponse: response },
-			})
+			});
 
 			if (!res.ok) {
 				// Try to parse error response with errorInfo
 				if (res.status === 400) {
 					try {
 						const errorBody = (await res.json()) as {
-							error?: string
+							error?: string;
 							errorInfo?: AuthorizationErrorInfo;
-						}
+						};
 						if (errorBody.errorInfo) {
 							throw {
 								type: "vidos_error" as const,
 								errorInfo: errorBody.errorInfo,
-							}
+							};
 						}
 					} catch (e) {
 						if (e && typeof e === "object" && "type" in e) throw e;
@@ -265,24 +269,24 @@ function LoanPage() {
 			// Handle Vidos error
 			if (err && typeof err === "object" && "type" in err) {
 				const typedErr = err as {
-					type: string
+					type: string;
 					errorInfo?: AuthorizationErrorInfo;
-				}
+				};
 				if (typedErr.type === "vidos_error" && typedErr.errorInfo) {
 					setState({
 						status: "error",
 						message: "Verification failed",
 						errorInfo: typedErr.errorInfo,
-					})
-					return
+					});
+					return;
 				}
 			}
 			setState({
 				status: "error",
 				message: err instanceof Error ? err.message : "Completion failed",
-			})
+			});
 		},
-	})
+	});
 
 	const handleDCApiSuccess = (response: {
 		protocol: string;
@@ -293,16 +297,16 @@ function LoanPage() {
 		completeMutation.mutate({
 			requestId: state.requestId,
 			response: response.data,
-		})
-	}
+		});
+	};
 
 	const handleReset = () => {
 		setState({ status: "form" });
-	}
+	};
 
 	return (
-		<div className="min-h-[calc(100vh-4rem)] py-8 px-4 sm:px-6 lg:px-8">
-			<div className="max-w-4xl mx-auto space-y-6">
+		<div className={AUTH_PAGE_OUTER_CLASS}>
+			<div className={`${AUTH_PAGE_MAX_WIDTH_CLASS} mx-auto space-y-6`}>
 				<PageHeader
 					backLabel={state.status === "review" ? "Edit" : "Dashboard"}
 					onBack={state.status === "review" ? handleBack : undefined}
@@ -399,7 +403,7 @@ function LoanPage() {
 														<div className="absolute top-2 right-2 h-2 w-2 rounded-full bg-primary" />
 													)}
 												</button>
-											)
+											);
 										})}
 									</div>
 								</div>
@@ -799,5 +803,5 @@ function LoanPage() {
 				)}
 			</div>
 		</div>
-	)
+	);
 }

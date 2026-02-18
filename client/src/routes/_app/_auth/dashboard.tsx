@@ -12,6 +12,10 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import type { ActivityItem } from "shared/api/users-me";
+import {
+	AUTH_PAGE_MAX_WIDTH_CLASS,
+	AUTH_PAGE_OUTER_CLASS,
+} from "@/components/layout/auth-page";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -32,7 +36,7 @@ function DashboardPage() {
 			if (!res.ok) throw new Error("Failed to fetch user");
 			return res.json();
 		},
-	})
+	});
 
 	const balance = user?.balance ?? 0;
 	const pendingLoans = user?.pendingLoansTotal ?? 0;
@@ -42,8 +46,8 @@ function DashboardPage() {
 		filter === "all" ? activity : activity.filter((a) => a.type === filter);
 
 	return (
-		<div className="min-h-[calc(100vh-4rem)] py-8 px-4 sm:px-6 lg:px-8">
-			<div className="max-w-5xl mx-auto space-y-8">
+		<div className={AUTH_PAGE_OUTER_CLASS}>
+			<div className={`${AUTH_PAGE_MAX_WIDTH_CLASS} mx-auto space-y-8`}>
 				{/* Header */}
 				<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
 					<div className="space-y-1">
@@ -171,7 +175,7 @@ function DashboardPage() {
 				</div>
 			</div>
 		</div>
-	)
+	);
 }
 
 function ActivityRow({
@@ -243,7 +247,7 @@ function ActivityRow({
 				})}
 			</p>
 		</div>
-	)
+	);
 }
 
 function QuickAction({
@@ -278,5 +282,5 @@ function QuickAction({
 				<span className="text-sm font-medium">{label}</span>
 			</Link>
 		</Button>
-	)
+	);
 }
