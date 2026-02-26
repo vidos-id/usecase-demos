@@ -2,13 +2,16 @@
 
 ## Project
 
-Bun + Turbo monorepo for multiple Vidos use case examples under `usecases/`.
+Home navigator application lives in `usecases-home/`.
+Use case apps live under `usecases/`.
 
-Current primary use case:
+The home app is the entrypoint for:
 
-- `usecases/demo-bank/client` (`demo-bank-client`) - React/Vite
-- `usecases/demo-bank/server` (`demo-bank-server`) - Hono/Bun
-- `usecases/demo-bank/shared` (`demo-bank-shared`) - shared schemas/types
+- navigating to all use case demos
+- quick guidance (how to use the demos)
+- wallet setup/download links
+- credential issuance guidance
+- general Vidos context
 
 JIT packages: server + shared export `.ts` source directly; no build step required.
 
@@ -19,6 +22,7 @@ bun run build        # workspace build tasks
 bun run check-types  # type-check all workspaces
 bun run lint         # biome lint
 bun run format       # biome format --write
+bunx shadcn@latest add <component> --cwd <path_to_workspace> --path src/components/ui # add shadcn component to workspace
 ```
 
 Do not run long-lived dev servers unless explicitly requested.
@@ -26,11 +30,8 @@ Do not run long-lived dev servers unless explicitly requested.
 ## Workspace Rules
 
 - Keep use case-specific code under `usecases/<name>/`.
-- Prefer workspace package imports over deep relative imports.
-- For demo bank, use:
-  - `demo-bank-shared/api/*`
-  - `demo-bank-shared/types/*`
-  - `demo-bank-server/client`
+- Keep shared homepage/navigation content under `usecases-home/`.
+- Prefer relative imports, except for Shadcn components that have TS Path aliases imports.
 
 ## Style
 

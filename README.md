@@ -11,6 +11,7 @@ This repository hosts multiple example apps showing how to integrate EUDI Wallet
 ## Repository Layout
 
 ```text
+usecases-home/       # Homepage + navigator for all demos
 usecases/
   demo-bank/
     client/          # React + Vite app
@@ -21,6 +22,13 @@ infrastructure/      # Pulumi infra for deployments
 ```
 
 ## Available Use Cases
+
+### Use Cases Home
+
+Homepage and navigator for all demos, with rough guidance on setup and usage.
+
+- Source: `usecases-home/`
+- Includes: demo navigation, wallet download/setup, credential issuance hints, and general Vidos information
 
 ### Demo Bank
 

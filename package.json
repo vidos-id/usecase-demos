@@ -6,6 +6,7 @@
 	"packageManager": "bun@1.2.4",
 	"workspaces": [
 		"./usecases/**/*",
+		"./usecases-home",
 		"./infrastructure"
 	],
 	"scripts": {
