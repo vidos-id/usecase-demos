@@ -39,3 +39,4 @@ Do not run long-lived dev servers unless explicitly requested.
 - TypeScript strict mode.
 - Keep shared schemas as source of truth; derive types from Zod.
 - Do not edit generated files unless explicitly asked.
+- Keep files and components small. One component per file; extract early.

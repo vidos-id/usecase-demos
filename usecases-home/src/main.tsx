@@ -1,6 +1,6 @@
 import ReactDOM from "react-dom/client";
 import "./index.css";
-import { Button } from "./components/ui/button";
+import { App } from "./app";
 
 const rootElement = document.getElementById("root");
 
@@ -10,12 +10,7 @@ if (!rootElement) {
 	);
 }
 
-// Render the app
 if (!rootElement.innerHTML) {
 	const root = ReactDOM.createRoot(rootElement);
-	root.render(
-		<div>
-			<Button>Hello</Button>
-		</div>,
-	);
+	root.render(<App />);
 }
