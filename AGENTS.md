@@ -2,63 +2,39 @@
 
 ## Project
 
-Bun + Turbo monorepo: `client/` (React/Vite), `server/` (Hono), `shared/` (Zod schemas/types).
+Bun + Turbo monorepo for multiple Vidos use case examples under `usecases/`.
 
-JIT packages — `shared` and `server` export `.ts` source directly. No build step.
+Current primary use case:
+
+- `usecases/demo-bank/client` (`demo-bank-client`) - React/Vite
+- `usecases/demo-bank/server` (`demo-bank-server`) - Hono/Bun
+- `usecases/demo-bank/shared` (`demo-bank-shared`) - shared schemas/types
+
+JIT packages: server + shared export `.ts` source directly; no build step required.
 
 ## Commands
 
 ```bash
-bun run build        # vite build (client only)
-bun run check-types  # tsc --noEmit across workspaces
+bun run build        # workspace build tasks
+bun run check-types  # type-check all workspaces
 bun run lint         # biome lint
 bun run format       # biome format --write
 ```
 
-**DO NOT** run `bun run dev` unless explicitly told.
+Do not run long-lived dev servers unless explicitly requested.
 
-## Directory Structure
+## Workspace Rules
 
-```
-client/src/
-  routes/           # TanStack Router (file-based)
-  components/       # ui/ (shadcn), auth/, dialogs/, guide/, landing/, layout/
-  lib/              # api-client.ts, auth.ts, utils.ts
-server/src/
-  index.ts          # Hono app entry (method-chained routes)
-  client.ts         # typed Hono client export
-  routes/           # endpoint handlers
-  db/               # Drizzle schema/migrations
-  services/         # Vidos integration
-  stores/           # in-memory/persistence
-shared/src/
-  api/              # Zod schemas per endpoint (no barrel files)
-  types/            # shared types
-```
+- Keep use case-specific code under `usecases/<name>/`.
+- Prefer workspace package imports over deep relative imports.
+- For demo bank, use:
+  - `demo-bank-shared/api/*`
+  - `demo-bank-shared/types/*`
+  - `demo-bank-server/client`
 
-## Imports
+## Style
 
-Cross-workspace: `import { x } from "shared/api/hello"`, `import { y } from "server/client"`.
-
-## Code Style
-
-- Biome: tabs, double quotes. Run `bun run format` after making code changes.
-- TypeScript strict mode. Zod v4.
-- PascalCase components/types, camelCase vars/functions.
-- Zod schemas suffixed `Schema`.
-- No barrel files in shared.
-- Do NOT edit `client/src/routeTree.gen.ts` (auto-generated).
-
-## Type Safety
-
-```
-shared/src/api/*.ts    → Zod schemas (source of truth)
-       ↓
-server/src/index.ts    → METHOD-CHAINED routes for type inference
-       ↓
-server/src/client.ts   → AppType = typeof app; exports hcWithType
-       ↓
-client/                → fully typed client.endpoint.$method()
-```
-
-**Critical**: Hono app MUST use method chaining (`new Hono().get(...).post(...)`) — separate statements break type inference.
+- Biome formatting: tabs + double quotes.
+- TypeScript strict mode.
+- Keep shared schemas as source of truth; derive types from Zod.
+- Do not edit generated files unless explicitly asked.

@@ -116,7 +116,7 @@ const main = () => {
 		containers: {
 			backend: {
 				image: imageTag,
-				ports: { 3000: "HTTP" },
+				ports: { 53913: "HTTP" },
 				environment: {
 					VIDOS_AUTHORIZER_URL: process.env.VIDOS_AUTHORIZER_URL ?? "",
 					VIDOS_API_KEY: process.env.VIDOS_API_KEY ?? "",
@@ -125,7 +125,7 @@ const main = () => {
 		},
 		publicEndpoint: {
 			containerName: "backend",
-			containerPort: 3000,
+			containerPort: 53913,
 		},
 	};
 

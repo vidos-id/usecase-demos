@@ -106,7 +106,7 @@ if (deployEnabled) {
 					containerName: "backend",
 					image: repository.repositoryUrl.apply((url) => `${url}:latest`),
 					ports: {
-						"3000": "HTTP",
+						"53913": "HTTP",
 					},
 					environment: {
 						VIDOS_AUTHORIZER_URL: vidosAuthorizerUrl,
@@ -117,7 +117,7 @@ if (deployEnabled) {
 			],
 			publicEndpoint: {
 				containerName: "backend",
-				containerPort: 3000,
+				containerPort: 53913,
 				healthCheck: {
 					path: "/",
 					successCodes: "200-499",

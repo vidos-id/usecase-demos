@@ -13,7 +13,7 @@
 ## 3. Lightsail container service
 
 - [x] 3.1 Create Lightsail Container Service (micro tier, 1 node) in eu-west-1
-- [x] 3.2 Configure public HTTPS endpoint on port 3000 and container settings
+- [x] 3.2 Configure public HTTPS endpoint on port 53913 and container settings
 - [x] 3.3 Wire environment variables for `VIDOS_AUTHORIZER_URL` and `VIDOS_API_KEY`
 - [x] 3.4 Export Lightsail service name and endpoint outputs
 

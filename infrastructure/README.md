@@ -1,6 +1,6 @@
 # Infrastructure: AWS Lightsail Deployment
 
-This folder contains the Pulumi project that provisions AWS infrastructure for the demo backend.
+This folder contains the Pulumi project that provisions AWS infrastructure for use case backends.
 
 ## Prerequisites
 
@@ -47,7 +47,7 @@ bun scripts/deploy.ts
 This script:
 
 1. Authenticates to ECR
-2. Builds `Dockerfile.server`
+2. Builds `Dockerfile.server` (currently `usecases/demo-bank/server`)
 3. Tags the image with git SHA or timestamp
 4. Pushes the image to ECR
 5. Updates the Lightsail service

@@ -2,9 +2,9 @@
 node_modules
 */node_modules
 
-# Client: exclude all, keep only package.json for workspace resolution
-client/*
-!client/package.json
+# Demo bank client: exclude all, keep only package.json for workspace resolution
+usecases/demo-bank/client/*
+!usecases/demo-bank/client/package.json
 # Infrastructure: exclude all, keep only package.json for workspace resolution
 infrastructure/*
 !infrastructure/package.json

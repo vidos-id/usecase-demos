@@ -5,18 +5,16 @@
 	"license": "MIT",
 	"packageManager": "bun@1.2.4",
 	"workspaces": [
-		"./server",
-		"./client",
-		"./shared",
+		"./usecases/**/*",
 		"./infrastructure"
 	],
 	"scripts": {
 		"generate-api": "turbo generate-api",
 		"dev": "turbo dev",
 		"build": "turbo build",
-		"dev:client": "turbo dev --filter=client",
-		"dev:server": "turbo dev --filter=server",
-		"build:client": "turbo build --filter=client",
+		"dev:demo-bank-client": "turbo dev --filter=demo-bank-client",
+		"dev:demo-bank-server": "turbo dev --filter=demo-bank-server",
+		"build:demo-bank-client": "turbo build --filter=demo-bank-client",
 		"build:infrastructure": "turbo build --filter=infrastructure",
 		"lint": "biome lint .",
 		"format": "biome format . --write",

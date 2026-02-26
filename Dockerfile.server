@@ -6,12 +6,12 @@ WORKDIR /app
 COPY . .
 
 # Install all workspace deps (simpler than filtering)
-RUN bun install --frozen-lockfile --production --filter '!client' --filter '!infrastructure'
+RUN bun install --frozen-lockfile --production --filter '!demo-bank-client' --filter '!infrastructure'
 
 RUN mkdir -p /app/data && chown bun:bun /app/data
 
 USER bun
 ENV NODE_ENV=production
-EXPOSE 3000
+EXPOSE 53913
 
-CMD ["bun", "run", "server/src/index.ts"]
+CMD ["bun", "run", "usecases/demo-bank/server/src/index.ts"]
