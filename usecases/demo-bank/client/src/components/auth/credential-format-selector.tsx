@@ -1,8 +1,8 @@
-import { FileBadge2, IdCard, Layers } from "lucide-react";
 import {
 	CREDENTIAL_FORMAT_SELECTIONS,
 	type CredentialFormats,
 } from "demo-bank-shared/types/auth";
+import { FileBadge2, IdCard, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CredentialFormatSelectorProps {
@@ -97,9 +97,7 @@ export function CredentialFormatSelector({
 								</span>
 							</div>
 
-							{isSelected && (
-								<div className="h-2 w-2 rounded-full bg-primary" />
-							)}
+							{/* Selected state is indicated by border/ring */}
 						</button>
 					);
 				})}

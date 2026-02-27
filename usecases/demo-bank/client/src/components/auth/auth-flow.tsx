@@ -1,13 +1,13 @@
 import { useMutation } from "@tanstack/react-query";
-import { AlertCircle, Clock, Loader2 } from "lucide-react";
-import type { ReactNode } from "react";
-import { useState } from "react";
 import type {
 	CredentialFormats,
 	DcApiRequest,
 	PresentationMode,
 } from "demo-bank-shared/types/auth";
 import type { AuthorizationErrorInfo } from "demo-bank-shared/types/vidos-errors";
+import { AlertCircle, Clock, Loader2 } from "lucide-react";
+import type { ReactNode } from "react";
+import { useState } from "react";
 import { CredentialDisclosure } from "@/components/auth/credential-disclosure";
 import { CredentialFormatSelector } from "@/components/auth/credential-format-selector";
 import { DCApiHandler } from "@/components/auth/dc-api-handler";
@@ -570,12 +570,9 @@ export function WalletFeatureItem({
 	description: string;
 }) {
 	return (
-		<div className="flex items-start gap-3 p-4 rounded-lg bg-background/50 backdrop-blur-sm border border-primary/10">
-			<div className="w-2 h-2 rounded-full bg-primary mt-1.5 flex-shrink-0" />
-			<div>
-				<p className="text-sm font-medium text-foreground mb-1">{title}</p>
-				<p className="text-xs text-muted-foreground">{description}</p>
-			</div>
+		<div className="p-4 rounded-lg bg-background/50 backdrop-blur-sm border border-primary/10">
+			<p className="text-sm font-medium text-foreground mb-1">{title}</p>
+			<p className="text-xs text-muted-foreground">{description}</p>
 		</div>
 	);
 }

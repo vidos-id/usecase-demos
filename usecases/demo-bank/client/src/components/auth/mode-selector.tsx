@@ -1,5 +1,5 @@
-import { AlertCircle, QrCode, Smartphone } from "lucide-react";
 import type { PresentationMode } from "demo-bank-shared/types/auth";
+import { AlertCircle, QrCode, Smartphone } from "lucide-react";
 import {
 	getDCApiUnsupportedReason,
 	isDCApiSupported,
@@ -78,9 +78,7 @@ export function ModeSelector({ value, onChange }: ModeSelectorProps) {
 							>
 								<Icon className="h-5 w-5" />
 							</div>
-							{isSelected && (
-								<div className="h-2 w-2 rounded-full bg-primary mt-1" />
-							)}
+							{/* Selected state is indicated by border/ring */}
 						</div>
 
 						<div className="space-y-1">
