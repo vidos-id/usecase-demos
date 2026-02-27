@@ -16,12 +16,14 @@ export function Hero() {
 					travel, and more.
 				</p>
 				<div className="mt-10 flex items-center justify-center gap-4">
-					<Button size="lg">
-						Explore Use Cases
-						<ArrowRight className="size-4" />
+					<Button size="lg" asChild>
+						<a href="#use-cases">
+							Explore Use Cases
+							<ArrowRight className="size-4" />
+						</a>
 					</Button>
-					<Button size="lg" variant="outline">
-						Setup Guide
+					<Button size="lg" variant="outline" asChild>
+						<a href="#how-it-works">Setup Guide</a>
 					</Button>
 				</div>
 			</div>

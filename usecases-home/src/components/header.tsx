@@ -6,7 +6,7 @@ export function Header() {
 		<header className="border-b bg-background sticky top-0 z-50">
 			<div className="container-page flex h-14 items-center justify-between">
 				<div className="flex items-center gap-6">
-					<span className="text-lg font-bold tracking-tight">Vidos</span>
+					<img src="/vidos-logo.svg" alt="Vidos" className="h-6 w-auto" />
 					<Separator orientation="vertical" className="h-5" />
 					<span className="mono-label">EUDI Demos</span>
 				</div>

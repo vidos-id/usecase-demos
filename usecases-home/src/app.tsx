@@ -1,3 +1,4 @@
+import { DeveloperTools } from "./components/developer-tools";
 import { Footer } from "./components/footer";
 import { Header } from "./components/header";
 import { Hero } from "./components/hero";
@@ -11,6 +12,7 @@ export function App() {
 			<main className="flex-1">
 				<Hero />
 				<UseCaseGrid />
+				<DeveloperTools />
 				<HowItWorks />
 			</main>
 			<Footer />

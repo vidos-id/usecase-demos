@@ -21,14 +21,14 @@ const steps = [
 		icon: <Play className="size-5" />,
 		title: "Try the Demos",
 		description:
-			"Walk through interactive use case scenarios that demonstrate real-world credential verification flows.",
+			"Walk through interactive scenarios that demonstrate real-world credential verification flows end-to-end.",
 	},
 ];
 
 export function HowItWorks() {
 	return (
 		<section id="how-it-works" className="py-20">
-			<div className="container-page">
+			<div className="container-page max-w-4xl mx-auto">
 				<div className="text-center mb-14">
 					<p className="mono-label mb-3">Getting Started</p>
 					<h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
@@ -39,16 +39,17 @@ export function HowItWorks() {
 					</p>
 				</div>
 
-				<div className="grid gap-8 sm:grid-cols-3">
+				<div className="grid gap-px sm:grid-cols-3 bg-border rounded-xl overflow-hidden border">
 					{steps.map((step) => (
-						<div key={step.number} className="text-center">
-							<div className="mx-auto flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground text-lg font-bold">
+						<div
+							key={step.number}
+							className="bg-background p-8 text-center flex flex-col items-center"
+						>
+							<div className="flex size-10 items-center justify-center rounded-full bg-eu-blue text-eu-blue-foreground text-sm font-bold">
 								{step.number}
 							</div>
-							<div className="mt-2 flex justify-center text-muted-foreground">
-								{step.icon}
-							</div>
-							<h3 className="mt-3 text-lg font-semibold">{step.title}</h3>
+							<div className="mt-3 text-muted-foreground">{step.icon}</div>
+							<h3 className="mt-3 text-base font-semibold">{step.title}</h3>
 							<p className="mt-2 text-sm text-muted-foreground leading-relaxed">
 								{step.description}
 							</p>
@@ -56,7 +57,7 @@ export function HowItWorks() {
 					))}
 				</div>
 
-				<div className="mt-14 text-center">
+				<div className="mt-12 text-center">
 					<Button className="btn-eu-blue" size="lg">
 						Get Started
 						<ArrowRight className="size-4" />
