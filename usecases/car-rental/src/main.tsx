@@ -1,5 +1,7 @@
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import ReactDOM from "react-dom/client";
+import { BookingStoreProvider } from "@/domain/booking/booking-store";
+import { VerificationStoreProvider } from "@/domain/verification/verification-store";
 import "./index.css";
 import { routeTree } from "./routeTree.gen";
 
@@ -21,5 +23,11 @@ if (!rootElement) {
 
 if (!rootElement.innerHTML) {
 	const root = ReactDOM.createRoot(rootElement);
-	root.render(<RouterProvider router={router} />);
+	root.render(
+		<BookingStoreProvider>
+			<VerificationStoreProvider>
+				<RouterProvider router={router} />
+			</VerificationStoreProvider>
+		</BookingStoreProvider>,
+	);
 }

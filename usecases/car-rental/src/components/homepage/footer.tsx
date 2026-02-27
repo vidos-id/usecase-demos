@@ -1,4 +1,3 @@
-import { Car } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 export function Footer() {
@@ -10,23 +9,18 @@ export function Footer() {
 			<div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
 				{/* Brand row */}
 				<div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
-					<div className="flex items-center gap-2">
-						<div
-							className="flex size-7 items-center justify-center rounded-lg"
-							style={{ background: "var(--primary)" }}
-						>
-							<Car className="size-3.5" style={{ color: "var(--amber)" }} />
-						</div>
-						<span className="font-heading text-lg font-bold tracking-tight">
-							VROOM
-						</span>
-					</div>
+					<img src="/vidos-drive-logo.svg" alt="VidosDrive" className="h-7" />
 
-					<p className="text-sm text-muted-foreground">
+					<p className="flex items-center gap-1.5 text-sm text-muted-foreground">
 						Demo powered by{" "}
-						<span className="font-semibold" style={{ color: "var(--primary)" }}>
-							Vidos
-						</span>
+						<a
+							href="https://vidos.id/"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="inline-flex items-center hover:opacity-80"
+						>
+							<img src="/vidos-logo.svg" alt="Vidos" className="h-5" />
+						</a>
 					</p>
 				</div>
 

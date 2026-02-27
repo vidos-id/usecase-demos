@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
 	Calendar,
 	Car as CarIcon,
@@ -11,21 +11,92 @@ import {
 	Users,
 	Zap,
 } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { VerifyStepBreadcrumb } from "@/components/verification/verify-step-breadcrumb";
 import type { Car } from "@/data/cars";
 import { cars } from "@/data/cars";
+import { useBookingStore } from "@/domain/booking/booking-store";
+import { useVerificationStore } from "@/domain/verification/verification-store";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/search")({
 	component: SearchPage,
 });
 
+function formatDateRangeLabel(
+	pickupDateTime: string | null,
+	dropoffDateTime: string | null,
+): string {
+	if (!pickupDateTime || !dropoffDateTime) {
+		return "Jul 15 - Jul 20, 2026";
+	}
+
+	const pickupDate = new Date(pickupDateTime);
+	const dropoffDate = new Date(dropoffDateTime);
+	if (
+		Number.isNaN(pickupDate.getTime()) ||
+		Number.isNaN(dropoffDate.getTime())
+	) {
+		return "Jul 15 - Jul 20, 2026";
+	}
+
+	return `${pickupDate.toLocaleDateString("en-US", {
+		month: "short",
+		day: "numeric",
+	})} - ${dropoffDate.toLocaleDateString("en-US", {
+		month: "short",
+		day: "numeric",
+		year: "numeric",
+	})}`;
+}
+
+function formatDaysLabel(
+	pickupDateTime: string | null,
+	dropoffDateTime: string | null,
+): string {
+	if (!pickupDateTime || !dropoffDateTime) {
+		return "5 days";
+	}
+
+	const pickupDate = new Date(pickupDateTime);
+	const dropoffDate = new Date(dropoffDateTime);
+	if (
+		Number.isNaN(pickupDate.getTime()) ||
+		Number.isNaN(dropoffDate.getTime())
+	) {
+		return "5 days";
+	}
+
+	const millisecondsPerDay = 24 * 60 * 60 * 1000;
+	const dayDiff = Math.max(
+		1,
+		Math.round(
+			(dropoffDate.getTime() - pickupDate.getTime()) / millisecondsPerDay,
+		),
+	);
+
+	return `${dayDiff} day${dayDiff === 1 ? "" : "s"}`;
+}
+
 // ─── Search summary bar ────────────────────────────────────────────────────────
 
-function SearchSummaryBar() {
+type SearchSummaryBarProps = {
+	locationLabel: string;
+	rangeLabel: string;
+	daysLabel: string;
+	onModifySearch: () => void;
+};
+
+function SearchSummaryBar({
+	locationLabel,
+	rangeLabel,
+	daysLabel,
+	onModifySearch,
+}: SearchSummaryBarProps) {
 	return (
 		<div
 			className="border-b border-border/50 bg-card/80"
@@ -35,15 +106,15 @@ function SearchSummaryBar() {
 				<div className="flex flex-wrap items-center gap-4 text-sm">
 					<span className="flex items-center gap-1.5 font-medium">
 						<MapPin className="size-3.5" style={{ color: "var(--primary)" }} />
-						Frankfurt Airport (FRA)
+						{locationLabel}
 					</span>
 					<ChevronRight className="size-3.5 text-muted-foreground" />
 					<span className="flex items-center gap-1.5 text-muted-foreground">
 						<Calendar className="size-3.5" />
-						Jul 15 – Jul 20, 2026
+						{rangeLabel}
 					</span>
 					<span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">
-						5 days
+						{daysLabel}
 					</span>
 				</div>
 				<div className="sm:ml-auto">
@@ -51,7 +122,7 @@ function SearchSummaryBar() {
 						variant="outline"
 						size="sm"
 						className="rounded-lg text-xs"
-						onClick={() => window.history.back()}
+						onClick={onModifySearch}
 					>
 						Modify Search
 					</Button>
@@ -70,10 +141,32 @@ const CATEGORIES = [
 	"Premium Sedan",
 	"City Car",
 	"Van",
+	"Motorcycle",
 ];
 const TRANSMISSIONS = ["All", "Automatic", "Manual"];
+const LICENCE_CATEGORIES = ["All", "B", "C1"];
 
-function FilterSidebar() {
+type FilterSidebarProps = {
+	selectedCategory: string;
+	selectedTransmission: string;
+	selectedLicenceCategory: string;
+	maxPrice: number;
+	onSelectCategory: (category: string) => void;
+	onSelectTransmission: (transmission: string) => void;
+	onSelectLicenceCategory: (licenceCategory: string) => void;
+	onChangeMaxPrice: (maxPrice: number) => void;
+};
+
+function FilterSidebar({
+	selectedCategory,
+	selectedTransmission,
+	selectedLicenceCategory,
+	maxPrice,
+	onSelectCategory,
+	onSelectTransmission,
+	onSelectLicenceCategory,
+	onChangeMaxPrice,
+}: FilterSidebarProps) {
 	return (
 		<aside className="w-full shrink-0 lg:w-60">
 			<div className="rounded-2xl border border-border/60 bg-card p-5">
@@ -97,10 +190,11 @@ function FilterSidebar() {
 								type="button"
 								className={cn(
 									"rounded-lg px-3 py-1.5 text-left text-sm transition-colors hover:bg-accent",
-									cat === "All"
+									cat === selectedCategory
 										? "bg-primary/10 font-semibold text-primary"
 										: "text-foreground",
 								)}
+								onClick={() => onSelectCategory(cat)}
 							>
 								{cat}
 							</button>
@@ -122,12 +216,39 @@ function FilterSidebar() {
 								type="button"
 								className={cn(
 									"rounded-lg px-3 py-1.5 text-left text-sm transition-colors hover:bg-accent",
-									t === "All"
+									t === selectedTransmission
 										? "bg-primary/10 font-semibold text-primary"
 										: "text-foreground",
 								)}
+								onClick={() => onSelectTransmission(t)}
 							>
 								{t}
+							</button>
+						))}
+					</div>
+				</div>
+
+				<Separator className="mb-5 opacity-60" />
+
+				{/* Driving licence */}
+				<div className="mb-5">
+					<p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+						Driving licence
+					</p>
+					<div className="flex flex-col gap-1">
+						{LICENCE_CATEGORIES.map((licenceCategory) => (
+							<button
+								key={licenceCategory}
+								type="button"
+								className={cn(
+									"rounded-lg px-3 py-1.5 text-left text-sm transition-colors hover:bg-accent",
+									licenceCategory === selectedLicenceCategory
+										? "bg-primary/10 font-semibold text-primary"
+										: "text-foreground",
+								)}
+								onClick={() => onSelectLicenceCategory(licenceCategory)}
+							>
+								{licenceCategory}
 							</button>
 						))}
 					</div>
@@ -143,15 +264,19 @@ function FilterSidebar() {
 					<div className="flex items-center justify-between text-sm">
 						<span className="text-muted-foreground">€29</span>
 						<span className="font-semibold" style={{ color: "var(--primary)" }}>
-							€95
+							€{maxPrice}
 						</span>
 					</div>
-					<div className="mt-2 h-1.5 w-full rounded-full bg-secondary">
-						<div
-							className="h-1.5 rounded-full"
-							style={{ width: "100%", background: "var(--primary)" }}
-						/>
-					</div>
+					<input
+						type="range"
+						min={29}
+						max={95}
+						value={maxPrice}
+						onChange={(event) =>
+							onChangeMaxPrice(Number(event.currentTarget.value))
+						}
+						className="mt-3 w-full"
+					/>
 				</div>
 			</div>
 
@@ -170,8 +295,7 @@ function FilterSidebar() {
 					</span>
 				</div>
 				<p className="text-xs leading-relaxed text-muted-foreground">
-					Identity & driving licence verified at checkout via your EU Digital
-					Identity Wallet.
+					Identity verification happens with your wallet before payment.
 				</p>
 			</div>
 		</aside>
@@ -196,40 +320,32 @@ function FuelIcon({ fuelType }: { fuelType: Car["fuelType"] }) {
 	);
 }
 
-function CarCard({ car, index }: { car: Car; index: number }) {
+type CarCardProps = {
+	car: Car;
+	onSelect: (car: Car) => void;
+	showDemoHint?: boolean;
+};
+
+function CarCard({ car, onSelect, showDemoHint }: CarCardProps) {
 	const days = 5;
 	const total = car.pricePerDay * days;
-	const delayClass =
-		(
-			[
-				"delay-1",
-				"delay-2",
-				"delay-3",
-				"delay-4",
-				"delay-5",
-				"delay-6",
-				"delay-7",
-				"delay-8",
-			] as const
-		)[index] ?? "";
 
 	return (
 		<Card
 			className={cn(
 				"animate-slide-up group flex flex-col overflow-hidden border-border/60 p-0 transition-shadow hover:shadow-lg sm:flex-row",
-				delayClass,
 			)}
 		>
 			{/* Image */}
 			<div
-				className="relative flex aspect-video w-full items-center justify-center overflow-hidden sm:aspect-auto sm:w-56 sm:shrink-0"
+				className="relative flex aspect-video w-full items-center justify-center overflow-hidden sm:aspect-auto sm:w-72 sm:shrink-0"
 				style={{ background: "var(--muted)" }}
 			>
 				{car.imageUrl ? (
 					<img
 						src={car.imageUrl}
 						alt={car.name}
-						className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+						className="size-full object-contain p-2 transition-transform duration-500 group-hover:scale-105"
 					/>
 				) : (
 					<CarIcon
@@ -310,16 +426,39 @@ function CarCard({ car, index }: { car: Car; index: number }) {
 						</p>
 					</div>
 
-					{/* CTA */}
-					<Button
-						className="shrink-0 rounded-xl font-semibold"
-						style={{
-							background: "var(--amber)",
-							color: "var(--amber-foreground)",
-						}}
-					>
-						Select
-					</Button>
+					{/* CTA with optional demo hint */}
+					<div className="relative flex items-center gap-2">
+						{showDemoHint && (
+							<>
+								<style>
+									{`@keyframes demo-nudge-right {
+										0%, 100% { transform: translateX(0); }
+										50% { transform: translateX(5px); }
+									}`}
+								</style>
+								<div
+									className="hidden items-center gap-1 whitespace-nowrap text-xs font-semibold sm:flex"
+									style={{
+										color: "var(--amber)",
+										animation: "demo-nudge-right 1.2s ease-in-out infinite",
+									}}
+								>
+									Select a car to proceed
+									<ChevronRight className="size-3.5" />
+								</div>
+							</>
+						)}
+						<Button
+							className="shrink-0 rounded-xl font-semibold"
+							onClick={() => onSelect(car)}
+							style={{
+								background: "var(--amber)",
+								color: "var(--amber-foreground)",
+							}}
+						>
+							Select
+						</Button>
+					</div>
 				</CardFooter>
 			</div>
 		</Card>
@@ -328,7 +467,19 @@ function CarCard({ car, index }: { car: Car; index: number }) {
 
 // ─── Results header ────────────────────────────────────────────────────────────
 
-function ResultsHeader() {
+type SortOption = "price_asc" | "price_desc" | "name_asc";
+
+type ResultsHeaderProps = {
+	resultsCount: number;
+	sort: SortOption;
+	onSortChange: (sort: SortOption) => void;
+};
+
+function ResultsHeader({
+	resultsCount,
+	sort,
+	onSortChange,
+}: ResultsHeaderProps) {
 	return (
 		<div className="mb-5 flex items-center justify-between">
 			<div>
@@ -336,17 +487,22 @@ function ResultsHeader() {
 					Available Cars
 				</h1>
 				<p className="text-sm text-muted-foreground">
-					{cars.length} vehicles · Frankfurt Airport · Jul 15–20
+					{resultsCount} vehicle{resultsCount === 1 ? "" : "s"} available
 				</p>
 			</div>
 			<div className="hidden items-center gap-2 sm:flex">
 				<span className="text-xs text-muted-foreground">Sort:</span>
-				<button
-					type="button"
-					className="rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium transition-colors hover:bg-accent"
+				<select
+					value={sort}
+					onChange={(event) =>
+						onSortChange(event.currentTarget.value as SortOption)
+					}
+					className="rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium"
 				>
-					Price ↑
-				</button>
+					<option value="price_asc">Price low to high</option>
+					<option value="price_desc">Price high to low</option>
+					<option value="name_asc">Name A-Z</option>
+				</select>
 			</div>
 		</div>
 	);
@@ -355,53 +511,142 @@ function ResultsHeader() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function SearchPage() {
+	const navigate = useNavigate();
+	const { selectVehicle, state, rewindToStep } = useBookingStore();
+	const { resetVerification } = useVerificationStore();
+	const [selectedCategory, setSelectedCategory] = useState<string>("All");
+	const [selectedTransmission, setSelectedTransmission] =
+		useState<string>("All");
+	const [selectedLicenceCategory, setSelectedLicenceCategory] =
+		useState<string>("All");
+	const [maxPrice, setMaxPrice] = useState<number>(95);
+	const [sort, setSort] = useState<SortOption>("price_asc");
+
+	const locationLabel = state.rentalDetails.location
+		? `${state.rentalDetails.location.name} (${state.rentalDetails.location.code})`
+		: "Frankfurt Airport (FRA)";
+
+	const rangeLabel = formatDateRangeLabel(
+		state.rentalDetails.pickupDateTime,
+		state.rentalDetails.dropoffDateTime,
+	);
+	const daysLabel = formatDaysLabel(
+		state.rentalDetails.pickupDateTime,
+		state.rentalDetails.dropoffDateTime,
+	);
+
+	const handleSelectCar = (car: Car) => {
+		selectVehicle({
+			id: car.id,
+			name: car.name,
+			category: car.category,
+			requiredLicenceCategory: car.requiredLicenceCategory,
+			imageUrl: car.imageUrl,
+			pricePerDay: car.pricePerDay,
+			currency: "EUR",
+		});
+		rewindToStep("review");
+		resetVerification();
+		navigate({ to: "/review" });
+	};
+
+	const filteredAndSortedCars = useMemo(() => {
+		const filtered = cars.filter((car) => {
+			const matchesCategory =
+				selectedCategory === "All" || car.category === selectedCategory;
+			const matchesTransmission =
+				selectedTransmission === "All" ||
+				car.transmission === selectedTransmission;
+			const matchesLicenceCategory =
+				selectedLicenceCategory === "All" ||
+				car.requiredLicenceCategory === selectedLicenceCategory;
+			const matchesPrice = car.pricePerDay <= maxPrice;
+
+			return (
+				matchesCategory &&
+				matchesTransmission &&
+				matchesLicenceCategory &&
+				matchesPrice
+			);
+		});
+
+		const sorted = [...filtered];
+		if (sort === "price_asc") {
+			sorted.sort((a, b) => a.pricePerDay - b.pricePerDay);
+		} else if (sort === "price_desc") {
+			sorted.sort((a, b) => b.pricePerDay - a.pricePerDay);
+		} else {
+			sorted.sort((a, b) => a.name.localeCompare(b.name));
+		}
+
+		return sorted;
+	}, [
+		maxPrice,
+		selectedCategory,
+		selectedLicenceCategory,
+		selectedTransmission,
+		sort,
+	]);
+
 	return (
 		<div className="min-h-screen bg-background">
 			{/* Compact site header */}
 			<header className="glass sticky top-0 z-50 border-b border-border/50 bg-background/80">
 				<div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
-					<div className="flex items-center gap-2">
-						<div
-							className="flex size-8 items-center justify-center rounded-lg"
-							style={{ background: "var(--primary)" }}
-						>
-							<CarIcon className="size-4" style={{ color: "var(--amber)" }} />
-						</div>
-						<span className="font-heading text-xl font-bold tracking-tight">
-							VROOM
-						</span>
-					</div>
-					{/* Step breadcrumb */}
-					<div className="hidden items-center gap-2 text-xs text-muted-foreground sm:flex">
-						<span className="font-medium" style={{ color: "var(--primary)" }}>
-							1. Select Car
-						</span>
-						<ChevronRight className="size-3" />
-						<span>2. Verify Identity</span>
-						<ChevronRight className="size-3" />
-						<span>3. Payment</span>
-						<ChevronRight className="size-3" />
-						<span>4. Confirmation</span>
-					</div>
+					<Link to="/">
+						<img src="/vidos-drive-logo.svg" alt="VidosDrive" className="h-8" />
+					</Link>
+					<VerifyStepBreadcrumb active="select" />
 				</div>
 			</header>
 
 			{/* Search summary */}
-			<SearchSummaryBar />
+			<SearchSummaryBar
+				locationLabel={locationLabel}
+				rangeLabel={rangeLabel}
+				daysLabel={daysLabel}
+				onModifySearch={() => navigate({ to: "/" })}
+			/>
 
 			{/* Main content */}
 			<div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
 				<div className="flex flex-col gap-6 lg:flex-row lg:items-start">
 					{/* Sidebar */}
-					<FilterSidebar />
+					<FilterSidebar
+						selectedCategory={selectedCategory}
+						selectedTransmission={selectedTransmission}
+						selectedLicenceCategory={selectedLicenceCategory}
+						maxPrice={maxPrice}
+						onSelectCategory={setSelectedCategory}
+						onSelectTransmission={setSelectedTransmission}
+						onSelectLicenceCategory={setSelectedLicenceCategory}
+						onChangeMaxPrice={setMaxPrice}
+					/>
 
 					{/* Results */}
 					<div className="flex-1 min-w-0">
-						<ResultsHeader />
+						<ResultsHeader
+							resultsCount={filteredAndSortedCars.length}
+							sort={sort}
+							onSortChange={setSort}
+						/>
 						<div className="flex flex-col gap-4">
-							{cars.map((car, i) => (
-								<CarCard key={car.id} car={car} index={i} />
+							{filteredAndSortedCars.map((car, i) => (
+								<CarCard
+									key={car.id}
+									car={car}
+									onSelect={handleSelectCar}
+									showDemoHint={i === 0}
+								/>
 							))}
+							{filteredAndSortedCars.length === 0 && (
+								<Card className="border-border/60">
+									<CardContent className="p-5 text-sm text-muted-foreground">
+										No cars match current filters. Adjust filters to see more
+										options.
+									</CardContent>
+								</Card>
+							)}
 						</div>
 					</div>
 				</div>

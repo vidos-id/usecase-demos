@@ -4,14 +4,18 @@ import bmwX1Image from "@/assets/bmw-x1-5d-weiss-2019.png";
 import fiat500Image from "@/assets/fiat-500-hatch-2d-grey-2020.png";
 import mbGlbImage from "@/assets/mb-glb-suv-silver-2021.png";
 import renaultClioImage from "@/assets/renault-clio-5d-blue-2024.png";
+import vwT6VanImage from "@/assets/vw-t6-van-schwarz-2017.png";
 import vwTiguanImage from "@/assets/vw-tiguan-5d-grau-2019.png";
 import vwTouranImage from "@/assets/vw-touran-van-weiss-2016.png";
+
+export type LicenceCategory = "A" | "B" | "C" | "C1" | "D";
 
 export type Car = {
 	id: string;
 	name: string;
 	brand: string;
 	category: string;
+	requiredLicenceCategory: LicenceCategory;
 	transmission: "Automatic" | "Manual";
 	seats: number;
 	pricePerDay: number;
@@ -26,6 +30,7 @@ export const cars: Car[] = [
 		name: "Audi A3 Sportback",
 		brand: "Audi",
 		category: "Compact",
+		requiredLicenceCategory: "B",
 		transmission: "Automatic",
 		seats: 5,
 		pricePerDay: 52,
@@ -38,6 +43,7 @@ export const cars: Car[] = [
 		name: "Audi A6",
 		brand: "Audi",
 		category: "Premium Sedan",
+		requiredLicenceCategory: "B",
 		transmission: "Automatic",
 		seats: 5,
 		pricePerDay: 89,
@@ -50,6 +56,7 @@ export const cars: Car[] = [
 		name: "BMW X1",
 		brand: "BMW",
 		category: "SUV",
+		requiredLicenceCategory: "B",
 		transmission: "Automatic",
 		seats: 5,
 		pricePerDay: 74,
@@ -62,6 +69,7 @@ export const cars: Car[] = [
 		name: "Fiat 500",
 		brand: "Fiat",
 		category: "City Car",
+		requiredLicenceCategory: "B",
 		transmission: "Manual",
 		seats: 4,
 		pricePerDay: 29,
@@ -74,6 +82,7 @@ export const cars: Car[] = [
 		name: "Mercedes-Benz GLB",
 		brand: "Mercedes-Benz",
 		category: "SUV",
+		requiredLicenceCategory: "B",
 		transmission: "Automatic",
 		seats: 7,
 		pricePerDay: 95,
@@ -86,6 +95,7 @@ export const cars: Car[] = [
 		name: "Renault Clio",
 		brand: "Renault",
 		category: "Compact",
+		requiredLicenceCategory: "B",
 		transmission: "Manual",
 		seats: 5,
 		pricePerDay: 38,
@@ -98,6 +108,7 @@ export const cars: Car[] = [
 		name: "Volkswagen Tiguan",
 		brand: "Volkswagen",
 		category: "SUV",
+		requiredLicenceCategory: "B",
 		transmission: "Automatic",
 		seats: 5,
 		pricePerDay: 72,
@@ -106,10 +117,24 @@ export const cars: Car[] = [
 		features: ["All-Wheel Drive", "Panoramic Roof", "Adaptive Cruise"],
 	},
 	{
+		id: "vw-t6-van",
+		name: "Volkswagen T6",
+		brand: "Volkswagen",
+		category: "Van",
+		requiredLicenceCategory: "C1",
+		transmission: "Manual",
+		seats: 9,
+		pricePerDay: 84,
+		fuelType: "Diesel",
+		imageUrl: vwT6VanImage,
+		features: ["9 Seats", "Sliding Doors", "Cargo Space"],
+	},
+	{
 		id: "vw-touran",
 		name: "Volkswagen Touran",
 		brand: "Volkswagen",
 		category: "Van",
+		requiredLicenceCategory: "B",
 		transmission: "Automatic",
 		seats: 7,
 		pricePerDay: 65,

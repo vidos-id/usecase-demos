@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="faviconGradient" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4338ca" />
+      <stop offset="1" stop-color="#3730a3" />
+    </linearGradient>
+    <linearGradient id="faviconAccent" x1="20" y1="46" x2="44" y2="34" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#818cf8" />
+      <stop offset="1" stop-color="#6366f1" />
+    </linearGradient>
+  </defs>
+  <path d="M32 6L9 16v16c0 14 10 25 23 27 13-2 23-13 23-27V16L32 6z" fill="url(#faviconGradient)" />
+  <path d="M21 22l11 20 11-20" stroke="#ffffff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="32" cy="45" r="4" fill="url(#faviconAccent)" />
+</svg>

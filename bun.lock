@@ -73,6 +73,7 @@
         "shadcn": "^3.8.5",
         "tailwind-merge": "^3.4.1",
         "tailwindcss": "^4.1.18",
+        "zod": "^4.1.8",
       },
       "devDependencies": {
         "@types/node": "^25.2.3",

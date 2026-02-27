@@ -1,4 +1,4 @@
-import { Shield, Sparkles } from "lucide-react";
+import { BookOpen, Shield, Sparkles } from "lucide-react";
 
 export function HeroSection() {
 	return (
@@ -27,8 +27,21 @@ export function HeroSection() {
 					{/* Badge */}
 					<div className="animate-slide-down mb-6 inline-flex items-center gap-2 rounded-full border border-border/60 bg-card px-4 py-1.5 shadow-sm">
 						<Sparkles className="size-3.5" style={{ color: "var(--amber)" }} />
-						<span className="text-xs font-medium text-muted-foreground">
-							Powered by Vidos Authorizer
+						<span className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+							Powered by{" "}
+							<a
+								href="https://vidos.id/products/vidos-authorizer"
+								target="_blank"
+								rel="noopener noreferrer"
+								className="inline-flex items-center gap-1 font-semibold hover:opacity-80"
+							>
+								<img
+									src="/vidos-logo.svg"
+									alt="Vidos"
+									className="h-6 opacity-80"
+								/>
+								Authorizer
+							</a>
 						</span>
 					</div>
 
@@ -53,19 +66,20 @@ export function HeroSection() {
 						pick up your car in seconds.
 					</p>
 
-					{/* Trust line */}
-					<div className="animate-fade-in delay-2 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-						<Shield className="size-4" style={{ color: "var(--primary)" }} />
-						<span>
-							Powered by{" "}
-							<span
-								className="font-semibold"
+					{/* Docs link */}
+					<div className="animate-fade-in delay-3 mt-4 flex items-center justify-center">
+						<a
+							href="https://vidos.id/docs"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card px-4 py-1.5 text-sm font-medium text-muted-foreground shadow-sm transition-colors hover:border-primary/30 hover:text-foreground"
+						>
+							<BookOpen
+								className="size-3.5"
 								style={{ color: "var(--primary)" }}
-							>
-								Vidos Authorizer
-							</span>{" "}
-							— secure digital identity verification
-						</span>
+							/>
+							Read the Vidos docs
+						</a>
 					</div>
 				</div>
 			</div>

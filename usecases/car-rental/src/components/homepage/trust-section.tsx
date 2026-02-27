@@ -100,9 +100,17 @@ export function TrustSection() {
 						Verified Rentals, Zero Hassle
 					</h2>
 					<p className="mx-auto max-w-lg text-muted-foreground">
-						Our Vidos Authorizer integration brings cutting-edge digital
-						identity verification to car rental — secure, compliant, and
-						effortless.
+						Our{" "}
+						<a
+							href="https://vidos.id/products/vidos-authorizer"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="font-medium hover:underline"
+						>
+							Vidos Authorizer
+						</a>{" "}
+						integration brings cutting-edge digital identity verification to car
+						rental — secure, compliant, and effortless.
 					</p>
 				</div>
 
@@ -124,9 +132,18 @@ export function TrustSection() {
 							eIDAS 2.0 compliant · GDPR privacy-first · ISO 18013-5 mDL
 						</span>
 					</div>
-					<p className="text-xs text-muted-foreground">
-						Powered by Vidos Authorizer — the trusted identity verification
-						platform
+					<p className="flex items-center gap-1 text-xs text-muted-foreground">
+						Powered by{" "}
+						<a
+							href="https://vidos.id/products/vidos-authorizer"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="inline-flex items-center gap-1 font-medium hover:opacity-80"
+						>
+							<img src="/vidos-logo.svg" alt="Vidos" className="h-3" />
+							Authorizer
+						</a>{" "}
+						— the trusted identity verification platform
 					</p>
 				</div>
 			</div>
