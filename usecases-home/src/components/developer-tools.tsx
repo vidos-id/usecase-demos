@@ -1,61 +1,44 @@
 import { ArrowRight, Bug, Code, Terminal } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 
 export function DeveloperTools() {
 	return (
-		<section className="section-alt py-20">
+		<section className="section-alt py-20 lg:py-24">
 			<div className="container-page max-w-4xl mx-auto">
-				<Card className="relative overflow-hidden border-border/60">
-					<div className="absolute inset-0 bg-gradient-to-br from-eu-blue/5 to-transparent pointer-events-none" />
-					<div className="relative p-8 sm:p-10">
+				<div className="relative overflow-hidden rounded-2xl border bg-card">
+					{/* Subtle EU-blue gradient bar at top */}
+					<div className="h-1.5 bg-gradient-to-r from-eu-blue via-eu-blue/70 to-eu-blue/30" />
+
+					<div className="p-8 sm:p-10">
 						<p className="mono-label mb-3">For Developers</p>
-						<h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-							Vidos Authorizer Tester
+						<h2 className="heading-mixed">
+							Vidos <strong>Authorizer Tester</strong>
 						</h2>
-						<p className="mt-3 text-muted-foreground max-w-2xl">
+						<p className="mt-4 text-muted-foreground max-w-2xl text-lg leading-relaxed">
 							A developer-oriented tool for testing credential authorization
 							flows outside of the use case demos. Build custom credential
 							requests and inspect every detail of the exchange.
 						</p>
 
-						<div className="mt-6 grid gap-4 sm:grid-cols-3">
-							<div className="flex items-start gap-3">
-								<div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-eu-blue-light text-eu-blue">
-									<Code className="size-4" />
-								</div>
-								<div>
-									<p className="text-sm font-medium">Custom Requests</p>
-									<p className="text-xs text-muted-foreground mt-0.5">
-										Craft and send arbitrary credential requests
-									</p>
-								</div>
-							</div>
-							<div className="flex items-start gap-3">
-								<div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-eu-blue-light text-eu-blue">
-									<Terminal className="size-4" />
-								</div>
-								<div>
-									<p className="text-sm font-medium">Full Inspection</p>
-									<p className="text-xs text-muted-foreground mt-0.5">
-										See requests sent, responses received, and raw payloads
-									</p>
-								</div>
-							</div>
-							<div className="flex items-start gap-3">
-								<div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-eu-blue-light text-eu-blue">
-									<Bug className="size-4" />
-								</div>
-								<div>
-									<p className="text-sm font-medium">Debug Logs</p>
-									<p className="text-xs text-muted-foreground mt-0.5">
-										Detailed logs of the entire authorization lifecycle
-									</p>
-								</div>
-							</div>
+						<div className="mt-8 grid gap-5 sm:grid-cols-3">
+							<FeatureItem
+								icon={<Code className="size-4" />}
+								title="Custom Requests"
+								description="Craft and send arbitrary credential requests"
+							/>
+							<FeatureItem
+								icon={<Terminal className="size-4" />}
+								title="Full Inspection"
+								description="See requests, responses, and raw payloads"
+							/>
+							<FeatureItem
+								icon={<Bug className="size-4" />}
+								title="Debug Logs"
+								description="Detailed logs of the authorization lifecycle"
+							/>
 						</div>
 
-						<div className="mt-8">
+						<div className="mt-10">
 							<Button className="btn-eu-blue" size="lg" asChild>
 								<a
 									href="https://authorizer.demo.vidos.id/"
@@ -68,8 +51,32 @@ export function DeveloperTools() {
 							</Button>
 						</div>
 					</div>
-				</Card>
+				</div>
 			</div>
 		</section>
+	);
+}
+
+function FeatureItem({
+	icon,
+	title,
+	description,
+}: {
+	icon: React.ReactNode;
+	title: string;
+	description: string;
+}) {
+	return (
+		<div className="flex items-start gap-3">
+			<div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-eu-blue-light text-eu-blue">
+				{icon}
+			</div>
+			<div>
+				<p className="text-sm font-semibold">{title}</p>
+				<p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+					{description}
+				</p>
+			</div>
+		</div>
 	);
 }

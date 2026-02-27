@@ -6,34 +6,26 @@
 
 /*
  * ============================================================================
- * VIDOS DEMO DESIGN LANGUAGE
+ * VIDOS x EUDI DEMO DESIGN LANGUAGE
  * ============================================================================
  *
- * A design language that bridges the EU Digital Identity (EUDI) use case
- * manual styling with Vidos' enterprise B2B aesthetic.
+ * A design language that leans into the EU institutional aesthetic of the
+ * EUDI Use Case Manuals while retaining Vidos structural clarity.
  *
- * EUDI influence:
- *   - Approachable, institutional trust via EU-blue accent
- *   - Card-based layouts with light backgrounds and subtle borders
- *   - Filter chips/badges for categorization
- *   - Generous whitespace, educational tone
- *   - Soft rounded corners, structured grid sections
+ * Dominant influence: EUDI / EU institutional
+ *   - EU-blue (#003399 family) as the HERO color, used boldly in banners,
+ *     headers, and primary actions — not just as a timid accent
+ *   - Warm off-white surfaces, generous padding, soft rounded corners
+ *   - Pill-shaped filter chips for categorization
+ *   - Card grids with illustration areas and hover lift
+ *   - Mixed-weight headings ("What is a **use case** manual?" pattern)
+ *   - Section backgrounds that alternate white / warm-gray / EU-blue
  *
- * Vidos influence:
- *   - Monochrome (black/white/gray) as the primary palette
- *   - Strong typographic hierarchy with weight contrast
- *   - Minimal decoration, content-first
- *   - Professional enterprise feel
- *   - Clean borders, geometric precision
- *
- * Synthesis:
- *   - Neutral gray base from Vidos, with a single EU-blue accent color
- *   - DM Sans for body (approachable yet professional)
- *   - Space Mono for technical/code elements
- *   - Cards with subtle borders and hover states
- *   - Badges/chips for use case categorization
- *   - Section alternation (white / off-white) for visual rhythm
- *   - Tight radius (0.5rem) — rounded but not bubbly
+ * Vidos contribution: structural clarity
+ *   - Clean component borders and shadow restraint
+ *   - Systematic spacing and typographic scale
+ *   - Developer-tool section with technical edge
+ *   - shadcn/ui component foundation
  *
  * ============================================================================
  */
@@ -78,10 +70,12 @@
 	--color-sidebar-border: var(--sidebar-border);
 	--color-sidebar-ring: var(--sidebar-ring);
 
-	/* Custom semantic colors */
+	/* EU institutional palette */
 	--color-eu-blue: var(--eu-blue);
+	--color-eu-blue-dark: var(--eu-blue-dark);
 	--color-eu-blue-light: var(--eu-blue-light);
 	--color-eu-blue-foreground: var(--eu-blue-foreground);
+	--color-eu-yellow: var(--eu-yellow);
 	--color-surface: var(--surface);
 	--color-surface-raised: var(--surface-raised);
 }
@@ -89,50 +83,52 @@
 /* ---- Design tokens ---- */
 
 :root {
-	/* Base radius — tight, not bubbly */
-	--radius: 0.5rem;
+	/* Softer radius — approachable, EUDI-style */
+	--radius: 0.75rem;
 
-	/* --- Core palette (Vidos monochrome base) --- */
+	/* --- Core palette --- */
 	--background: oklch(1 0 0);
-	--foreground: oklch(0.145 0 0);
+	--foreground: oklch(0.18 0 0);
 	--card: oklch(1 0 0);
-	--card-foreground: oklch(0.145 0 0);
+	--card-foreground: oklch(0.18 0 0);
 	--popover: oklch(1 0 0);
-	--popover-foreground: oklch(0.145 0 0);
-	--primary: oklch(0.205 0 0);
-	--primary-foreground: oklch(0.985 0 0);
-	--secondary: oklch(0.97 0 0);
-	--secondary-foreground: oklch(0.205 0 0);
-	--muted: oklch(0.97 0 0);
-	--muted-foreground: oklch(0.556 0 0);
-	--accent: oklch(0.97 0 0);
-	--accent-foreground: oklch(0.205 0 0);
+	--popover-foreground: oklch(0.18 0 0);
+	--primary: oklch(0.35 0.14 261);
+	--primary-foreground: oklch(1 0 0);
+	--secondary: oklch(0.965 0.005 261);
+	--secondary-foreground: oklch(0.25 0.05 261);
+	--muted: oklch(0.965 0 0);
+	--muted-foreground: oklch(0.5 0 0);
+	--accent: oklch(0.955 0.01 261);
+	--accent-foreground: oklch(0.25 0.08 261);
 	--destructive: oklch(0.577 0.245 27.325);
-	--border: oklch(0.922 0 0);
-	--input: oklch(0.922 0 0);
-	--ring: oklch(0.708 0 0);
-	--chart-1: oklch(0.646 0.222 41.116);
-	--chart-2: oklch(0.6 0.118 184.704);
-	--chart-3: oklch(0.398 0.07 227.392);
+	--border: oklch(0.91 0.005 261);
+	--input: oklch(0.91 0.005 261);
+	--ring: oklch(0.45 0.14 261);
+	--chart-1: oklch(0.35 0.14 261);
+	--chart-2: oklch(0.55 0.12 261);
+	--chart-3: oklch(0.65 0.08 261);
 	--chart-4: oklch(0.828 0.189 84.429);
 	--chart-5: oklch(0.769 0.188 70.08);
 	--sidebar: oklch(0.985 0 0);
-	--sidebar-foreground: oklch(0.145 0 0);
-	--sidebar-primary: oklch(0.205 0 0);
-	--sidebar-primary-foreground: oklch(0.985 0 0);
-	--sidebar-accent: oklch(0.97 0 0);
-	--sidebar-accent-foreground: oklch(0.205 0 0);
-	--sidebar-border: oklch(0.922 0 0);
-	--sidebar-ring: oklch(0.708 0 0);
+	--sidebar-foreground: oklch(0.18 0 0);
+	--sidebar-primary: oklch(0.35 0.14 261);
+	--sidebar-primary-foreground: oklch(1 0 0);
+	--sidebar-accent: oklch(0.955 0.01 261);
+	--sidebar-accent-foreground: oklch(0.25 0.08 261);
+	--sidebar-border: oklch(0.91 0.005 261);
+	--sidebar-ring: oklch(0.45 0.14 261);
 
-	/* --- EU-blue accent (trust/institutional color) --- */
-	--eu-blue: oklch(0.424 0.164 261.1);
-	--eu-blue-light: oklch(0.95 0.02 261.1);
+	/* --- EU institutional colors --- */
+	--eu-blue: oklch(0.35 0.14 261);
+	--eu-blue-dark: oklch(0.25 0.12 261);
+	--eu-blue-light: oklch(0.955 0.015 261);
 	--eu-blue-foreground: oklch(1 0 0);
+	--eu-yellow: oklch(0.88 0.17 90);
 
-	/* --- Surface tokens (section alternation) --- */
-	--surface: oklch(0.985 0 0);
-	--surface-raised: oklch(0.97 0 0);
+	/* --- Surface tokens --- */
+	--surface: oklch(0.975 0.003 80);
+	--surface-raised: oklch(0.96 0.005 80);
 }
 
 .dark {
@@ -142,8 +138,8 @@
 	--card-foreground: oklch(0.985 0 0);
 	--popover: oklch(0.205 0 0);
 	--popover-foreground: oklch(0.985 0 0);
-	--primary: oklch(0.922 0 0);
-	--primary-foreground: oklch(0.205 0 0);
+	--primary: oklch(0.6 0.14 261);
+	--primary-foreground: oklch(1 0 0);
 	--secondary: oklch(0.269 0 0);
 	--secondary-foreground: oklch(0.985 0 0);
 	--muted: oklch(0.269 0 0);
@@ -161,16 +157,18 @@
 	--chart-5: oklch(0.645 0.246 16.439);
 	--sidebar: oklch(0.205 0 0);
 	--sidebar-foreground: oklch(0.985 0 0);
-	--sidebar-primary: oklch(0.488 0.243 264.376);
-	--sidebar-primary-foreground: oklch(0.985 0 0);
+	--sidebar-primary: oklch(0.6 0.14 261);
+	--sidebar-primary-foreground: oklch(1 0 0);
 	--sidebar-accent: oklch(0.269 0 0);
 	--sidebar-accent-foreground: oklch(0.985 0 0);
 	--sidebar-border: oklch(1 0 0 / 10%);
 	--sidebar-ring: oklch(0.556 0 0);
 
-	--eu-blue: oklch(0.588 0.164 261.1);
-	--eu-blue-light: oklch(0.25 0.04 261.1);
+	--eu-blue: oklch(0.6 0.14 261);
+	--eu-blue-dark: oklch(0.2 0.1 261);
+	--eu-blue-light: oklch(0.22 0.04 261);
 	--eu-blue-foreground: oklch(1 0 0);
+	--eu-yellow: oklch(0.85 0.15 90);
 
 	--surface: oklch(0.175 0 0);
 	--surface-raised: oklch(0.22 0 0);
@@ -187,14 +185,14 @@
 		font-family: "DM Sans", system-ui, sans-serif;
 	}
 
-	/* Typography scale — strong hierarchy, Vidos-inspired weight contrast */
 	h1,
 	h2,
 	h3,
 	h4,
 	h5,
 	h6 {
-		@apply font-semibold tracking-tight text-foreground;
+		@apply tracking-tight text-foreground;
+		font-weight: 400;
 	}
 
 	code,
@@ -204,38 +202,50 @@
 	}
 }
 
-/* ---- Utility classes ---- */
+/* ---- Component utility classes ---- */
 
 @layer components {
-	/*
-	 * Section alternation — alternate white / off-white backgrounds
-	 * for visual rhythm (EUDI pattern).
-	 * Usage: <section class="section-alt">
-	 */
+	/* Centered page container */
+	.container-page {
+		@apply mx-auto w-full max-w-6xl px-6 lg:px-8;
+	}
+
+	/* Alternating section background (warm off-white) */
 	.section-alt {
 		@apply bg-surface;
 	}
 
-	/*
-	 * EU-blue accent button variant.
-	 * Usage: <Button className="btn-eu-blue">
-	 */
+	/* EU-blue primary action button */
 	.btn-eu-blue {
-		@apply bg-eu-blue text-eu-blue-foreground hover:opacity-90 transition-opacity;
+		@apply bg-eu-blue text-eu-blue-foreground rounded-lg font-medium;
+		@apply hover:bg-eu-blue-dark transition-colors;
 	}
 
-	/*
-	 * Card hover lift — subtle elevation on hover (EUDI card feel).
-	 * Usage: <Card className="card-hover">
-	 */
+	/* EU-blue dark banner section (hero, featured) */
+	.section-eu-banner {
+		background-color: var(--eu-blue);
+		color: var(--eu-blue-foreground);
+	}
+
+	/* Card hover — soft lift + shadow, EUDI feel */
 	.card-hover {
-		@apply transition-all duration-200 hover:shadow-md hover:-translate-y-0.5;
+		@apply transition-all duration-250 ease-out;
+		@apply hover:shadow-lg hover:-translate-y-1;
 	}
 
-	/*
-	 * Status dot — small colored indicator.
-	 * Usage: <span class="status-dot status-dot--active" />
-	 */
+	/* Pill-shaped filter badge (EUDI chip pattern) */
+	.chip {
+		@apply inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5;
+		@apply text-sm font-medium transition-colors cursor-pointer;
+		@apply border border-border bg-background text-muted-foreground;
+		@apply hover:bg-accent hover:text-accent-foreground;
+	}
+	.chip--active {
+		@apply bg-eu-blue text-eu-blue-foreground border-eu-blue;
+		@apply hover:bg-eu-blue-dark hover:border-eu-blue-dark;
+	}
+
+	/* Status indicators */
 	.status-dot {
 		@apply inline-block size-2 rounded-full;
 	}
@@ -249,18 +259,33 @@
 		@apply bg-muted-foreground/40;
 	}
 
-	/*
-	 * Container — max-width + center, matching Vidos layout widths.
-	 */
-	.container-page {
-		@apply mx-auto w-full max-w-6xl px-6 lg:px-8;
-	}
-
-	/*
-	 * Monospace label — for technical identifiers.
-	 */
+	/* Overline / section label */
 	.mono-label {
 		font-family: "Space Mono", ui-monospace, monospace;
-		@apply text-xs tracking-wide uppercase text-muted-foreground;
+		@apply text-xs tracking-wider uppercase text-muted-foreground;
+	}
+
+	/* EU-style mixed-weight heading */
+	.heading-mixed {
+		@apply text-3xl tracking-tight sm:text-4xl;
+		font-weight: 300;
+	}
+	.heading-mixed strong {
+		font-weight: 700;
+	}
+
+	/* Star decoration (EU flag motif) — CSS-only */
+	.eu-stars {
+		position: relative;
+	}
+	.eu-stars::before {
+		content: "";
+		position: absolute;
+		width: 200px;
+		height: 200px;
+		border-radius: 50%;
+		border: 2px solid var(--eu-yellow);
+		opacity: 0.12;
+		pointer-events: none;
 	}
 }

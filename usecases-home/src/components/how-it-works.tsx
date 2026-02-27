@@ -27,34 +27,47 @@ const steps = [
 
 export function HowItWorks() {
 	return (
-		<section id="how-it-works" className="py-20">
+		<section id="how-it-works" className="py-20 lg:py-24">
 			<div className="container-page max-w-4xl mx-auto">
-				<div className="text-center mb-14">
+				<div className="text-center mb-16">
 					<p className="mono-label mb-3">Getting Started</p>
-					<h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-						How it works
+					<h2 className="heading-mixed">
+						Who is this information <strong>for?</strong>
 					</h2>
-					<p className="mt-3 text-muted-foreground max-w-xl mx-auto">
-						Three steps to start exploring the EUDI Wallet use case demos.
+					<p className="mt-4 text-muted-foreground max-w-xl mx-auto text-lg leading-relaxed">
+						These demos are designed to help wallet providers, issuers,
+						verifiers, and developers explore EUDI Wallet use cases.
 					</p>
 				</div>
 
-				<div className="grid gap-px sm:grid-cols-3 bg-border rounded-xl overflow-hidden border">
+				{/* Steps — three column cards with numbered EU-blue circles */}
+				<div className="grid gap-6 sm:grid-cols-3">
 					{steps.map((step) => (
 						<div
 							key={step.number}
-							className="bg-background p-8 text-center flex flex-col items-center"
+							className="relative rounded-xl border bg-card p-8 text-center flex flex-col items-center"
 						>
-							<div className="flex size-10 items-center justify-center rounded-full bg-eu-blue text-eu-blue-foreground text-sm font-bold">
+							{/* Number circle */}
+							<div className="flex size-12 items-center justify-center rounded-full bg-eu-blue text-eu-blue-foreground text-lg font-bold">
 								{step.number}
 							</div>
-							<div className="mt-3 text-muted-foreground">{step.icon}</div>
-							<h3 className="mt-3 text-base font-semibold">{step.title}</h3>
+
+							{/* Icon */}
+							<div className="mt-4 flex size-10 items-center justify-center rounded-lg bg-eu-blue-light text-eu-blue">
+								{step.icon}
+							</div>
+
+							<h3 className="mt-4 text-lg font-semibold">{step.title}</h3>
 							<p className="mt-2 text-sm text-muted-foreground leading-relaxed">
 								{step.description}
 							</p>
 						</div>
 					))}
+				</div>
+
+				{/* Connecting line between steps (desktop) */}
+				<div className="hidden sm:flex justify-center mt-[-13.5rem] mb-[10rem] pointer-events-none">
+					<div className="w-[60%] border-t-2 border-dashed border-eu-blue/20" />
 				</div>
 
 				<div className="mt-12 text-center">

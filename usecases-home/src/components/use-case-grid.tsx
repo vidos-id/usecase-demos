@@ -1,14 +1,23 @@
 import {
+	Banknote,
+	BookOpen,
 	ChevronRight,
+	CreditCard,
 	GraduationCap,
 	Heart,
+	Landmark,
 	ParkingCircle,
 	Pill,
 	Plane,
 	Scale,
+	Shield,
+	Ticket,
+	Truck,
+	UserCheck,
+	Users,
+	Volume2,
 } from "lucide-react";
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -26,28 +35,25 @@ const categories = [
 	"All",
 	"Core Functionality",
 	"Banking & Payment",
-	"Travel",
-	"Education",
 	"Health & Social Security",
+	"Travel",
+	"Consumer",
+	"Education",
+	"Identification",
+	"Legal Representation",
 ] as const;
 
-interface FeaturedUseCase {
+interface UseCase {
 	title: string;
 	description: string;
 	category: string;
-	illustration: string;
+	illustration?: string;
+	icon?: React.ReactNode;
 	status: "live" | "coming-soon";
 }
 
-interface SecondaryUseCase {
-	title: string;
-	description: string;
-	category: string;
-	icon: React.ReactNode;
-	status: "live" | "coming-soon";
-}
-
-const featured: FeaturedUseCase[] = [
+const useCases: UseCase[] = [
+	// --- Featured (with illustrations) ---
 	{
 		title: "Banking Sign-up with Personal ID",
 		description:
@@ -80,9 +86,48 @@ const featured: FeaturedUseCase[] = [
 		illustration: passportIllustration,
 		status: "coming-soon",
 	},
-];
 
-const secondary: SecondaryUseCase[] = [
+	// --- Secondary (icon-based) ---
+	{
+		title: "PID-based Identification in Online Services",
+		description:
+			"Secure identification in an online service using the PID stored in an EUDI Wallet.",
+		category: "Core Functionality",
+		icon: <Shield className="size-5" />,
+		status: "coming-soon",
+	},
+	{
+		title: "Use of a Pseudonym in Online Services",
+		description:
+			"Interact with digital platforms without revealing your full identity, neither explicitly, implicitly nor functionally necessitated to.",
+		category: "Core Functionality",
+		icon: <UserCheck className="size-5" />,
+		status: "coming-soon",
+	},
+	{
+		title: "eSignature",
+		description:
+			"Create qualified electronic signatures with the same legal validity as a handwritten signature.",
+		category: "Core Functionality",
+		icon: <BookOpen className="size-5" />,
+		status: "coming-soon",
+	},
+	{
+		title: "Payment Authentication",
+		description:
+			"Enables online payments to be authorised via an EUDI Wallet with strong customer authentication.",
+		category: "Banking & Payment",
+		icon: <CreditCard className="size-5" />,
+		status: "coming-soon",
+	},
+	{
+		title: "Identification in Proximity Scenarios",
+		description:
+			"Secure in-person identification for services where the credential holder means proving personal presence of identity.",
+		category: "Identification",
+		icon: <Users className="size-5" />,
+		status: "coming-soon",
+	},
 	{
 		title: "e-Prescription",
 		description:
@@ -92,25 +137,17 @@ const secondary: SecondaryUseCase[] = [
 		status: "coming-soon",
 	},
 	{
-		title: "Natural or legal person representation",
+		title: "European Health Insurance Card (EHIC)",
 		description:
-			"Enables users to act on behalf of another individual or an organisation using digitally verifiable credentials.",
-		category: "Legal representation",
-		icon: <Scale className="size-5" />,
-		status: "coming-soon",
-	},
-	{
-		title: "Educational Credentials",
-		description:
-			"Store, manage, and present digitally verifiable education-related credentials, like diplomas and certificates.",
-		category: "Education",
-		icon: <GraduationCap className="size-5" />,
+			"Grants access to necessary healthcare when in another Member State, presented digitally via EUDI Wallet.",
+		category: "Health & Social Security",
+		icon: <Heart className="size-5" />,
 		status: "coming-soon",
 	},
 	{
 		title: "European Disability Card",
 		description:
-			"Serves as proof of recognised disability status and entitlement to disability services.",
+			"Serves as proof of recognised disability status and entitlement to disability services across Member States.",
 		category: "Health & Social Security",
 		icon: <Heart className="size-5" />,
 		status: "coming-soon",
@@ -124,6 +161,30 @@ const secondary: SecondaryUseCase[] = [
 		status: "coming-soon",
 	},
 	{
+		title: "Educational Credentials",
+		description:
+			"Store, manage, and present digitally verifiable education-related credentials, like diplomas and certificates.",
+		category: "Education",
+		icon: <GraduationCap className="size-5" />,
+		status: "coming-soon",
+	},
+	{
+		title: "European Student Card",
+		description:
+			"Enables students to store and present their student status digitally across European institutions.",
+		category: "Education",
+		icon: <GraduationCap className="size-5" />,
+		status: "coming-soon",
+	},
+	{
+		title: "Natural or Legal Person Representation",
+		description:
+			"Enables users to act on behalf of another individual or an organisation using digitally verifiable credentials.",
+		category: "Legal Representation",
+		icon: <Scale className="size-5" />,
+		status: "coming-soon",
+	},
+	{
 		title: "Digital Travel Credential (DTC)",
 		description:
 			"A digital representation of the user's identity document such as an identity card, passport or another travel document.",
@@ -131,145 +192,202 @@ const secondary: SecondaryUseCase[] = [
 		icon: <Plane className="size-5" />,
 		status: "coming-soon",
 	},
+	{
+		title: "Ticket or Pass",
+		description:
+			"Store, manage, and present digital tickets, event passes, and access passes via boarding passes or event tickets.",
+		category: "Consumer",
+		icon: <Ticket className="size-5" />,
+		status: "coming-soon",
+	},
+	{
+		title: "Vehicle Registration Certificate (VRC)",
+		description:
+			"Proves the registration and legal compliance of a vehicle with national and European road transport regulations.",
+		category: "Travel",
+		icon: <Truck className="size-5" />,
+		status: "coming-soon",
+	},
+	{
+		title: "Public Warnings",
+		description:
+			"Enables trusted public authorities to issue national or subnational warnings and alerts, like for natural disasters.",
+		category: "Consumer",
+		icon: <Volume2 className="size-5" />,
+		status: "coming-soon",
+	},
+	{
+		title: "Open Bank Account",
+		description:
+			"Enables individuals to open a bank account entirely online using their EUDI Wallet credentials.",
+		category: "Banking & Payment",
+		icon: <Landmark className="size-5" />,
+		status: "coming-soon",
+	},
+	{
+		title: "SCA for Payment",
+		description:
+			"Strong Customer Authentication for payment authorisation using credentials stored in an EUDI Wallet.",
+		category: "Banking & Payment",
+		icon: <Banknote className="size-5" />,
+		status: "coming-soon",
+	},
 ];
 
-function FeaturedCard({ uc }: { uc: FeaturedUseCase }) {
+function FeaturedCard({ uc }: { uc: UseCase }) {
 	return (
-		<Card className="card-hover overflow-hidden flex flex-col">
-			<div className="bg-surface-raised flex items-center justify-center p-6 border-b">
+		<Card className="card-hover overflow-hidden flex flex-col bg-card">
+			<div className="flex items-center justify-center p-8 bg-surface border-b">
 				<img
 					src={uc.illustration}
-					alt={uc.title}
-					className="h-40 w-auto object-contain"
+					alt=""
+					className="h-36 w-auto object-contain"
 				/>
 			</div>
-			<CardHeader className="pb-2">
-				<div className="flex items-center justify-between gap-2">
-					<Badge variant="outline" className="text-xs shrink-0">
+			<CardHeader className="pb-3 pt-5 px-5 flex-1">
+				<div className="flex items-center justify-between gap-2 mb-2">
+					<span className="inline-flex items-center rounded-full bg-eu-blue-light text-eu-blue px-2.5 py-0.5 text-xs font-medium">
 						{uc.category}
-					</Badge>
-					<div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-						<span
-							className={`status-dot ${
-								uc.status === "live"
-									? "status-dot--active"
-									: "status-dot--pending"
-							}`}
-						/>
-						{uc.status === "live" ? "Live" : "Soon"}
-					</div>
+					</span>
+					<StatusIndicator status={uc.status} />
 				</div>
-				<CardTitle className="text-lg mt-2">{uc.title}</CardTitle>
-				<CardDescription>{uc.description}</CardDescription>
+				<CardTitle className="text-base font-semibold leading-snug">
+					{uc.title}
+				</CardTitle>
+				<CardDescription className="text-sm mt-1.5 leading-relaxed">
+					{uc.description}
+				</CardDescription>
 			</CardHeader>
-			<CardFooter className="mt-auto pt-0">
+			<CardFooter className="mt-auto pt-0 px-5 pb-5">
 				{uc.status === "live" ? (
 					<Button
 						variant="ghost"
 						size="sm"
-						className="text-eu-blue hover:text-eu-blue -ml-2"
+						className="text-eu-blue hover:text-eu-blue hover:bg-eu-blue-light -ml-2.5 font-medium"
 					>
-						Try this demo
+						Discover the use case
 						<ChevronRight className="size-4" />
 					</Button>
 				) : (
-					<span className="text-xs text-muted-foreground">Coming soon</span>
+					<span className="text-xs text-muted-foreground italic">
+						Coming soon
+					</span>
 				)}
 			</CardFooter>
 		</Card>
 	);
 }
 
-function SecondaryCard({ uc }: { uc: SecondaryUseCase }) {
+function SecondaryCard({ uc }: { uc: UseCase }) {
 	return (
-		<Card className="card-hover flex items-start gap-4 p-4">
+		<Card className="card-hover flex items-start gap-4 p-5">
 			<div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-eu-blue-light text-eu-blue">
 				{uc.icon}
 			</div>
 			<div className="flex-1 min-w-0">
 				<div className="flex items-center justify-between gap-2">
 					<h3 className="text-sm font-semibold truncate">{uc.title}</h3>
-					<div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
-						<span
-							className={`status-dot ${
-								uc.status === "live"
-									? "status-dot--active"
-									: "status-dot--pending"
-							}`}
-						/>
-						{uc.status === "live" ? "Live" : "Soon"}
-					</div>
+					<StatusIndicator status={uc.status} />
 				</div>
-				<p className="text-sm text-muted-foreground mt-1">{uc.description}</p>
+				<p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+					{uc.description}
+				</p>
+				{uc.status === "live" ? (
+					<Button
+						variant="ghost"
+						size="sm"
+						className="text-eu-blue hover:text-eu-blue hover:bg-eu-blue-light -ml-2.5 mt-2 font-medium"
+					>
+						Discover the use case
+						<ChevronRight className="size-4" />
+					</Button>
+				) : (
+					<span className="inline-flex items-center gap-1.5 mt-2 text-xs text-muted-foreground italic">
+						Coming soon
+					</span>
+				)}
 			</div>
 		</Card>
+	);
+}
+
+function StatusIndicator({ status }: { status: "live" | "coming-soon" }) {
+	return (
+		<div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
+			<span
+				className={`status-dot ${
+					status === "live" ? "status-dot--active" : "status-dot--pending"
+				}`}
+			/>
+			{status === "live" ? "Live demo" : "Coming soon"}
+		</div>
 	);
 }
 
 export function UseCaseGrid() {
 	const [activeCategory, setActiveCategory] = useState<string>("All");
 
-	const filteredFeatured =
+	const filtered =
 		activeCategory === "All"
-			? featured
-			: featured.filter((uc) => uc.category === activeCategory);
+			? useCases
+			: useCases.filter((uc) => uc.category === activeCategory);
 
-	const filteredSecondary =
-		activeCategory === "All"
-			? secondary
-			: secondary.filter((uc) => uc.category === activeCategory);
+	const featured = filtered.filter((uc) => uc.illustration);
+	const secondary = filtered.filter((uc) => !uc.illustration);
 
 	return (
-		<section id="use-cases" className="section-alt py-20">
+		<section id="use-cases" className="section-alt py-20 lg:py-24">
 			<div className="container-page">
+				{/* Section header */}
 				<p className="mono-label mb-3">Use Cases</p>
-				<h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-					Explore the demos
+				<h2 className="heading-mixed">
+					<strong>Explore</strong> the use case demos
 				</h2>
-				<p className="mt-3 text-muted-foreground max-w-2xl">
-					Interactive walkthroughs of EUDI Wallet use cases. Each demo guides
-					you through a real credential flow end-to-end.
+				<p className="mt-4 text-muted-foreground max-w-2xl text-lg leading-relaxed">
+					Here you can find all the currently published use case demos. Each
+					demo contains a description, user journey, and an interactive
+					credential flow you can try end-to-end.
 				</p>
 
 				{/* Filter chips */}
-				<div className="mt-8 flex flex-wrap gap-2">
+				<div className="mt-8 flex flex-wrap gap-2" role="tablist">
 					{categories.map((cat) => (
-						<Badge
+						<button
 							key={cat}
-							variant={activeCategory === cat ? "default" : "outline"}
-							className={
-								activeCategory === cat
-									? "btn-eu-blue border-transparent cursor-pointer"
-									: "cursor-pointer hover:bg-accent"
-							}
+							type="button"
+							role="tab"
+							aria-selected={activeCategory === cat}
 							onClick={() => setActiveCategory(cat)}
+							className={`chip ${activeCategory === cat ? "chip--active" : ""}`}
 						>
 							{cat}
-						</Badge>
+						</button>
 					))}
 				</div>
 
 				{/* Featured cards — illustration-driven */}
-				{filteredFeatured.length > 0 && (
-					<div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-						{filteredFeatured.map((uc) => (
+				{featured.length > 0 && (
+					<div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+						{featured.map((uc) => (
 							<FeaturedCard key={uc.title} uc={uc} />
 						))}
 					</div>
 				)}
 
 				{/* Secondary — compact list */}
-				{filteredSecondary.length > 0 && (
-					<div className="mt-6 grid gap-4 sm:grid-cols-2">
-						{filteredSecondary.map((uc) => (
+				{secondary.length > 0 && (
+					<div
+						className={`${featured.length > 0 ? "mt-6" : "mt-10"} grid gap-4 sm:grid-cols-2`}
+					>
+						{secondary.map((uc) => (
 							<SecondaryCard key={uc.title} uc={uc} />
 						))}
 					</div>
 				)}
 
 				{/* Empty state */}
-				{filteredFeatured.length === 0 && filteredSecondary.length === 0 && (
-					<div className="mt-10 text-center py-12 text-muted-foreground">
+				{filtered.length === 0 && (
+					<div className="mt-10 text-center py-16 text-muted-foreground">
 						<p>No use cases in this category yet.</p>
 					</div>
 				)}

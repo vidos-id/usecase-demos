@@ -1,32 +1,57 @@
+import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import eudiLogo from "../assets/logo-eu-digital-indentity-wallet.svg";
 
 export function Header() {
 	return (
-		<header className="border-b bg-background sticky top-0 z-50">
-			<div className="container-page flex h-14 items-center justify-between">
-				<div className="flex items-center gap-6">
-					<img src="/vidos-logo.svg" alt="Vidos" className="h-6 w-auto" />
-					<Separator orientation="vertical" className="h-5" />
-					<span className="mono-label">EUDI Demos</span>
-				</div>
-				<nav className="hidden items-center gap-6 sm:flex">
-					<a
-						href="#use-cases"
-						className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+		<header className="sticky top-0 z-50">
+			{/* Thin EU-blue top stripe — institutional marker */}
+			<div className="h-1 bg-eu-blue" />
+
+			<div className="border-b bg-background/95 backdrop-blur-sm">
+				<div className="container-page flex h-16 items-center justify-between">
+					<div className="flex items-center gap-4">
+						<img src="/vidos-logo.svg" alt="Vidos" className="h-7 w-auto" />
+						<div className="h-6 w-px bg-border" />
+						<img
+							src={eudiLogo}
+							alt="EU Digital Identity Wallet"
+							className="h-8 w-auto"
+						/>
+					</div>
+
+					<nav className="hidden items-center gap-8 md:flex">
+						<a
+							href="#use-cases"
+							className="text-sm text-muted-foreground transition-colors hover:text-eu-blue"
+						>
+							Use Cases
+						</a>
+						<a
+							href="#how-it-works"
+							className="text-sm text-muted-foreground transition-colors hover:text-eu-blue"
+						>
+							How It Works
+						</a>
+						<a
+							href="https://docs.vidos.id"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="text-sm text-muted-foreground transition-colors hover:text-eu-blue"
+						>
+							Documentation
+						</a>
+					</nav>
+
+					<Button
+						variant="ghost"
+						size="icon-sm"
+						className="md:hidden"
+						aria-label="Menu"
 					>
-						Use Cases
-					</a>
-					<a
-						href="#how-it-works"
-						className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-					>
-						How It Works
-					</a>
-					<Button size="sm" variant="outline">
-						Documentation
+						<Menu className="size-5" />
 					</Button>
-				</nav>
+				</div>
 			</div>
 		</header>
 	);
