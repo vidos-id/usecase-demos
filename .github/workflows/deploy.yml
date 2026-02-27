@@ -126,7 +126,7 @@ jobs:
 
       - name: Build Car Rental
         env:
-          VITE_VIDOS_AUTHORIZER_URL: ${{ secrets.VIDOS_CAR_RENTAL_AUTHORIZER_URL }}
+          VITE_VIDOS_AUTHORIZER_URL: ${{ env.VIDOS_CAR_RENTAL_AUTHORIZER_URL }}
         run: |
           bun run build --filter=demo-car-rental
           cp "usecases/car-rental/dist/index.html" "usecases/car-rental/dist/404.html"
