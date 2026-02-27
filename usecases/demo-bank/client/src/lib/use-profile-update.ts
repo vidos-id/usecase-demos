@@ -1,7 +1,10 @@
 import { type UseMutationOptions, useMutation } from "@tanstack/react-query";
 import { useRouteContext } from "@tanstack/react-router";
 import type { ProfileUpdateRequestResponse } from "demo-bank-shared/api/profile-update";
-import type { CredentialFormats, PresentationMode } from "demo-bank-shared/types/auth";
+import type {
+	CredentialFormats,
+	PresentationMode,
+} from "demo-bank-shared/types/auth";
 
 type ProfileUpdateMutationVariables = {
 	requestedClaims: string[];

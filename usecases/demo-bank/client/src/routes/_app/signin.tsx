@@ -6,7 +6,10 @@ import {
 } from "@tanstack/react-router";
 import { UserSearch } from "lucide-react";
 import { useMemo } from "react";
-import type { CredentialFormats, PresentationMode } from "demo-bank-shared/types/auth";
+import type {
+	CredentialFormats,
+	PresentationMode,
+} from "demo-bank-shared/types/auth";
 import type { AuthorizationErrorInfo } from "demo-bank-shared/types/vidos-errors";
 import {
 	AuthFlow,

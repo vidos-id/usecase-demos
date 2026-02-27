@@ -19,8 +19,15 @@ import {
 	ShieldCheck,
 } from "lucide-react";
 import { useState } from "react";
-import { LOAN_AMOUNTS, LOAN_PURPOSES, LOAN_TERMS } from "demo-bank-shared/api/loan";
-import type { CredentialFormats, DcApiRequest } from "demo-bank-shared/types/auth";
+import {
+	LOAN_AMOUNTS,
+	LOAN_PURPOSES,
+	LOAN_TERMS,
+} from "demo-bank-shared/api/loan";
+import type {
+	CredentialFormats,
+	DcApiRequest,
+} from "demo-bank-shared/types/auth";
 import type { AuthorizationErrorInfo } from "demo-bank-shared/types/vidos-errors";
 import { CredentialDisclosure } from "@/components/auth/credential-disclosure";
 import { DCApiHandler } from "@/components/auth/dc-api-handler";

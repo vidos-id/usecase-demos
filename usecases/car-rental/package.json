@@ -1,5 +1,5 @@
 {
-	"name": "car-rental",
+	"name": "demo-car-rental",
 	"private": true,
 	"version": "0.0.1",
 	"type": "module",
@@ -12,6 +12,8 @@
 	"dependencies": {
 		"@radix-ui/react-slot": "^1.2.4",
 		"@tailwindcss/vite": "^4.1.18",
+		"@tanstack/react-router": "^1.163.2",
+		"@tanstack/router-plugin": "^1.163.2",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
 		"lucide-react": "^0.564.0",

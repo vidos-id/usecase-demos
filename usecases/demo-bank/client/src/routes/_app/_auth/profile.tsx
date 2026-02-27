@@ -20,9 +20,15 @@ import {
 	User,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { CLAIM_LABELS, PROFILE_UPDATE_CLAIMS } from "demo-bank-shared/lib/claims";
+import {
+	CLAIM_LABELS,
+	PROFILE_UPDATE_CLAIMS,
+} from "demo-bank-shared/lib/claims";
 import { getImageDataUrl } from "demo-bank-shared/lib/image";
-import type { CredentialFormats, DcApiRequest } from "demo-bank-shared/types/auth";
+import type {
+	CredentialFormats,
+	DcApiRequest,
+} from "demo-bank-shared/types/auth";
 import type { AuthorizationErrorInfo } from "demo-bank-shared/types/vidos-errors";
 import { z } from "zod";
 import { CredentialDisclosure } from "@/components/auth/credential-disclosure";

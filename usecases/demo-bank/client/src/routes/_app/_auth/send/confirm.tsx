@@ -15,7 +15,10 @@ import {
 	ShieldCheck,
 } from "lucide-react";
 import { useState } from "react";
-import type { CredentialFormats, DcApiRequest } from "demo-bank-shared/types/auth";
+import type {
+	CredentialFormats,
+	DcApiRequest,
+} from "demo-bank-shared/types/auth";
 import type { AuthorizationErrorInfo } from "demo-bank-shared/types/vidos-errors";
 import { z } from "zod";
 import { CredentialDisclosure } from "@/components/auth/credential-disclosure";
