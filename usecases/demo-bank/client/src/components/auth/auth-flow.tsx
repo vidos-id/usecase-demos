@@ -361,7 +361,7 @@ export function AuthFlow({ config }: { config: AuthFlowConfig }) {
 				{state.status === "idle" && (
 					<div className="relative grid lg:grid-cols-2 gap-0 rounded-2xl overflow-hidden shadow-2xl bg-card border border-border">
 						{/* Traditional Method - Left Panel */}
-						<div className="relative bg-gradient-to-br from-muted/30 via-muted/10 to-background p-8 lg:p-12 animate-slide-in-left">
+						<div className="order-3 lg:order-1 relative bg-gradient-to-br from-muted/30 via-muted/10 to-background p-8 lg:p-12 animate-slide-in-left">
 							<div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-muted-foreground/20 to-transparent" />
 							<div className="relative z-10 h-full flex flex-col">
 								{config.slots.leftPanel}
@@ -379,7 +379,7 @@ export function AuthFlow({ config }: { config: AuthFlowConfig }) {
 						</div>
 
 						{/* Mobile Divider */}
-						<div className="lg:hidden relative py-6">
+						<div className="order-2 lg:hidden relative py-6">
 							<div className="absolute left-0 right-0 top-1/2 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
 							<div className="relative flex justify-center">
 								<div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-primary via-primary/90 to-primary/70 shadow-lg">
@@ -391,7 +391,7 @@ export function AuthFlow({ config }: { config: AuthFlowConfig }) {
 						</div>
 
 						{/* Wallet Method - Right Panel */}
-						<div className="relative bg-gradient-to-br from-primary/5 via-accent/10 to-background p-8 lg:p-12 animate-slide-in-right">
+						<div className="order-1 lg:order-2 relative bg-gradient-to-br from-primary/5 via-accent/10 to-background p-8 lg:p-12 animate-slide-in-right">
 							<div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/50 via-primary/30 to-transparent" />
 							<div className="relative z-10 h-full flex flex-col">
 								<div className="mb-8">
