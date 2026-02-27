@@ -16,7 +16,6 @@ permissions:
 
 env:
   USECASE: demo-bank
-  USECASE_PATH: usecases/demo-bank
   PULUMI_STACK: demo
   PULUMI_BACKEND_URL: s3://vidos-demo-pulumi-state-store
 
@@ -98,12 +97,16 @@ jobs:
         uses: actions/checkout@v5
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
+
       - name: Install dependencies
         run: bun install
       - name: Resolve server URL
@@ -113,18 +116,33 @@ jobs:
           pulumi stack select "$PULUMI_STACK"
           echo "server_url=$(pulumi stack output endpoint)" >> "$GITHUB_OUTPUT"
         working-directory: infrastructure
-      - name: Build client
+
+      - name: Build Demo Bank Client
         env:
           VITE_VIDOS_DEMO_BANK_SERVER_URL: ${{ steps.resolve-server-url.outputs.server_url }}
         run: |
-          bun run build:demo-bank-client
-          cp "$USECASE_PATH/client/dist/index.html" "$USECASE_PATH/client/dist/404.html"
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-      - name: Upload artifact
+          bun run build --filter=demo-bank-client
+          cp "usecases/demo-bank/client/dist/index.html" "usecases/demo-bank/client/dist/404.html"
+
+      - name: Build Car Rental
+        env:
+          VITE_VIDOS_AUTHORIZER_URL: ${{ secrets.VIDOS_CAR_RENTAL_AUTHORIZER_URL }}
+        run: |
+          bun run build --filter=demo-car-rental
+          cp "usecases/car-rental/dist/index.html" "usecases/car-rental/dist/404.html"
+
+      - name: Prepare Pages artifact
+        run: |
+          rm -rf site
+          mkdir -p site/bank site/car-rental
+          cp -R "usecases/demo-bank/client/dist/." site
+          cp -R "usecases/car-rental/dist/." site/car-rental
+
+      - name: Upload Client artifacts
         uses: actions/upload-pages-artifact@v4
         with:
-          path: './${{ env.USECASE_PATH }}/client/dist'
+          path: './site'
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
