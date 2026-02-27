@@ -5,6 +5,7 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
 export default defineConfig({
+	base: "/car-rental/",
 	server: {
 		port: 29750,
 	},

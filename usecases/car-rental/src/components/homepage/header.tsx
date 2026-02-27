@@ -13,7 +13,11 @@ export function Header({ className }: { className?: string }) {
 			<div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
 				{/* Logo */}
 				<Link to="/">
-					<img src="/vidos-drive-logo.svg" alt="VidosDrive" className="h-8" />
+					<img
+						src="/car-rental/vidos-drive-logo.svg"
+						alt="VidosDrive"
+						className="h-8"
+					/>
 				</Link>
 
 				{/* Nav */}

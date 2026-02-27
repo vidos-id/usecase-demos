@@ -594,7 +594,11 @@ function SearchPage() {
 			<header className="glass sticky top-0 z-50 border-b border-border/50 bg-background/80">
 				<div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
 					<Link to="/">
-						<img src="/vidos-drive-logo.svg" alt="VidosDrive" className="h-8" />
+						<img
+							src="/car-rental/vidos-drive-logo.svg"
+							alt="VidosDrive"
+							className="h-8"
+						/>
 					</Link>
 					<VerifyStepBreadcrumb active="select" />
 				</div>
