@@ -7,7 +7,7 @@
 		"./client": "./src/client.ts"
 	},
 	"scripts": {
-		"generate-api": "openapi-typescript authorizer.service.yaml --output src/generated/authorizer-api.ts",
+		"generate-api": "openapi-typescript ../../../authorizer.service.yaml --output src/generated/authorizer-api.ts",
 		"dev": "bun --watch run src/index.ts",
 		"check-types": "tsc --noEmit",
 		"db:generate": "drizzle-kit generate",
