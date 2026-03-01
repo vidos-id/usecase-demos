@@ -92,14 +92,6 @@ const useCases: UseCase[] = [
 		href: wineShopUrl,
 	},
 	{
-		title: "Age Verification",
-		description:
-			"Prove you are above a required age threshold without revealing your full date of birth. Selective disclosure keeps your data minimal.",
-		category: "Core Functionality",
-		illustration: ageIllustration,
-		status: "coming-soon",
-	},
-	{
 		title: "Digital Travel Credential",
 		description:
 			"Present a digital version of your passport or travel document at airport gates. Contactless, fast, and cryptographically verified.",
@@ -271,7 +263,7 @@ export function UseCaseGrid() {
 	const secondary = filtered.filter((uc) => !uc.illustration);
 
 	return (
-		<section id="use-cases" className="section-alt py-20 lg:py-24">
+		<section id="use-cases" className="section-alt py-10 lg:py-12">
 			<div className="container-page">
 				{/* Section header */}
 				<p className="mono-label mb-3">Use Cases</p>

@@ -1,4 +1,5 @@
 import createClient from "openapi-fetch";
+import type { AgeVerificationMethod } from "@/domain/verification/verification-types";
 import type { paths } from "@/generated/authorizer-api";
 
 type CreateAuthorizationBody = NonNullable<
@@ -60,9 +61,23 @@ function createAuthorizerClient(baseUrl: string, apiKey?: string) {
 function buildCreateAuthorizationBody(
 	nonce: string,
 	requiredAge: number,
+	ageVerificationMethod: AgeVerificationMethod,
 ): CreateAuthorizationBody {
 	const minimumAgePath = String(requiredAge);
 	const credentialId = `${PID_CREDENTIAL_PREFIX}-${minimumAgePath}-pid-cred`;
+
+	let claimPath: (string | number)[];
+	switch (ageVerificationMethod) {
+		case "age_equal_or_over":
+			claimPath = ["age_equal_or_over", minimumAgePath];
+			break;
+		case "age_in_years":
+			claimPath = ["age_in_years"];
+			break;
+		case "birthdate":
+			claimPath = ["birthdate"];
+			break;
+	}
 
 	return {
 		nonce,
@@ -79,7 +94,7 @@ function buildCreateAuthorizationBody(
 						meta: {
 							vct_values: ["urn:eudi:pid:1"],
 						},
-						claims: [{ path: ["age_equal_or_over", minimumAgePath] }],
+						claims: [{ path: claimPath }],
 					},
 				],
 			},
@@ -99,10 +114,15 @@ export async function createAuthorizerAuthorization(input: {
 	apiKey?: string;
 	nonce: string;
 	requiredAge: number;
+	ageVerificationMethod: AgeVerificationMethod;
 }): Promise<AuthorizerAuthorizationSession> {
 	const client = createAuthorizerClient(input.baseUrl, input.apiKey);
 	const { data, error } = await client.POST("/openid4/vp/v1_0/authorizations", {
-		body: buildCreateAuthorizationBody(input.nonce, input.requiredAge),
+		body: buildCreateAuthorizationBody(
+			input.nonce,
+			input.requiredAge,
+			input.ageVerificationMethod,
+		),
 	});
 
 	if (error || !data) {

@@ -5,15 +5,17 @@ import {
 	RefreshCw,
 	Shield,
 	ShoppingCart,
-	Wine,
 	XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useOrderStore } from "@/domain/order/order-store";
 import { useDemoReset } from "@/domain/reset/use-demo-reset";
+import { getAgeMethodTechnicalDetails } from "@/domain/verification/age-verification-method-details";
 import { useVerificationStore } from "@/domain/verification/verification-store";
+import type { AgeVerificationMethod } from "@/domain/verification/verification-types";
 
 export const Route = createFileRoute("/checkout")({
 	component: CheckoutPage,
@@ -251,6 +253,53 @@ function BlockedPanel({
 	);
 }
 
+function ClaimRequestPanel({
+	requiredAge,
+	ageVerificationMethod,
+}: {
+	requiredAge: number;
+	ageVerificationMethod: AgeVerificationMethod | null;
+}) {
+	if (ageVerificationMethod === null) {
+		return null;
+	}
+
+	const details = getAgeMethodTechnicalDetails(
+		ageVerificationMethod,
+		requiredAge,
+	);
+
+	return (
+		<Card className="mb-5 border-border/60">
+			<CardContent className="p-5">
+				<h3 className="font-heading mb-2 text-sm font-bold">
+					Requested PID Claim
+				</h3>
+				<div className="grid gap-2 text-xs text-muted-foreground">
+					<p>
+						Field: <code>{details.pidField}</code>
+					</p>
+					<p>
+						Claim path sent to authorizer: <code>{details.claimPath}</code>
+					</p>
+					<p>
+						Expected value type: <code>{details.valueShape}</code>
+					</p>
+					<p>
+						Accepted when:{" "}
+						<strong className="text-foreground">
+							{details.acceptanceRule}
+						</strong>
+					</p>
+					<p>
+						Example accepted value: <code>{details.exampleAcceptedValue}</code>
+					</p>
+				</div>
+			</CardContent>
+		</Card>
+	);
+}
+
 // ─── QR panel ───────────────────────────────────────────────────────────────────
 
 function QrPanel({
@@ -402,7 +451,8 @@ function CheckoutPage() {
 	} = useVerificationStore();
 	const resetDemo = useDemoReset();
 
-	const { status, orderId, shippingDestination } = orderState;
+	const { status, orderId, shippingDestination, ageVerificationMethod } =
+		orderState;
 
 	const isActive =
 		status === "awaiting_verification" ||
@@ -425,15 +475,21 @@ function CheckoutPage() {
 			isActive &&
 			orderId &&
 			shippingDestination &&
+			ageVerificationMethod !== null &&
 			lifecycle === "created" &&
 			verificationState.orderId === null
 		) {
-			void startVerification({ orderId, shippingDestination });
+			void startVerification({
+				orderId,
+				shippingDestination,
+				ageVerificationMethod,
+			});
 		}
 	}, [
 		isActive,
 		orderId,
 		shippingDestination,
+		ageVerificationMethod,
 		lifecycle,
 		verificationState.orderId,
 		startVerification,
@@ -479,8 +535,12 @@ function CheckoutPage() {
 	const ageCheckPassed = isSuccess && ageCheck !== null && ageCheck.eligible;
 
 	const handleRetry = () => {
-		if (orderId && shippingDestination) {
-			void retryVerification({ orderId, shippingDestination });
+		if (orderId && shippingDestination && ageVerificationMethod !== null) {
+			void retryVerification({
+				orderId,
+				shippingDestination,
+				ageVerificationMethod,
+			});
 		}
 	};
 
@@ -496,38 +556,15 @@ function CheckoutPage() {
 
 	return (
 		<div className="min-h-screen bg-background">
-			{/* Header */}
-			<header
-				className="glass sticky top-0 z-50 border-b border-border/50 bg-background/85"
-				style={{ backdropFilter: "blur(12px)" }}
-			>
-				<div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-					<Link to="/" className="flex items-center gap-2.5">
-						<div
-							className="flex size-8 items-center justify-center rounded-lg"
-							style={{ background: "var(--primary)" }}
-						>
-							<Wine
-								className="size-4.5"
-								style={{ color: "var(--primary-foreground)" }}
-							/>
-						</div>
-						<span
-							className="font-heading text-xl font-bold tracking-tight"
-							style={{ color: "var(--primary)" }}
-						>
-							Vinos
-						</span>
-					</Link>
-					<div
-						className="flex items-center gap-2 text-sm font-medium"
-						style={{ color: "var(--primary)" }}
-					>
-						<Shield className="size-4" />
-						Identity Verification
-					</div>
+			<Header>
+				<div
+					className="flex items-center gap-2 text-sm font-medium"
+					style={{ color: "var(--primary)" }}
+				>
+					<Shield className="size-4" />
+					Identity Verification
 				</div>
-			</header>
+			</Header>
 
 			<div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
 				<div className="mx-auto w-full max-w-2xl">
@@ -554,6 +591,11 @@ function CheckoutPage() {
 							requires age {shippingDestination.legalDrinkingAge}+.
 						</p>
 					</div>
+
+					<ClaimRequestPanel
+						requiredAge={shippingDestination.legalDrinkingAge}
+						ageVerificationMethod={ageVerificationMethod}
+					/>
 
 					{/* Processing panel */}
 					{isProcessing && <ProcessingPanel />}

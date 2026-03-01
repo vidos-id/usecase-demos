@@ -5,7 +5,11 @@ import { VerificationStoreProvider } from "@/domain/verification/verification-st
 import "./index.css";
 import { routeTree } from "./routeTree.gen";
 
-const router = createRouter({ routeTree, basepath: "/wine-shop" });
+const router = createRouter({
+	routeTree,
+	basepath: "/wine-shop",
+	scrollRestoration: true,
+});
 
 declare module "@tanstack/react-router" {
 	interface Register {

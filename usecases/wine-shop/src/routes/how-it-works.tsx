@@ -12,8 +12,8 @@ import {
 	ShieldCheck,
 	ShoppingCart,
 	Smartphone,
-	Wine,
 } from "lucide-react";
+import { Header } from "@/components/header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
@@ -47,7 +47,7 @@ const steps = [
 	{
 		icon: ShieldCheck,
 		title: "Age Check",
-		desc: "Our system verifies your disclosed age against the destination's legal drinking age. Only the minimum required attribute is requested — age_equal_or_over.",
+		desc: "Our system verifies your disclosed age against the destination's legal drinking age. The requested PID claim depends on your selected method: age_equal_or_over, age_in_years, or birthdate.",
 		num: "04",
 	},
 	{
@@ -100,7 +100,11 @@ function EndpointBlock({
 }
 
 function ClaimsBadgeRow() {
-	const claims = ["age_equal_or_over"];
+	const claims = [
+		'["age_equal_or_over", "<minimumAge>"]',
+		'["age_in_years"]',
+		'["birthdate"]',
+	];
 	return (
 		<div className="mt-3 flex flex-wrap gap-1.5">
 			{claims.map((claim) => (
@@ -159,7 +163,7 @@ const apiSteps: ApiStep[] = [
 		icon: <Code2 className="size-4" />,
 		title: "Create a credential request (DCQL)",
 		description:
-			"The app calls the Vidos Authorizer API using openapi-fetch with generated types from openapi-typescript. The credential request uses DCQL (DIF Credential Query Language), specifying the PID credential in SD-JWT format and the age_equal_or_over claim.",
+			"The app calls the Vidos Authorizer API using openapi-fetch with generated types from openapi-typescript. The credential request uses DCQL (DIF Credential Query Language), specifying PID in SD-JWT format with one selected claim path: age_equal_or_over, age_in_years, or birthdate.",
 		detail: (
 			<>
 				<p className="mt-2 text-xs text-muted-foreground">
@@ -179,9 +183,11 @@ const apiSteps: ApiStep[] = [
 				<p className="mt-2 text-xs text-muted-foreground">
 					The claim path is{" "}
 					<code className="rounded bg-muted/50 px-1 font-mono text-[11px]">
-						["age_equal_or_over", "{`{minimumAge}`}"]
+						["age_equal_or_over", "{`{minimumAge}`}"] | ["age_in_years"] |
+						["birthdate"]
 					</code>{" "}
-					— where minimumAge is 18 or 21 depending on the shipping destination.
+					— selected by user preference, with minimumAge = 18 or 21 based on the
+					shipping destination.
 				</p>
 				<EndpointBlock
 					method="POST"
@@ -232,7 +238,7 @@ const apiSteps: ApiStep[] = [
 				<EndpointBlock
 					method="GET"
 					path="/openid4/vp/v1_0/authorizations/{authorizationId}/credentials"
-					returns="disclosed credential claims (age_equal_or_over)"
+					returns="disclosed credential claims (selected age method claim)"
 				/>
 			</>
 		),
@@ -279,38 +285,14 @@ function ApiStepCard({ step }: { step: ApiStep }) {
 function HowItWorksPage() {
 	return (
 		<div className="min-h-screen bg-background">
-			{/* Header */}
-			<header
-				className="glass sticky top-0 z-50 border-b border-border/50 bg-background/85"
-				style={{ backdropFilter: "blur(12px)" }}
-			>
-				<div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-					<Link to="/" className="flex items-center gap-2.5">
-						<div
-							className="flex size-8 items-center justify-center rounded-lg"
-							style={{ background: "var(--primary)" }}
-						>
-							<Wine
-								className="size-4.5"
-								style={{ color: "var(--primary-foreground)" }}
-							/>
-						</div>
-						<span
-							className="font-heading text-xl font-bold tracking-tight"
-							style={{ color: "var(--primary)" }}
-						>
-							Vinos
-						</span>
-					</Link>
-
-					<Link
-						to="/"
-						className="text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-					>
-						← Back to shop
-					</Link>
-				</div>
-			</header>
+			<Header>
+				<Link
+					to="/"
+					className="text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+				>
+					← Back to shop
+				</Link>
+			</Header>
 
 			<main>
 				{/* ── Hero ─────────────────────────────────────────────────── */}
@@ -498,21 +480,30 @@ function HowItWorksPage() {
 								</div>
 								<div>
 									<p className="mb-0.5 text-xs font-medium text-muted-foreground">
-										Claim path
+										Claim paths (by method)
 									</p>
-									<code className="rounded bg-muted/50 px-1.5 py-0.5 font-mono text-[11px]">
-										["age_equal_or_over", "18"]
-									</code>
+									<div className="flex flex-col gap-1">
+										<code className="rounded bg-muted/50 px-1.5 py-0.5 font-mono text-[11px]">
+											["age_equal_or_over", "&lt;minimumAge&gt;"]
+										</code>
+										<code className="rounded bg-muted/50 px-1.5 py-0.5 font-mono text-[11px]">
+											["age_in_years"]
+										</code>
+										<code className="rounded bg-muted/50 px-1.5 py-0.5 font-mono text-[11px]">
+											["birthdate"]
+										</code>
+									</div>
 								</div>
 							</div>
 							<p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-								Unlike the car-rental use case which requests the full mDL
-								(driving licence), the wine shop only needs the{" "}
-								<strong className="text-foreground">age_equal_or_over</strong>{" "}
-								claim from the PID credential. This is a minimal selective
-								disclosure — the wallet reveals only whether the user meets the
-								minimum age, without exposing date of birth or other personal
-								data.
+								The app requests exactly one age-related PID field, based on
+								user choice: <code>age_equal_or_over.&lt;minimumAge&gt;</code>,{" "}
+								<code>age_in_years</code>, or <code>birthdate</code>. Acceptance
+								rules are evaluated against destination legal age (18 or 21):
+								<code>true</code> for <code>age_equal_or_over</code>, numeric
+								value <code>&gt;= minimumAge</code> for{" "}
+								<code>age_in_years</code>, or ISO date old enough for{" "}
+								<code>birthdate</code>.
 							</p>
 						</div>
 
@@ -560,16 +551,17 @@ function HowItWorksPage() {
 									</strong>{" "}
 									A verifiable credential containing personal data such as name,
 									date of birth, and portrait, issued by an EU member state. The
-									wine shop only requests the age_equal_or_over attribute.
+									wine shop requests one age attribute based on user choice:
+									age_equal_or_over, age_in_years, or birthdate.
 								</p>
 								<p>
 									<strong className="text-foreground">
 										Selective Disclosure (SD-JWT):
 									</strong>{" "}
 									The PID credential uses SD-JWT format, allowing users to share
-									only specific attributes — in this case, whether they are over
-									the legal drinking age — without revealing their full date of
-									birth.
+									only specific attributes. Users can pick a privacy-first
+									boolean proof, a numeric age value, or full birth date when
+									compatibility requires it.
 								</p>
 								<p>
 									<strong className="text-foreground">Vidos Authorizer:</strong>{" "}

@@ -6,8 +6,9 @@ import {
 	ShoppingCart,
 	Sparkles,
 	Trash2,
-	Wine,
 } from "lucide-react";
+import { AgeMethodSelector } from "@/components/age-method-selector";
+import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -248,12 +249,13 @@ function CartPage() {
 		removeFromCart,
 		updateQuantity,
 		setShippingDestination,
+		setAgeVerificationMethod,
 		proceedToCheckout,
 		cartTotal,
 		cartItemCount,
 	} = useOrderStore();
 
-	const { items, shippingDestination } = state;
+	const { items, shippingDestination, ageVerificationMethod } = state;
 
 	const handleCheckout = () => {
 		const result = proceedToCheckout();
@@ -262,42 +264,21 @@ function CartPage() {
 		}
 	};
 
-	const canCheckout = items.length > 0 && shippingDestination !== null;
+	const canCheckout =
+		items.length > 0 &&
+		shippingDestination !== null &&
+		ageVerificationMethod !== null;
 
 	return (
 		<div className="min-h-screen bg-background">
-			{/* Header */}
-			<header
-				className="glass sticky top-0 z-50 border-b border-border/50 bg-background/85"
-				style={{ backdropFilter: "blur(12px)" }}
-			>
-				<div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-					<Link to="/" className="flex items-center gap-2.5">
-						<div
-							className="flex size-8 items-center justify-center rounded-lg"
-							style={{ background: "var(--primary)" }}
-						>
-							<Wine
-								className="size-4.5"
-								style={{ color: "var(--primary-foreground)" }}
-							/>
-						</div>
-						<span
-							className="font-heading text-xl font-bold tracking-tight"
-							style={{ color: "var(--primary)" }}
-						>
-							Vinos
-						</span>
-					</Link>
-
-					<div className="flex items-center gap-2 text-sm text-muted-foreground">
-						<ShoppingCart className="size-4" />
-						<span>
-							{cartItemCount} {cartItemCount === 1 ? "item" : "items"}
-						</span>
-					</div>
+			<Header>
+				<div className="flex items-center gap-2 text-sm text-muted-foreground">
+					<ShoppingCart className="size-4" />
+					<span>
+						{cartItemCount} {cartItemCount === 1 ? "item" : "items"}
+					</span>
 				</div>
-			</header>
+			</Header>
 
 			<div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
 				<div className="mx-auto w-full max-w-2xl">
@@ -408,6 +389,12 @@ function CartPage() {
 								</div>
 							</div>
 
+							<AgeMethodSelector
+								value={ageVerificationMethod}
+								requiredAge={shippingDestination?.legalDrinkingAge ?? null}
+								onChange={setAgeVerificationMethod}
+							/>
+
 							{/* Total + CTA */}
 							<Card className="border-border/60">
 								<CardContent className="p-5">
@@ -442,6 +429,12 @@ function CartPage() {
 									{!shippingDestination && (
 										<p className="mb-3 text-xs text-destructive">
 											Please select a shipping destination to continue.
+										</p>
+									)}
+
+									{ageVerificationMethod === null && (
+										<p className="mb-3 text-xs text-destructive">
+											Please select an age verification method to continue.
 										</p>
 									)}
 

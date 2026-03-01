@@ -9,6 +9,11 @@ export type VerificationLifecycleState =
 
 export type VerificationPolicyCheckStatus = "pass" | "fail" | "unknown";
 
+export type AgeVerificationMethod =
+	| "age_equal_or_over"
+	| "age_in_years"
+	| "birthdate";
+
 export type VerificationPolicyCheck = {
 	id: string;
 	status: VerificationPolicyCheckStatus;

@@ -3,6 +3,7 @@ import type {
 	OrderState,
 	OrderTransitionResult,
 } from "@/domain/order/order-types";
+import type { AgeVerificationMethod } from "@/domain/verification/verification-types";
 
 const allowedTransitions: Record<OrderLifecycleStatus, OrderLifecycleStatus[]> =
 	{
@@ -21,9 +22,25 @@ export function createInitialOrderState(): OrderState {
 		orderId: null,
 		items: [],
 		shippingDestination: null,
+		ageVerificationMethod: null,
 		confirmation: null,
 		updatedAt: new Date().toISOString(),
 		lastError: null,
+	};
+}
+
+export function setOrderAgeVerificationMethod(
+	state: OrderState,
+	method: AgeVerificationMethod,
+): OrderTransitionResult {
+	return {
+		ok: true,
+		state: {
+			...state,
+			ageVerificationMethod: method,
+			lastError: null,
+			updatedAt: new Date().toISOString(),
+		},
 	};
 }
 

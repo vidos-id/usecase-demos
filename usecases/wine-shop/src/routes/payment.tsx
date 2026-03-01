@@ -1,11 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import {
-	CheckCircle2,
-	ChevronRight,
-	CreditCard,
-	Lock,
-	Wine,
-} from "lucide-react";
+import { CheckCircle2, ChevronRight, CreditCard, Lock } from "lucide-react";
+import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -135,38 +130,15 @@ function PaymentPage() {
 
 	return (
 		<div className="min-h-screen bg-background">
-			{/* Header */}
-			<header
-				className="glass sticky top-0 z-50 border-b border-border/50 bg-background/85"
-				style={{ backdropFilter: "blur(12px)" }}
-			>
-				<div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-					<Link to="/" className="flex items-center gap-2.5">
-						<div
-							className="flex size-8 items-center justify-center rounded-lg"
-							style={{ background: "var(--primary)" }}
-						>
-							<Wine
-								className="size-4.5"
-								style={{ color: "var(--primary-foreground)" }}
-							/>
-						</div>
-						<span
-							className="font-heading text-xl font-bold tracking-tight"
-							style={{ color: "var(--primary)" }}
-						>
-							Vinos
-						</span>
-					</Link>
-					<div
-						className="flex items-center gap-2 text-sm font-medium"
-						style={{ color: "var(--primary)" }}
-					>
-						<CreditCard className="size-4" />
-						Payment
-					</div>
+			<Header>
+				<div
+					className="flex items-center gap-2 text-sm font-medium"
+					style={{ color: "var(--primary)" }}
+				>
+					<CreditCard className="size-4" />
+					Payment
 				</div>
-			</header>
+			</Header>
 
 			<div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
 				<div className="mx-auto w-full max-w-2xl">

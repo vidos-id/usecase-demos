@@ -1,16 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
 	GlassWater,
-	Info,
 	MapPin,
 	Minus,
 	Plus,
 	ShoppingCart,
 	Sparkles,
-	Wine,
 	X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { wines } from "@/data/wines";
@@ -348,75 +347,6 @@ function WineDetailsModal({
 	);
 }
 
-// ─── Header ─────────────────────────────────────────────────────────────────────
-
-function Header() {
-	const { cartItemCount } = useOrderStore();
-
-	return (
-		<header
-			className="glass sticky top-0 z-50 border-b border-border/50 bg-background/85"
-			style={{ backdropFilter: "blur(12px)" }}
-		>
-			<div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-				{/* Brand */}
-				<Link to="/" className="flex items-center gap-2.5">
-					<div
-						className="flex size-8 items-center justify-center rounded-lg"
-						style={{ background: "var(--primary)" }}
-					>
-						<Wine
-							className="size-4.5"
-							style={{ color: "var(--primary-foreground)" }}
-						/>
-					</div>
-					<span
-						className="font-heading text-xl font-bold tracking-tight"
-						style={{ color: "var(--primary)" }}
-					>
-						Vinos
-					</span>
-				</Link>
-
-				{/* Nav */}
-				<nav className="hidden items-center gap-6 sm:flex">
-					<Link
-						to="/how-it-works"
-						className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-					>
-						<Info className="size-3.5" />
-						How it works
-					</Link>
-				</nav>
-
-				{/* Cart */}
-				<Link to="/cart" className="relative">
-					<Button
-						variant="outline"
-						size="sm"
-						className="gap-2 rounded-xl border-border/60"
-					>
-						<ShoppingCart className="size-4" />
-						<span className="hidden sm:inline">Cart</span>
-					</Button>
-					{cartItemCount > 0 && (
-						<span
-							key={cartItemCount}
-							className="badge-pop absolute -top-1.5 -right-1.5 flex min-w-[1.25rem] items-center justify-center rounded-full px-1 py-0.5 text-[10px] font-bold leading-none shadow-sm"
-							style={{
-								background: "var(--gold)",
-								color: "var(--gold-foreground)",
-							}}
-						>
-							{cartItemCount}
-						</span>
-					)}
-				</Link>
-			</div>
-		</header>
-	);
-}
-
 // ─── Hero ────────────────────────────────────────────────────────────────────────
 
 function Hero() {
@@ -496,22 +426,12 @@ function Footer() {
 		>
 			<div className="mx-auto max-w-7xl px-4 sm:px-6">
 				<div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:justify-between sm:text-left">
-					<div className="flex items-center gap-2.5">
-						<div
-							className="flex size-7 items-center justify-center rounded-lg"
-							style={{ background: "var(--primary)" }}
-						>
-							<Wine
-								className="size-4"
-								style={{ color: "var(--primary-foreground)" }}
-							/>
-						</div>
-						<span
-							className="font-heading text-lg font-bold"
-							style={{ color: "var(--primary)" }}
-						>
-							Vinos
-						</span>
+					<div className="flex items-center">
+						<img
+							src="/wine-shop/vinos-logo.svg"
+							alt="Vinos"
+							className="h-8 w-auto"
+						/>
 					</div>
 					<p className="text-xs text-muted-foreground">
 						A demo use case for EU Digital Identity Wallet age verification.
@@ -530,7 +450,7 @@ function HomePage() {
 
 	return (
 		<div className="min-h-screen bg-background">
-			<Header />
+			<Header showNav />
 			<main>
 				<Hero />
 

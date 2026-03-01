@@ -1,6 +1,7 @@
 import type { ShippingDestination } from "@/data/shipping-destinations";
 import type { CartItem } from "@/domain/catalog/catalog-types";
 import type {
+	AgeVerificationMethod,
 	NormalizedPidClaims,
 	VerificationPolicy,
 } from "@/domain/verification/verification-types";
@@ -29,6 +30,7 @@ export type OrderState = {
 	orderId: string | null;
 	items: CartItem[];
 	shippingDestination: ShippingDestination | null;
+	ageVerificationMethod: AgeVerificationMethod | null;
 	confirmation: OrderConfirmation | null;
 	updatedAt: string;
 	lastError: string | null;

@@ -11,6 +11,7 @@ import type { ShippingDestination } from "@/data/shipping-destinations";
 import type { CartItem, WineProduct } from "@/domain/catalog/catalog-types";
 import {
 	createInitialOrderState,
+	setOrderAgeVerificationMethod,
 	transitionOrderState,
 } from "@/domain/order/order-machine";
 import type {
@@ -20,6 +21,7 @@ import type {
 	OrderTransitionResult,
 } from "@/domain/order/order-types";
 import type {
+	AgeVerificationMethod,
 	NormalizedPidClaims,
 	VerificationPolicy,
 } from "@/domain/verification/verification-types";
@@ -30,6 +32,7 @@ type OrderStoreValue = {
 	removeFromCart: (productId: string) => void;
 	updateQuantity: (productId: string, quantity: number) => void;
 	setShippingDestination: (destination: ShippingDestination | null) => void;
+	setAgeVerificationMethod: (method: AgeVerificationMethod) => void;
 	transitionTo: (nextStatus: OrderLifecycleStatus) => OrderTransitionResult;
 	proceedToCheckout: () => OrderTransitionResult;
 	confirmPayment: () => OrderTransitionResult;
@@ -130,6 +133,11 @@ export function OrderStoreProvider({ children }: PropsWithChildren) {
 					updatedAt: new Date().toISOString(),
 				}));
 			},
+			setAgeVerificationMethod: (method) => {
+				applyState(
+					(current) => setOrderAgeVerificationMethod(current, method).state,
+				);
+			},
 			transitionTo: (nextStatus) => {
 				const result = transitionOrderState(stateRef.current, nextStatus);
 				stateRef.current = result.state;
@@ -159,6 +167,20 @@ export function OrderStoreProvider({ children }: PropsWithChildren) {
 					return {
 						ok: false,
 						error: "No shipping destination selected",
+						state: errorState,
+					};
+				}
+				if (current.ageVerificationMethod === null) {
+					const errorState: OrderState = {
+						...current,
+						lastError: "No age verification method selected",
+						updatedAt: new Date().toISOString(),
+					};
+					stateRef.current = errorState;
+					setState(errorState);
+					return {
+						ok: false,
+						error: "No age verification method selected",
 						state: errorState,
 					};
 				}

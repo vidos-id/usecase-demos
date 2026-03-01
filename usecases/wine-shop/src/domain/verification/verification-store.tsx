@@ -28,6 +28,7 @@ import {
 } from "@/domain/verification/verification-mappers";
 import { createVerificationNonce } from "@/domain/verification/verification-request";
 import type {
+	AgeVerificationMethod,
 	VerificationLifecycleState,
 	VerificationState,
 } from "@/domain/verification/verification-types";
@@ -41,6 +42,7 @@ type VerificationStoreValue = {
 	startVerification: (input: {
 		orderId: string;
 		shippingDestination: ShippingDestination;
+		ageVerificationMethod: AgeVerificationMethod;
 	}) => Promise<VerificationActionResult>;
 	refreshLiveStatus: (
 		shippingDestination: ShippingDestination,
@@ -48,6 +50,7 @@ type VerificationStoreValue = {
 	retryVerification: (input: {
 		orderId: string;
 		shippingDestination: ShippingDestination;
+		ageVerificationMethod: AgeVerificationMethod;
 	}) => Promise<VerificationActionResult>;
 	resetVerification: () => void;
 };
@@ -110,6 +113,7 @@ export function VerificationStoreProvider({ children }: PropsWithChildren) {
 		const runStartVerification = async (input: {
 			orderId: string;
 			shippingDestination: ShippingDestination;
+			ageVerificationMethod: AgeVerificationMethod;
 		}): Promise<VerificationActionResult> => {
 			const nonce = createVerificationNonce();
 			const baseUrl = getAuthorizerBaseUrl();
@@ -132,6 +136,7 @@ export function VerificationStoreProvider({ children }: PropsWithChildren) {
 					apiKey: getApiKey(),
 					nonce,
 					requiredAge: input.shippingDestination.legalDrinkingAge,
+					ageVerificationMethod: input.ageVerificationMethod,
 				});
 
 				const now = new Date().toISOString();
