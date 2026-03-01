@@ -136,7 +136,7 @@ jobs:
     
       - name: Build Wine Shop
         run: |
-          bun run build --filter=wine-shop
+          bun run build --filter=demo-wine-shop
           cp "usecases/wine-shop/dist/index.html" "usecases/wine-shop/dist/404.html"
 
       - name: Prepare Pages artifact
