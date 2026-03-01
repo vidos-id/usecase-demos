@@ -117,6 +117,11 @@ jobs:
           echo "server_url=$(pulumi stack output endpoint)" >> "$GITHUB_OUTPUT"
         working-directory: infrastructure
 
+      - name: Build Usecases Home
+        run: |
+          bun run build --filter=usecases-home
+          cp "usecases/home/dist/index.html" "usecases/home/dist/404.html"
+
       - name: Build Demo Bank Client
         env:
           VITE_VIDOS_DEMO_BANK_SERVER_URL: ${{ steps.resolve-server-url.outputs.server_url }}
@@ -125,8 +130,6 @@ jobs:
           cp "usecases/demo-bank/client/dist/index.html" "usecases/demo-bank/client/dist/404.html"
 
       - name: Build Car Rental
-        env:
-          VIDOS_CAR_RENTAL_AUTHORIZER_URL: ${{ env.VIDOS_CAR_RENTAL_AUTHORIZER_URL }}
         run: |
           bun run build --filter=demo-car-rental
           cp "usecases/car-rental/dist/index.html" "usecases/car-rental/dist/404.html"
@@ -135,7 +138,8 @@ jobs:
         run: |
           rm -rf site
           mkdir -p site/bank site/car-rental
-          cp -R "usecases/demo-bank/client/dist/." site
+          cp -R "usecases/home/dist/." site
+          cp -R "usecases/demo-bank/client/dist/." site/bank
           cp -R "usecases/car-rental/dist/." site/car-rental
 
       - name: Upload Client artifacts
