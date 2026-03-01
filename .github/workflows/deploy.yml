@@ -19,6 +19,18 @@ env:
   PULUMI_STACK: demo
   PULUMI_BACKEND_URL: s3://vidos-demo-pulumi-state-store
 
+  VITE_HOME_WALLET_SETUP_URL: https://eudi-usecase.demo.vidos.id/wallet-setup
+  VITE_HOME_CREDENTIAL_PREP_URL: https://eudi-usecase.demo.vidos.id/credential-prep
+
+  VITE_DEMO_BANK_URL: https://eudi-usecase.demo.vidos.id/bank
+
+  VITE_CAR_RENTAL_URL: https://eudi-usecase.demo.vidos.id/car-rental
+  VITE_CAR_RENTAL_AUTHORIZER_URL: ${{ vars.VITE_CAR_RENTAL_AUTHORIZER_URL }}
+
+  VITE_WINE_SHOP_URL: https://eudi-usecase.demo.vidos.id/wine-shop
+  VITE_WINE_SHOP_AUTHORIZER_URL: ${{ vars.VITE_WINE_SHOP_AUTHORIZER_URL }}
+
+
 # Allow one concurrent deployment
 concurrency:
   group: 'pages'
