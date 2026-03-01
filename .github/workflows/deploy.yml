@@ -120,7 +120,7 @@ jobs:
       - name: Build Usecases Home
         run: |
           bun run build --filter=usecases-home
-          cp "usecases/home/dist/index.html" "usecases/home/dist/404.html"
+          cp "usecases-home/dist/index.html" "usecases-home/dist/404.html"
 
       - name: Build Demo Bank Client
         env:
@@ -143,7 +143,7 @@ jobs:
         run: |
           rm -rf site
           mkdir -p site/bank site/car-rental
-          cp -R "usecases/home/dist/." site
+          cp -R "usecases-home/dist/." site
           cp -R "usecases/demo-bank/client/dist/." site/bank
           cp -R "usecases/car-rental/dist/." site/car-rental
           cp -R "usecases/wine-shop/dist/." site/wine-shop
