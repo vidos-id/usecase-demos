@@ -160,6 +160,10 @@ jobs:
           cp -R "usecases/car-rental/dist/." site/car-rental
           cp -R "usecases/wine-shop/dist/." site/wine-shop
 
+      - name: Create SPA fallback redirect
+        run: |
+          bash .github/scripts/create-spa-fallback.sh site/404.html
+
       - name: Upload Client artifacts
         uses: actions/upload-pages-artifact@v4
         with:
