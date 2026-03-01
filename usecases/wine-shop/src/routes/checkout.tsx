@@ -13,9 +13,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useOrderStore } from "@/domain/order/order-store";
 import { useDemoReset } from "@/domain/reset/use-demo-reset";
-import { getAgeMethodTechnicalDetails } from "@/domain/verification/age-verification-method-details";
+import {
+	getAgeMethodEvaluationDetails,
+	getAgeMethodTechnicalDetails,
+} from "@/domain/verification/age-verification-method-details";
 import { useVerificationStore } from "@/domain/verification/verification-store";
-import type { AgeVerificationMethod } from "@/domain/verification/verification-types";
+import type {
+	AgeVerificationMethod,
+	NormalizedPidClaims,
+} from "@/domain/verification/verification-types";
 
 export const Route = createFileRoute("/checkout")({
 	component: CheckoutPage,
@@ -293,6 +299,69 @@ function ClaimRequestPanel({
 					</p>
 					<p>
 						Example accepted value: <code>{details.exampleAcceptedValue}</code>
+					</p>
+				</div>
+			</CardContent>
+		</Card>
+	);
+}
+
+function ClaimEvaluationPanel({
+	requiredAge,
+	ageVerificationMethod,
+	claims,
+}: {
+	requiredAge: number;
+	ageVerificationMethod: AgeVerificationMethod | null;
+	claims: NormalizedPidClaims | null;
+}) {
+	if (ageVerificationMethod === null) {
+		return null;
+	}
+
+	const details = getAgeMethodTechnicalDetails(
+		ageVerificationMethod,
+		requiredAge,
+	);
+	const evaluation = getAgeMethodEvaluationDetails(
+		ageVerificationMethod,
+		requiredAge,
+		claims,
+	);
+
+	return (
+		<Card className="mb-5 border-border/60">
+			<CardContent className="p-5">
+				<div className="mb-3 flex items-center justify-between gap-3">
+					<h3 className="font-heading text-sm font-bold">
+						Credential Evaluation
+					</h3>
+					<span
+						className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+						style={
+							evaluation.fulfilled
+								? {
+										background: "oklch(0.52 0.16 145 / 0.15)",
+										color: "oklch(0.42 0.16 145)",
+									}
+								: {
+										background: "oklch(0.6 0.18 40 / 0.15)",
+										color: "oklch(0.45 0.2 40)",
+									}
+						}
+					>
+						{evaluation.fulfilled ? "Fulfilled" : "Not fulfilled"}
+					</span>
+				</div>
+				<div className="grid gap-2 text-xs text-muted-foreground">
+					<p>
+						Field: <code>{details.pidField}</code>
+					</p>
+					<p>
+						Expected: <code>{evaluation.expectedValue}</code>
+					</p>
+					<p>
+						Received: <code>{evaluation.receivedValue}</code>
 					</p>
 				</div>
 			</CardContent>
@@ -625,6 +694,14 @@ function CheckoutPage() {
 						<SuccessBanner
 							name={fullName}
 							actualAge={ageCheck?.actualAge ?? null}
+						/>
+					)}
+
+					{isSuccess && ageCheck !== null && (
+						<ClaimEvaluationPanel
+							requiredAge={ageCheck.requiredAge}
+							ageVerificationMethod={ageVerificationMethod}
+							claims={disclosedClaims}
 						/>
 					)}
 

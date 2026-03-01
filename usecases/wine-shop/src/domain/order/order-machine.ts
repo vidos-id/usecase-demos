@@ -22,7 +22,7 @@ export function createInitialOrderState(): OrderState {
 		orderId: null,
 		items: [],
 		shippingDestination: null,
-		ageVerificationMethod: null,
+		ageVerificationMethod: "age_equal_or_over",
 		confirmation: null,
 		updatedAt: new Date().toISOString(),
 		lastError: null,
