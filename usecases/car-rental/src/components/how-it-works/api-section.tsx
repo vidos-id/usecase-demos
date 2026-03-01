@@ -1,0 +1,200 @@
+import { Code2, FileSearch, QrCode, RefreshCw } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { ClaimsBadgeRow, EndpointBlock, StatusBadgeRow } from "./api-blocks";
+
+const purpleAccent = "var(--primary)";
+
+interface ApiStep {
+	number: number;
+	icon: React.ReactNode;
+	title: string;
+	description: string;
+	detail?: React.ReactNode;
+}
+
+const apiSteps: ApiStep[] = [
+	{
+		number: 1,
+		icon: <Code2 className="size-4" />,
+		title: "Create a credential request (DCQL)",
+		description:
+			"The app calls the Vidos Authorizer API using openapi-fetch with generated types from openapi-typescript. The credential request is described using DCQL (DIF Credential Query Language), specifying the required mDL claims and doctype.",
+		detail: (
+			<>
+				<p className="mt-2 text-xs text-muted-foreground">
+					Namespace:{" "}
+					<code className="rounded bg-muted/50 px-1 font-mono text-[11px]">
+						org.iso.18013.5.1
+					</code>{" "}
+					· Doctype:{" "}
+					<code className="rounded bg-muted/50 px-1 font-mono text-[11px]">
+						org.iso.18013.5.1.mDL
+					</code>
+				</p>
+				<p className="mt-1.5 text-xs text-muted-foreground">
+					Requested claims:
+				</p>
+				<ClaimsBadgeRow />
+				<EndpointBlock
+					method="POST"
+					path="/openid4/vp/v1_0/authorizations"
+					returns="authorizationId · authorizeUrl · nonce · expiresAt"
+				/>
+			</>
+		),
+	},
+	{
+		number: 2,
+		icon: <QrCode className="size-4" />,
+		title: "QR code & wallet handoff",
+		description:
+			"The authorizeUrl returned in step 1 is rendered as a QR code. The user scans it with their EUDI Wallet, which opens the credential presentation flow — the wallet prompts the user to consent to sharing the requested claims.",
+		detail: null,
+	},
+	{
+		number: 3,
+		icon: <RefreshCw className="size-4" />,
+		title: "Status polling",
+		description:
+			"The app polls the status endpoint every second until the wallet responds. Polling stops as soon as a terminal state is reached.",
+		detail: (
+			<>
+				<EndpointBlock
+					method="GET"
+					path="/openid4/vp/v1_0/authorizations/{authorizationId}/status"
+				/>
+				<p className="mt-2 text-xs text-muted-foreground">Possible states:</p>
+				<StatusBadgeRow />
+			</>
+		),
+	},
+	{
+		number: 4,
+		icon: <FileSearch className="size-4" />,
+		title: "Retrieve policy & credentials",
+		description:
+			"Once authorized, the app fetches the policy response — containing validity, integrity, and trusted-issuer checks — and the disclosed credential claims the user consented to share.",
+		detail: (
+			<>
+				<EndpointBlock
+					method="GET"
+					path="/openid4/vp/v1_0/authorizations/{authorizationId}/policy-response"
+					returns="overallStatus · checks[]"
+				/>
+				<EndpointBlock
+					method="GET"
+					path="/openid4/vp/v1_0/authorizations/{authorizationId}/credentials"
+					returns="disclosed credential claims"
+				/>
+			</>
+		),
+	},
+];
+
+function ApiStepCard({ step }: { step: ApiStep }) {
+	return (
+		<div className="flex gap-4">
+			<div className="flex flex-col items-center">
+				<div
+					className="flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
+					style={{ background: purpleAccent }}
+				>
+					{step.number}
+				</div>
+				{step.number < apiSteps.length && (
+					<div
+						className="mt-1 w-px flex-1"
+						style={{
+							background: `linear-gradient(to bottom, ${purpleAccent}30, transparent)`,
+							minHeight: "1.5rem",
+						}}
+					/>
+				)}
+			</div>
+
+			<div className="min-w-0 flex-1 pb-5">
+				<div className="mb-1 flex items-center gap-2">
+					<span style={{ color: purpleAccent }}>{step.icon}</span>
+					<h4 className="font-heading text-sm font-bold">{step.title}</h4>
+				</div>
+				<p className="text-sm leading-relaxed text-muted-foreground">
+					{step.description}
+				</p>
+				{step.detail}
+			</div>
+		</div>
+	);
+}
+
+export function ApiSection() {
+	return (
+		<section
+			className="border-b border-border/50 py-16"
+			style={{ background: "var(--surface)" }}
+		>
+			<div className="mx-auto max-w-5xl px-4 sm:px-6">
+				<div className="mb-10 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+					<div>
+						<div className="mb-3">
+							<span
+								className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-widest"
+								style={{
+									borderColor: `${purpleAccent}35`,
+									color: purpleAccent,
+									background: `${purpleAccent}08`,
+								}}
+							>
+								<Code2 className="size-3" />
+								For developers
+							</span>
+						</div>
+						<h2 className="font-heading text-xl font-bold tracking-tight">
+							Vidos Authorizer API integration
+						</h2>
+						<p className="mt-1.5 max-w-lg text-sm leading-relaxed text-muted-foreground">
+							Uses{" "}
+							<code className="rounded bg-muted/70 px-1 font-mono text-[11px]">
+								openapi-fetch
+							</code>{" "}
+							with types generated by{" "}
+							<code className="rounded bg-muted/70 px-1 font-mono text-[11px]">
+								openapi-typescript
+							</code>{" "}
+							against the{" "}
+							<a
+								href="https://vidos.id/products/vidos-authorizer"
+								target="_blank"
+								rel="noopener noreferrer"
+								className="font-medium hover:underline"
+								style={{ color: purpleAccent }}
+							>
+								Vidos Authorizer
+							</a>{" "}
+							OpenAPI spec.
+						</p>
+					</div>
+
+					<a
+						href="https://vidos.id/docs/"
+						target="_blank"
+						rel="noopener noreferrer"
+						className="shrink-0 text-sm font-medium hover:underline"
+						style={{ color: purpleAccent }}
+					>
+						API docs →
+					</a>
+				</div>
+
+				<Card className="border-border/60 bg-card/80">
+					<CardContent className="p-6">
+						<div>
+							{apiSteps.map((step) => (
+								<ApiStepCard key={step.number} step={step} />
+							))}
+						</div>
+					</CardContent>
+				</Card>
+			</div>
+		</section>
+	);
+}

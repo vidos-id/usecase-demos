@@ -36,7 +36,7 @@ export function Footer() {
 								</li>
 								<li>
 									<a
-										href="https://docs.vidos.id"
+										href="https://vidos.id/docs/"
 										target="_blank"
 										rel="noopener noreferrer"
 										className="transition-colors hover:text-eu-blue"

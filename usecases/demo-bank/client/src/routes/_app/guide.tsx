@@ -5,42 +5,17 @@ import {
 	ExternalLink,
 	FileText,
 	Github,
-	Shield,
-	Smartphone,
-	Wallet,
 } from "lucide-react";
-import { z } from "zod";
-import { EudiGuide } from "@/components/guide/eudi-guide";
-import { MultipazGuide } from "@/components/guide/multipaz-guide";
+import { DemoBankApiFlow } from "@/components/guide/api-flow";
+import { HomeGuidesCta } from "@/components/guide/home-guides-cta";
 import { ProtocolCard, SectionHeader } from "@/components/guide/shared";
-import { ValeraGuide } from "@/components/guide/valera-guide";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-
-const walletTabs = ["eudi", "multipaz", "valera"] as const;
-const walletTabSchema = z.enum(walletTabs);
-const guideSearchSchema = z.object({
-	wallet: walletTabSchema.optional(),
-});
 
 export const Route = createFileRoute("/_app/guide")({
-	validateSearch: guideSearchSchema,
 	component: GuidePage,
 });
 
-type WalletTab = (typeof walletTabs)[number];
-
 function GuidePage() {
-	const search = Route.useSearch();
-	const navigate = Route.useNavigate();
-	const activeTab = search.wallet ?? "eudi";
-
-	const handleTabChange = (wallet: WalletTab) => {
-		navigate({
-			search: (previous) => ({ ...previous, wallet }),
-		});
-	};
-
 	return (
 		<div className="min-h-[calc(100vh-4rem)] py-8 px-4 sm:px-6 lg:px-8">
 			<div className="max-w-4xl mx-auto space-y-12">
@@ -49,52 +24,31 @@ function GuidePage() {
 					<div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
 						<FileText className="h-3.5 w-3.5 text-primary" />
 						<span className="text-xs font-medium text-primary">
-							Getting Started Guide
+							VidosDemoBank — How It Works
 						</span>
 					</div>
 
 					<div className="space-y-4">
 						<h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.1]">
-							How to use{" "}
+							Bank with{" "}
 							<span className="relative">
 								<span className="relative z-10 text-primary">
-									VidosDemoBank
+									your identity wallet
 								</span>
 								<span className="absolute bottom-1 left-0 right-0 h-2.5 bg-primary/20 -rotate-1" />
 							</span>
 						</h1>
 						<p className="text-lg text-muted-foreground max-w-2xl leading-relaxed">
-							Set up an EUDI-compatible wallet and experience PID-based
-							identification — the same flow banks will use for KYC and Strong
-							Customer Authentication under eIDAS 2.0.
+							VidosDemoBank demonstrates PID-based identification — the same
+							flow banks will use for KYC and Strong Customer Authentication
+							under eIDAS 2.0. No passwords, no forms: your EU Digital Wallet is
+							your identity.
 						</p>
 					</div>
-
-					{/* Wallet Tabs */}
-					<div className="flex gap-2 p-1 rounded-xl bg-muted/50 border border-border/60 w-fit">
-						<WalletTab
-							active={activeTab === "eudi"}
-							onClick={() => handleTabChange("eudi")}
-							icon={<Shield className="h-4 w-4" />}
-							name="EUDI Wallet"
-							status="direct_post"
-						/>
-						<WalletTab
-							active={activeTab === "multipaz"}
-							onClick={() => handleTabChange("multipaz")}
-							icon={<Wallet className="h-4 w-4" />}
-							name="Multipaz"
-							status="direct_post + DC API"
-						/>
-						<WalletTab
-							active={activeTab === "valera"}
-							onClick={() => handleTabChange("valera")}
-							icon={<Smartphone className="h-4 w-4" />}
-							name="Valera"
-							status="direct_post + DC API"
-						/>
-					</div>
 				</header>
+
+				{/* Generic guidance CTA — links to home app */}
+				<HomeGuidesCta />
 
 				{/* Quick Start */}
 				<section className="space-y-6">
@@ -119,16 +73,8 @@ function GuidePage() {
 					</div>
 				</section>
 
-				{/* Active Wallet Guide */}
-				<section className="animate-fade-in">
-					{activeTab === "eudi" ? (
-						<EudiGuide />
-					) : activeTab === "multipaz" ? (
-						<MultipazGuide />
-					) : (
-						<ValeraGuide />
-					)}
-				</section>
+				{/* Demo-bank specific API flow explanation */}
+				<DemoBankApiFlow />
 
 				{/* Protocol Reference */}
 				<section className="space-y-6">
@@ -238,58 +184,7 @@ function GuidePage() {
 	);
 }
 
-// ============================================================================
-// Components
-// ============================================================================
-
-function WalletTab({
-	active,
-	onClick,
-	icon,
-	name,
-	status,
-}: {
-	active: boolean;
-	onClick: () => void;
-	icon: React.ReactNode;
-	name: string;
-	status: string;
-}) {
-	return (
-		<button
-			type="button"
-			onClick={onClick}
-			className={cn(
-				"flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all duration-200",
-				active
-					? "bg-background border border-border/60 shadow-sm"
-					: "hover:bg-background/50",
-			)}
-		>
-			<span className={cn(active ? "text-primary" : "text-muted-foreground")}>
-				{icon}
-			</span>
-			<span
-				className={cn(
-					"font-medium text-sm",
-					active ? "text-foreground" : "text-muted-foreground",
-				)}
-			>
-				{name}
-			</span>
-			<span
-				className={cn(
-					"text-[10px] font-mono px-1.5 py-0.5 rounded",
-					active
-						? "bg-primary/10 text-primary"
-						: "bg-muted text-muted-foreground",
-				)}
-			>
-				{status}
-			</span>
-		</button>
-	);
-}
+// ─── Quick Start Card ─────────────────────────────────────────────────────────
 
 function QuickStartCard({
 	to,
@@ -305,30 +200,29 @@ function QuickStartCard({
 	return (
 		<Link
 			to={to}
-			className={cn(
-				"group p-6 rounded-2xl border transition-all duration-300 block",
+			className={
 				primary
-					? "bg-gradient-to-br from-primary/90 to-primary text-primary-foreground border-primary shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30"
-					: "bg-background border-border/60 hover:border-primary/40",
-			)}
+					? "group p-6 rounded-2xl border transition-all duration-300 block bg-gradient-to-br from-primary/90 to-primary text-primary-foreground border-primary shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30"
+					: "group p-6 rounded-2xl border transition-all duration-300 block bg-background border-border/60 hover:border-primary/40"
+			}
 		>
 			<div className="flex items-center justify-between">
 				<div>
 					<h3 className="font-semibold text-lg mb-1">{title}</h3>
 					<p
-						className={cn(
-							"text-sm",
-							primary ? "opacity-90" : "text-muted-foreground",
-						)}
+						className={
+							primary ? "text-sm opacity-90" : "text-sm text-muted-foreground"
+						}
 					>
 						{description}
 					</p>
 				</div>
 				<ArrowRight
-					className={cn(
-						"h-5 w-5 transition-transform group-hover:translate-x-1",
-						primary ? "opacity-80" : "text-muted-foreground",
-					)}
+					className={
+						primary
+							? "h-5 w-5 transition-transform group-hover:translate-x-1 opacity-80"
+							: "h-5 w-5 transition-transform group-hover:translate-x-1 text-muted-foreground"
+					}
 				/>
 			</div>
 		</Link>

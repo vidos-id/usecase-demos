@@ -1,6 +1,7 @@
+import { RouterProvider } from "@tanstack/react-router";
 import ReactDOM from "react-dom/client";
 import "./index.css";
-import { App } from "./app";
+import { router } from "./routes";
 
 const rootElement = document.getElementById("root");
 
@@ -12,5 +13,5 @@ if (!rootElement) {
 
 if (!rootElement.innerHTML) {
 	const root = ReactDOM.createRoot(rootElement);
-	root.render(<App />);
+	root.render(<RouterProvider router={router} />);
 }

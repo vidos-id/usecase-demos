@@ -1,4 +1,4 @@
-import { BookOpen, Shield, Sparkles } from "lucide-react";
+import { BookOpen, Sparkles } from "lucide-react";
 
 export function HeroSection() {
 	return (
@@ -69,7 +69,7 @@ export function HeroSection() {
 					{/* Docs link */}
 					<div className="animate-fade-in delay-3 mt-4 flex items-center justify-center">
 						<a
-							href="https://vidos.id/docs"
+							href="https://vidos.id/docs/"
 							target="_blank"
 							rel="noopener noreferrer"
 							className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card px-4 py-1.5 text-sm font-medium text-muted-foreground shadow-sm transition-colors hover:border-primary/30 hover:text-foreground"

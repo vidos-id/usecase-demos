@@ -252,7 +252,6 @@ function VerifyPage() {
 		authorizationUrl,
 		request,
 		lastError,
-		policy,
 		disclosedClaims,
 	} = verificationState;
 

@@ -3,6 +3,7 @@ import {
 	BookOpen,
 	ChevronRight,
 	CreditCard,
+	ExternalLink,
 	GraduationCap,
 	Heart,
 	Landmark,
@@ -50,7 +51,14 @@ interface UseCase {
 	illustration?: string;
 	icon?: React.ReactNode;
 	status: "live" | "coming-soon";
+	/** Full cross-app URL — only set for live demos */
+	href?: string;
 }
+
+const carRentalUrl =
+	import.meta.env.VITE_CAR_RENTAL_URL ?? "http://localhost:29750/car-rental/";
+const demoBankUrl =
+	import.meta.env.VITE_DEMO_BANK_URL ?? "http://localhost:55930/bank/";
 
 const useCases: UseCase[] = [
 	// --- Featured (with illustrations) ---
@@ -61,6 +69,7 @@ const useCases: UseCase[] = [
 		category: "Banking & Payment",
 		illustration: bankIllustration,
 		status: "live",
+		href: demoBankUrl,
 	},
 	{
 		title: "Car Rental with Mobile Driving Licence",
@@ -69,6 +78,7 @@ const useCases: UseCase[] = [
 		category: "Travel",
 		illustration: mdlIllustration,
 		status: "live",
+		href: carRentalUrl,
 	},
 	{
 		title: "Age Verification",
@@ -76,7 +86,7 @@ const useCases: UseCase[] = [
 			"Prove you are above a required age threshold without revealing your full date of birth. Selective disclosure keeps your data minimal.",
 		category: "Core Functionality",
 		illustration: ageIllustration,
-		status: "live",
+		status: "coming-soon",
 	},
 	{
 		title: "Digital Travel Credential",
@@ -120,123 +130,14 @@ const useCases: UseCase[] = [
 		icon: <CreditCard className="size-5" />,
 		status: "coming-soon",
 	},
-	{
-		title: "Identification in Proximity Scenarios",
-		description:
-			"Secure in-person identification for services where the credential holder means proving personal presence of identity.",
-		category: "Identification",
-		icon: <Users className="size-5" />,
-		status: "coming-soon",
-	},
-	{
-		title: "e-Prescription",
-		description:
-			"Identify yourself in order to access e-prescriptions stored and presented via an EUDI Wallet.",
-		category: "Health & Social Security",
-		icon: <Pill className="size-5" />,
-		status: "coming-soon",
-	},
-	{
-		title: "European Health Insurance Card (EHIC)",
-		description:
-			"Grants access to necessary healthcare when in another Member State, presented digitally via EUDI Wallet.",
-		category: "Health & Social Security",
-		icon: <Heart className="size-5" />,
-		status: "coming-soon",
-	},
-	{
-		title: "European Disability Card",
-		description:
-			"Serves as proof of recognised disability status and entitlement to disability services across Member States.",
-		category: "Health & Social Security",
-		icon: <Heart className="size-5" />,
-		status: "coming-soon",
-	},
-	{
-		title: "European Parking Card (EPC)",
-		description:
-			"Issued to persons with disabilities, recognising the right to certain reserved parking conditions and facilities.",
-		category: "Travel",
-		icon: <ParkingCircle className="size-5" />,
-		status: "coming-soon",
-	},
-	{
-		title: "Educational Credentials",
-		description:
-			"Store, manage, and present digitally verifiable education-related credentials, like diplomas and certificates.",
-		category: "Education",
-		icon: <GraduationCap className="size-5" />,
-		status: "coming-soon",
-	},
-	{
-		title: "European Student Card",
-		description:
-			"Enables students to store and present their student status digitally across European institutions.",
-		category: "Education",
-		icon: <GraduationCap className="size-5" />,
-		status: "coming-soon",
-	},
-	{
-		title: "Natural or Legal Person Representation",
-		description:
-			"Enables users to act on behalf of another individual or an organisation using digitally verifiable credentials.",
-		category: "Legal Representation",
-		icon: <Scale className="size-5" />,
-		status: "coming-soon",
-	},
-	{
-		title: "Digital Travel Credential (DTC)",
-		description:
-			"A digital representation of the user's identity document such as an identity card, passport or another travel document.",
-		category: "Travel",
-		icon: <Plane className="size-5" />,
-		status: "coming-soon",
-	},
-	{
-		title: "Ticket or Pass",
-		description:
-			"Store, manage, and present digital tickets, event passes, and access passes via boarding passes or event tickets.",
-		category: "Consumer",
-		icon: <Ticket className="size-5" />,
-		status: "coming-soon",
-	},
-	{
-		title: "Vehicle Registration Certificate (VRC)",
-		description:
-			"Proves the registration and legal compliance of a vehicle with national and European road transport regulations.",
-		category: "Travel",
-		icon: <Truck className="size-5" />,
-		status: "coming-soon",
-	},
-	{
-		title: "Public Warnings",
-		description:
-			"Enables trusted public authorities to issue national or subnational warnings and alerts, like for natural disasters.",
-		category: "Consumer",
-		icon: <Volume2 className="size-5" />,
-		status: "coming-soon",
-	},
-	{
-		title: "Open Bank Account",
-		description:
-			"Enables individuals to open a bank account entirely online using their EUDI Wallet credentials.",
-		category: "Banking & Payment",
-		icon: <Landmark className="size-5" />,
-		status: "coming-soon",
-	},
-	{
-		title: "SCA for Payment",
-		description:
-			"Strong Customer Authentication for payment authorisation using credentials stored in an EUDI Wallet.",
-		category: "Banking & Payment",
-		icon: <Banknote className="size-5" />,
-		status: "coming-soon",
-	},
 ];
 
 function FeaturedCard({ uc }: { uc: UseCase }) {
-	return (
-		<Card className="card-hover overflow-hidden flex flex-col bg-card">
+	const isLive = uc.status === "live" && uc.href;
+	const cardContent = (
+		<Card
+			className={`overflow-hidden flex flex-col bg-card ${isLive ? "card-hover cursor-pointer" : ""}`}
+		>
 			<div className="flex items-center justify-center p-8 bg-surface border-b">
 				<img
 					src={uc.illustration}
@@ -259,14 +160,15 @@ function FeaturedCard({ uc }: { uc: UseCase }) {
 				</CardDescription>
 			</CardHeader>
 			<CardFooter className="mt-auto pt-0 px-5 pb-5">
-				{uc.status === "live" ? (
+				{isLive ? (
 					<Button
 						variant="ghost"
 						size="sm"
-						className="text-eu-blue hover:text-eu-blue hover:bg-eu-blue-light -ml-2.5 font-medium"
+						className="text-eu-blue hover:text-eu-blue hover:bg-eu-blue-light -ml-2.5 font-medium pointer-events-none"
+						tabIndex={-1}
 					>
-						Discover the use case
-						<ChevronRight className="size-4" />
+						Try the demo
+						<ExternalLink className="size-3.5" />
 					</Button>
 				) : (
 					<span className="text-xs text-muted-foreground italic">
@@ -276,11 +178,23 @@ function FeaturedCard({ uc }: { uc: UseCase }) {
 			</CardFooter>
 		</Card>
 	);
+
+	if (isLive) {
+		return (
+			<a href={uc.href} target="_blank" rel="noopener noreferrer">
+				{cardContent}
+			</a>
+		);
+	}
+	return cardContent;
 }
 
 function SecondaryCard({ uc }: { uc: UseCase }) {
-	return (
-		<Card className="card-hover flex items-start gap-4 p-5">
+	const isLive = uc.status === "live" && uc.href;
+	const cardContent = (
+		<Card
+			className={`flex items-start gap-4 p-5 ${isLive ? "card-hover cursor-pointer" : ""}`}
+		>
 			<div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-eu-blue-light text-eu-blue">
 				{uc.icon}
 			</div>
@@ -292,13 +206,14 @@ function SecondaryCard({ uc }: { uc: UseCase }) {
 				<p className="text-sm text-muted-foreground mt-1 leading-relaxed">
 					{uc.description}
 				</p>
-				{uc.status === "live" ? (
+				{isLive ? (
 					<Button
 						variant="ghost"
 						size="sm"
-						className="text-eu-blue hover:text-eu-blue hover:bg-eu-blue-light -ml-2.5 mt-2 font-medium"
+						className="text-eu-blue hover:text-eu-blue hover:bg-eu-blue-light -ml-2.5 mt-2 font-medium pointer-events-none"
+						tabIndex={-1}
 					>
-						Discover the use case
+						Try the demo
 						<ChevronRight className="size-4" />
 					</Button>
 				) : (
@@ -309,6 +224,15 @@ function SecondaryCard({ uc }: { uc: UseCase }) {
 			</div>
 		</Card>
 	);
+
+	if (isLive) {
+		return (
+			<a href={uc.href} target="_blank" rel="noopener noreferrer">
+				{cardContent}
+			</a>
+		);
+	}
+	return cardContent;
 }
 
 function StatusIndicator({ status }: { status: "live" | "coming-soon" }) {

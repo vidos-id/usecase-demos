@@ -39,7 +39,7 @@ export function EudiGuide() {
 							</p>
 							<div className="space-y-3">
 								<LinkButton
-									href="https://issuer.eudiw.dev/display_credential_offer"
+									href="https://issuer.eudiw.dev/"
 									icon={<ExternalLink className="h-4 w-4" />}
 								>
 									Open Credential Offer Page

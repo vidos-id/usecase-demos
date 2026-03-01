@@ -14,7 +14,7 @@ function CallbackLayout() {
 						<Link to="/" className="group flex items-center gap-2 sm:gap-3">
 							<div className="relative">
 								<img
-									src="/logo.svg"
+									src="/bank/logo.svg"
 									alt="VidosDemoBank"
 									className="w-8 h-8 sm:w-10 sm:h-10 drop-shadow-sm group-hover:drop-shadow-md transition-all duration-300"
 								/>

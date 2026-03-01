@@ -1,5 +1,5 @@
+import { Link } from "@tanstack/react-router";
 import { ArrowRight, Download, Play, Wallet } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 const steps = [
 	{
@@ -8,6 +8,7 @@ const steps = [
 		title: "Get a Wallet",
 		description:
 			"Download a compatible EUDI Wallet app. We support the EU Reference Wallet, Valera, and other standards-compliant wallets.",
+		to: "/wallet-setup" as const,
 	},
 	{
 		number: "2",
@@ -15,6 +16,7 @@ const steps = [
 		title: "Obtain Credentials",
 		description:
 			"Issue yourself test credentials through our guided issuance flow. Get a PID, driving licence, or other verifiable credentials.",
+		to: "/credential-prep" as const,
 	},
 	{
 		number: "3",
@@ -22,6 +24,7 @@ const steps = [
 		title: "Try the Demos",
 		description:
 			"Walk through interactive scenarios that demonstrate real-world credential verification flows end-to-end.",
+		to: "/how-demos-work" as const,
 	},
 ];
 
@@ -43,9 +46,10 @@ export function HowItWorks() {
 				{/* Steps — three column cards with numbered EU-blue circles */}
 				<div className="grid gap-6 sm:grid-cols-3">
 					{steps.map((step) => (
-						<div
+						<Link
 							key={step.number}
-							className="relative rounded-xl border bg-card p-8 text-center flex flex-col items-center"
+							to={step.to}
+							className="group relative rounded-xl border bg-card p-8 text-center flex flex-col items-center hover:border-eu-blue/40 hover:shadow-md transition-all duration-200"
 						>
 							{/* Number circle */}
 							<div className="flex size-12 items-center justify-center rounded-full bg-eu-blue text-eu-blue-foreground text-lg font-bold">
@@ -61,20 +65,18 @@ export function HowItWorks() {
 							<p className="mt-2 text-sm text-muted-foreground leading-relaxed">
 								{step.description}
 							</p>
-						</div>
+
+							<div className="mt-4 flex items-center gap-1 text-xs text-eu-blue font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+								Learn more
+								<ArrowRight className="size-3" />
+							</div>
+						</Link>
 					))}
 				</div>
 
 				{/* Connecting line between steps (desktop) */}
-				<div className="hidden sm:flex justify-center mt-[-13.5rem] mb-[10rem] pointer-events-none">
+				<div className="hidden sm:flex justify-center mt-[-14rem] mb-[10.5rem] pointer-events-none">
 					<div className="w-[60%] border-t-2 border-dashed border-eu-blue/20" />
-				</div>
-
-				<div className="mt-12 text-center">
-					<Button className="btn-eu-blue" size="lg">
-						Get Started
-						<ArrowRight className="size-4" />
-					</Button>
 				</div>
 			</div>
 		</section>

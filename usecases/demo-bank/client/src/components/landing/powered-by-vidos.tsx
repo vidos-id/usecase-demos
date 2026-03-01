@@ -19,7 +19,7 @@ export function PoweredByVidos() {
 					{/* Left resources */}
 					<div className="flex items-center gap-5 order-2 lg:order-1">
 						<ResourceLink
-							href="https://vidos.id/docs"
+							href="https://vidos.id/docs/"
 							icon={<BookOpen className="h-3.5 w-3.5" />}
 							label="Docs"
 						/>
@@ -47,7 +47,7 @@ export function PoweredByVidos() {
 						</span>
 						<div className="h-4 w-px bg-border/50" />
 						<img
-							src={"/vidos-logo.svg"}
+							src={"/bank/vidos-logo.svg"}
 							alt="Vidos"
 							className="h-5 dark:invert transition-transform duration-300 group-hover:scale-105"
 						/>
