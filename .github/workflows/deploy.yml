@@ -133,6 +133,11 @@ jobs:
         run: |
           bun run build --filter=demo-car-rental
           cp "usecases/car-rental/dist/index.html" "usecases/car-rental/dist/404.html"
+    
+      - name: Build Wine Shop
+        run: |
+          bun run build --filter=wine-shop
+          cp "usecases/wine-shop/dist/index.html" "usecases/wine-shop/dist/404.html"
 
       - name: Prepare Pages artifact
         run: |
@@ -141,6 +146,7 @@ jobs:
           cp -R "usecases/home/dist/." site
           cp -R "usecases/demo-bank/client/dist/." site/bank
           cp -R "usecases/car-rental/dist/." site/car-rental
+          cp -R "usecases/wine-shop/dist/." site/wine-shop
 
       - name: Upload Client artifacts
         uses: actions/upload-pages-artifact@v4
