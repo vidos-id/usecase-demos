@@ -33,7 +33,7 @@ export type AuthorizerAuthorizationSession = {
 };
 
 export function getAuthorizerBaseUrl(): string | null {
-	const raw = import.meta.env.VIDOS_CAR_RENTAL_AUTHORIZER_URL;
+	const raw = import.meta.env.VITE_CAR_RENTAL_AUTHORIZER_URL;
 	if (typeof raw !== "string") {
 		return null;
 	}
@@ -43,7 +43,7 @@ export function getAuthorizerBaseUrl(): string | null {
 }
 
 export function getAuthorizerClientConfigError(): string {
-	return "Missing Vidos Authorizer configuration. Set VIDOS_CAR_RENTAL_AUTHORIZER_URL.";
+	return "Missing Vidos Authorizer configuration. Set VITE_CAR_RENTAL_AUTHORIZER_URL.";
 }
 
 function getErrorMessage(error: unknown): string {
