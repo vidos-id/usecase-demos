@@ -43,129 +43,138 @@
 	--color-sidebar-ring: var(--sidebar-ring);
 
 	/* Custom semantic tokens */
-	--color-amber: var(--amber);
-	--color-amber-foreground: var(--amber-foreground);
+	--color-gold: var(--gold);
+	--color-gold-foreground: var(--gold-foreground);
 	--color-surface: var(--surface);
 	--color-surface-foreground: var(--surface-foreground);
+	--color-wine: var(--wine);
+	--color-wine-foreground: var(--wine-foreground);
 
 	/* Font families */
-	--font-heading: "Outfit", system-ui, sans-serif;
-	--font-body: "DM Sans", system-ui, sans-serif;
+	--font-heading: "Playfair Display", Georgia, serif;
+	--font-body: "Libre Franklin", system-ui, sans-serif;
 	--font-mono: "JetBrains Mono", monospace;
 }
 
-/* ─── Light Theme ─── */
+/* --- Light Theme (Wine Shop) --- */
 :root {
-	--radius: 0.75rem;
+	--radius: 0.625rem;
 
-	/* Deep petrol teal — automotive, sophisticated */
-	--primary: oklch(0.42 0.1 220);
-	--primary-foreground: oklch(0.99 0 0);
+	/* Deep burgundy/wine-red primary */
+	--primary: oklch(0.4 0.12 15);
+	--primary-foreground: oklch(0.98 0.005 60);
 
-	/* Warm amber — energy, headlights, premium */
-	--amber: oklch(0.78 0.16 75);
-	--amber-foreground: oklch(0.25 0.06 75);
+	/* Gold accent */
+	--gold: oklch(0.75 0.12 85);
+	--gold-foreground: oklch(0.3 0.06 85);
 
-	/* Backgrounds */
-	--background: oklch(0.985 0.003 90);
-	--foreground: oklch(0.12 0.02 250);
+	/* Wine semantic color */
+	--wine: oklch(0.35 0.14 15);
+	--wine-foreground: oklch(0.95 0.01 60);
 
-	/* Cards — clean white, subtle warmth */
-	--card: oklch(1 0 0);
-	--card-foreground: oklch(0.12 0.02 250);
+	/* Warm cream backgrounds */
+	--background: oklch(0.97 0.008 75);
+	--foreground: oklch(0.18 0.02 30);
+
+	/* Cards — warm white */
+	--card: oklch(0.99 0.004 75);
+	--card-foreground: oklch(0.18 0.02 30);
 
 	/* Elevated surface */
-	--surface: oklch(0.97 0.005 90);
-	--surface-foreground: oklch(0.25 0.015 250);
+	--surface: oklch(0.96 0.01 75);
+	--surface-foreground: oklch(0.3 0.015 30);
 
-	--popover: oklch(1 0 0);
-	--popover-foreground: oklch(0.12 0.02 250);
+	--popover: oklch(0.99 0.004 75);
+	--popover-foreground: oklch(0.18 0.02 30);
 
-	--secondary: oklch(0.96 0.008 220);
-	--secondary-foreground: oklch(0.3 0.08 220);
+	--secondary: oklch(0.94 0.015 75);
+	--secondary-foreground: oklch(0.35 0.06 15);
 
-	--muted: oklch(0.955 0.005 90);
-	--muted-foreground: oklch(0.5 0.015 250);
+	--muted: oklch(0.94 0.008 75);
+	--muted-foreground: oklch(0.5 0.02 30);
 
-	--accent: oklch(0.94 0.02 220);
-	--accent-foreground: oklch(0.42 0.1 220);
+	--accent: oklch(0.93 0.02 15);
+	--accent-foreground: oklch(0.4 0.12 15);
 
-	--destructive: oklch(0.58 0.24 27);
-	--destructive-foreground: oklch(0.99 0 0);
+	--destructive: oklch(0.55 0.22 27);
+	--destructive-foreground: oklch(0.98 0 0);
 
-	--border: oklch(0.91 0.005 250);
-	--input: oklch(0.91 0.005 250);
-	--ring: oklch(0.42 0.1 220);
+	--border: oklch(0.9 0.01 75);
+	--input: oklch(0.9 0.01 75);
+	--ring: oklch(0.4 0.12 15);
 
-	--chart-1: oklch(0.42 0.1 220);
-	--chart-2: oklch(0.78 0.16 75);
-	--chart-3: oklch(0.55 0.15 160);
-	--chart-4: oklch(0.65 0.12 300);
-	--chart-5: oklch(0.72 0.14 40);
+	--chart-1: oklch(0.4 0.12 15);
+	--chart-2: oklch(0.75 0.12 85);
+	--chart-3: oklch(0.55 0.1 150);
+	--chart-4: oklch(0.6 0.1 300);
+	--chart-5: oklch(0.68 0.12 40);
 
-	--sidebar: oklch(0.98 0.003 90);
-	--sidebar-foreground: oklch(0.12 0.02 250);
-	--sidebar-primary: oklch(0.42 0.1 220);
-	--sidebar-primary-foreground: oklch(0.99 0 0);
-	--sidebar-accent: oklch(0.94 0.02 220);
-	--sidebar-accent-foreground: oklch(0.42 0.1 220);
-	--sidebar-border: oklch(0.91 0.005 250);
-	--sidebar-ring: oklch(0.42 0.1 220);
+	--sidebar: oklch(0.96 0.008 75);
+	--sidebar-foreground: oklch(0.18 0.02 30);
+	--sidebar-primary: oklch(0.4 0.12 15);
+	--sidebar-primary-foreground: oklch(0.98 0.005 60);
+	--sidebar-accent: oklch(0.93 0.02 15);
+	--sidebar-accent-foreground: oklch(0.4 0.12 15);
+	--sidebar-border: oklch(0.9 0.01 75);
+	--sidebar-ring: oklch(0.4 0.12 15);
 }
 
-/* ─── Dark Theme ─── */
+/* --- Dark Theme (Wine Shop) --- */
 .dark {
-	--primary: oklch(0.65 0.12 220);
-	--primary-foreground: oklch(0.99 0 0);
+	--primary: oklch(0.6 0.14 15);
+	--primary-foreground: oklch(0.98 0.005 60);
 
-	--amber: oklch(0.82 0.16 75);
-	--amber-foreground: oklch(0.15 0.04 75);
+	--gold: oklch(0.78 0.12 85);
+	--gold-foreground: oklch(0.18 0.04 85);
 
-	--background: oklch(0.13 0.02 250);
-	--foreground: oklch(0.93 0.01 250);
+	--wine: oklch(0.5 0.16 15);
+	--wine-foreground: oklch(0.95 0.01 60);
 
-	--card: oklch(0.17 0.025 250);
-	--card-foreground: oklch(0.93 0.01 250);
+	--background: oklch(0.14 0.015 30);
+	--foreground: oklch(0.92 0.01 60);
 
-	--surface: oklch(0.2 0.02 250);
-	--surface-foreground: oklch(0.85 0.01 250);
+	--card: oklch(0.18 0.02 30);
+	--card-foreground: oklch(0.92 0.01 60);
 
-	--popover: oklch(0.19 0.025 250);
-	--popover-foreground: oklch(0.93 0.01 250);
+	--surface: oklch(0.21 0.018 30);
+	--surface-foreground: oklch(0.85 0.01 60);
 
-	--secondary: oklch(0.22 0.03 220);
-	--secondary-foreground: oklch(0.9 0.01 220);
+	--popover: oklch(0.2 0.02 30);
+	--popover-foreground: oklch(0.92 0.01 60);
 
-	--muted: oklch(0.2 0.02 250);
-	--muted-foreground: oklch(0.65 0.02 250);
+	--secondary: oklch(0.23 0.025 15);
+	--secondary-foreground: oklch(0.88 0.01 15);
 
-	--accent: oklch(0.24 0.04 220);
-	--accent-foreground: oklch(0.7 0.12 220);
+	--muted: oklch(0.21 0.015 30);
+	--muted-foreground: oklch(0.62 0.02 60);
 
-	--destructive: oklch(0.65 0.2 25);
-	--destructive-foreground: oklch(0.99 0 0);
+	--accent: oklch(0.25 0.04 15);
+	--accent-foreground: oklch(0.65 0.14 15);
 
-	--border: oklch(0.93 0.01 250 / 12%);
-	--input: oklch(0.93 0.01 250 / 10%);
-	--ring: oklch(0.65 0.12 220);
+	--destructive: oklch(0.62 0.2 25);
+	--destructive-foreground: oklch(0.98 0 0);
 
-	--chart-1: oklch(0.65 0.12 220);
-	--chart-2: oklch(0.82 0.16 75);
-	--chart-3: oklch(0.6 0.14 160);
-	--chart-4: oklch(0.68 0.14 300);
-	--chart-5: oklch(0.75 0.14 40);
+	--border: oklch(0.92 0.01 60 / 12%);
+	--input: oklch(0.92 0.01 60 / 10%);
+	--ring: oklch(0.6 0.14 15);
 
-	--sidebar: oklch(0.11 0.02 250);
-	--sidebar-foreground: oklch(0.93 0.01 250);
-	--sidebar-primary: oklch(0.65 0.12 220);
-	--sidebar-primary-foreground: oklch(0.99 0 0);
-	--sidebar-accent: oklch(0.2 0.03 220);
-	--sidebar-accent-foreground: oklch(0.93 0.01 250);
-	--sidebar-border: oklch(0.93 0.01 250 / 8%);
-	--sidebar-ring: oklch(0.65 0.12 220);
+	--chart-1: oklch(0.6 0.14 15);
+	--chart-2: oklch(0.78 0.12 85);
+	--chart-3: oklch(0.58 0.12 150);
+	--chart-4: oklch(0.65 0.12 300);
+	--chart-5: oklch(0.72 0.12 40);
+
+	--sidebar: oklch(0.12 0.015 30);
+	--sidebar-foreground: oklch(0.92 0.01 60);
+	--sidebar-primary: oklch(0.6 0.14 15);
+	--sidebar-primary-foreground: oklch(0.98 0.005 60);
+	--sidebar-accent: oklch(0.22 0.03 15);
+	--sidebar-accent-foreground: oklch(0.92 0.01 60);
+	--sidebar-border: oklch(0.92 0.01 60 / 8%);
+	--sidebar-ring: oklch(0.6 0.14 15);
 }
 
-/* ─── Base Layer ─── */
+/* --- Base Layer --- */
 @layer base {
 	* {
 		@apply border-border outline-ring/50;
@@ -199,9 +208,13 @@
 	.font-heading {
 		font-family: var(--font-heading);
 	}
+
+	.font-body {
+		font-family: var(--font-body);
+	}
 }
 
-/* ─── Animations ─── */
+/* --- Animations --- */
 @keyframes slide-up {
 	from {
 		opacity: 0;
@@ -324,7 +337,7 @@
 	animation-delay: 450ms;
 }
 
-/* ─── Utility Classes ─── */
+/* --- Utility Classes --- */
 .glass {
 	backdrop-filter: blur(12px) saturate(1.5);
 	-webkit-backdrop-filter: blur(12px) saturate(1.5);
@@ -334,4 +347,35 @@
 	background-clip: text;
 	-webkit-background-clip: text;
 	-webkit-text-fill-color: transparent;
+}
+
+/* --- Grain overlay for editorial luxury feel --- */
+body::before {
+	content: "";
+	position: fixed;
+	inset: 0;
+	pointer-events: none;
+	z-index: 9999;
+	opacity: 0.018;
+	background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+	background-size: 200px 200px;
+}
+
+/* --- Cart badge animation --- */
+@keyframes badge-pop {
+	0% {
+		transform: scale(0.6);
+		opacity: 0;
+	}
+	60% {
+		transform: scale(1.25);
+	}
+	100% {
+		transform: scale(1);
+		opacity: 1;
+	}
+}
+
+.badge-pop {
+	animation: badge-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }

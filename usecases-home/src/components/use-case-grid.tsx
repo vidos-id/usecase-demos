@@ -59,6 +59,8 @@ const carRentalUrl =
 	import.meta.env.VITE_CAR_RENTAL_URL ?? "http://localhost:29750/car-rental/";
 const demoBankUrl =
 	import.meta.env.VITE_DEMO_BANK_URL ?? "http://localhost:55930/bank/";
+const wineShopUrl =
+	import.meta.env.VITE_WINE_SHOP_URL ?? "http://localhost:29751/wine-shop/";
 
 const useCases: UseCase[] = [
 	// --- Featured (with illustrations) ---
@@ -79,6 +81,15 @@ const useCases: UseCase[] = [
 		illustration: mdlIllustration,
 		status: "live",
 		href: carRentalUrl,
+	},
+	{
+		title: "Wine Shop with Age Verification",
+		description:
+			"Order wine online and verify your age using your EUDI Wallet. The shop checks your PID credential against the shipping destination's legal drinking age.",
+		category: "Consumer",
+		illustration: ageIllustration,
+		status: "live",
+		href: wineShopUrl,
 	},
 	{
 		title: "Age Verification",

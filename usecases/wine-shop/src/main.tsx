@@ -1,6 +1,9 @@
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import ReactDOM from "react-dom/client";
+import { OrderStoreProvider } from "@/domain/order/order-store";
+import { VerificationStoreProvider } from "@/domain/verification/verification-store";
 import "./index.css";
+import { routeTree } from "./routeTree.gen";
 
 const router = createRouter({ routeTree, basepath: "/wine-shop" });
 
@@ -20,5 +23,11 @@ if (!rootElement) {
 
 if (!rootElement.innerHTML) {
 	const root = ReactDOM.createRoot(rootElement);
-	root.render(<RouterProvider router={router} />);
+	root.render(
+		<OrderStoreProvider>
+			<VerificationStoreProvider>
+				<RouterProvider router={router} />
+			</VerificationStoreProvider>
+		</OrderStoreProvider>,
+	);
 }

@@ -7,7 +7,7 @@ import { defineConfig } from "vite";
 export default defineConfig({
 	base: "/wine-shop/",
 	server: {
-		port: 29750,
+		port: 29751,
 	},
 	plugins: [
 		tanstackRouter({
