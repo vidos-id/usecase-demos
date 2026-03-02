@@ -27,6 +27,7 @@ export const Route = createFileRoute("/cart")({
 
 function countryFlag(country: string): string {
 	const map: Record<string, string> = {
+		IE: "🇮🇪",
 		GB: "🇬🇧",
 		US: "🇺🇸",
 	};

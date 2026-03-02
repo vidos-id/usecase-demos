@@ -18,6 +18,23 @@ export type ShippingDestination = {
 
 export const shippingDestinations: ShippingDestination[] = [
 	{
+		id: "ie-dublin",
+		label: "Dublin, Ireland",
+		country: "IE",
+		region: "EU",
+		legalDrinkingAge: 18,
+		address: "1 St Stephen's Green, Dublin 2, Ireland",
+		recipientName: "Mary Murphy",
+		company: "Green Door Imports",
+		streetLine1: "1 St Stephen's Green",
+		streetLine2: "4th Floor",
+		city: "Dublin",
+		stateOrRegion: "Dublin",
+		postalCode: "D02 HK52",
+		phone: "+353 1 555 0183",
+		email: "mary.murphy@example.ie",
+	},
+	{
 		id: "uk-london",
 		label: "London, United Kingdom",
 		country: "GB",

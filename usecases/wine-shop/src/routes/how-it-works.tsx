@@ -35,7 +35,7 @@ const steps = [
 	{
 		icon: MapPin,
 		title: "Select Destination",
-		desc: "Choose your shipping destination — London, UK (18+) or New York, USA (21+). Legal drinking age requirements differ by region.",
+		desc: "Choose your shipping destination — Dublin, Ireland (18+), London, UK (18+), or New York, USA (21+). Legal drinking age requirements differ by region.",
 		num: "02",
 	},
 	{

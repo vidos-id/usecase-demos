@@ -22,6 +22,7 @@
 		"openapi-fetch": "^0.17.0"
 	},
 	"devDependencies": {
+		"bun-types": "latest",
 		"@types/bun": "latest",
 		"drizzle-kit": "^0.31.1",
 		"openapi-typescript": "^7.10.1"

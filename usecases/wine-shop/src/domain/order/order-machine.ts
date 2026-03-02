@@ -1,9 +1,15 @@
+import { shippingDestinations } from "@/data/shipping-destinations";
 import type {
 	OrderLifecycleStatus,
 	OrderState,
 	OrderTransitionResult,
 } from "@/domain/order/order-types";
 import type { AgeVerificationMethod } from "@/domain/verification/verification-types";
+
+const defaultShippingDestination =
+	shippingDestinations.find((dest) => dest.id === "ie-dublin") ??
+	shippingDestinations[0] ??
+	null;
 
 const allowedTransitions: Record<OrderLifecycleStatus, OrderLifecycleStatus[]> =
 	{
@@ -21,7 +27,7 @@ export function createInitialOrderState(): OrderState {
 		status: "draft",
 		orderId: null,
 		items: [],
-		shippingDestination: null,
+		shippingDestination: defaultShippingDestination,
 		ageVerificationMethod: "age_equal_or_over",
 		confirmation: null,
 		updatedAt: new Date().toISOString(),
