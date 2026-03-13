@@ -13,8 +13,5 @@
 	"search.exclude": {
 		"**/routeTree.gen.ts": true
 	},
-	"cSpell.words": [
-		"usecases",
-		"VIDOS"
-	]
+	"cSpell.words": ["usecases", "VIDOS"]
 }
