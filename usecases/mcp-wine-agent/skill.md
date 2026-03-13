@@ -6,6 +6,29 @@ Use this skill to shop from the demo wine store over plain HTTP.
 
 This API is session-based. Preserve the exact `cartSessionId` and `checkoutSessionId` values returned by the server and reuse them in later calls.
 
+## Install In OpenClaw
+
+```bash
+mkdir -p ~/.openclaw/skills/wine-store
+curl -L <the-skill.md-url> > ~/.openclaw/skills/wine-store/skill.md
+```
+
+Replace `<the-skill.md-url>` with what was provided to you.
+
+After install, load or enable the skill in OpenClaw using your normal skill workflow.
+
+## First Run
+
+When the skill is first installed or first used, proactively tell the user what it can help with.
+
+Suggested intro:
+
+- browse and compare wines by type, country, region, occasion, or price
+- build and manage a wine cart
+- start checkout for age-restricted wine purchases
+- guide the user through wallet-based age verification
+- confirm the order after verification, using a mock payment confirmation
+
 ## What you can do
 
 - Search the wine catalog
@@ -20,6 +43,19 @@ This API is session-based. Preserve the exact `cartSessionId` and `checkoutSessi
 ### Search wines
 
 `POST /api/wines/search`
+
+When presenting search results, do not dump raw JSON or code blocks unless the user explicitly asks for raw data. Format wines in a human-friendly way with concise, readable descriptions.
+
+Preferred presentation style:
+
+- wine name and vintage
+- type, region, country
+- price in EUR
+- a short plain-language summary
+- optional food pairing or occasion hint
+- the `wineId` only when needed for the next action
+
+Show all wines returned by the search, not just a shortened subset.
 
 Example body:
 
@@ -82,8 +118,8 @@ When checkout returns `requiresVerification: true`:
 
 1. Read `authorizeUrl` from the response.
 2. Generate a QR code from `authorizeUrl` with the Node package `qrcode`.
-3. Display the QR code to the user.
-4. Below the QR code, also display the raw `authorizeUrl` so the user can open it directly on their phone.
+3. VERY IMPORTANT: send the QR code as a separate image output, not as plain text and not embedded only as a code block.
+4. After the QR image, send one single follow-up message that contains both the scanning instructions and a clickable `authorizeUrl` for users who prefer to click instead of scanning.
 5. Tell the user to scan the QR code with their digital identity wallet.
 6. Poll `GET /api/checkout/CHECKOUT_SESSION_ID` every 3 seconds for up to 180 seconds.
 7. Stop polling when status becomes `verified`, `rejected`, `expired`, `error`, or `completed`.
@@ -95,6 +131,8 @@ import QRCode from "qrcode";
 
 const qrDataUrl = await QRCode.toDataURL(authorizeUrl);
 ```
+
+If your runtime supports writing files or binary image attachments, prefer generating a PNG image and sending that image to the user. If not, use the best available image-capable output supported by OpenClaw.
 
 ## What to say when checkout resolves
 
@@ -108,5 +146,16 @@ const qrDataUrl = await QRCode.toDataURL(authorizeUrl);
 
 - Prefer concise updates.
 - Reuse exact IDs from prior responses.
+- Present wines and cart contents in clean, human-readable prose or bullets, not raw code-formatted blobs.
+- After adding wine to cart, be eager and motivating about checkout. Encourage the user to proceed to checkout if they seem ready.
+- Do not mention age verification before checkout starts. Wait until the server returns an `authorizeUrl` or verification-required state.
+- During checkout, keep the user oriented: explain what is happening now, what they need to do next, and what you are polling for.
 - Do not invent checkout success before the API returns `verified` or `completed`.
 - If polling reaches 180 seconds without a terminal status, tell the user verification is still pending and they may need to retry checkout.
+
+## Extra Recommendations
+
+- When a cart is created, remind yourself to retain the exact `cartSessionId`.
+- When checkout starts, remind yourself to retain the exact `checkoutSessionId`.
+- If verification fails, explain the outcome plainly and suggest restarting checkout only when appropriate.
+- If the user asks for direct details, you can provide IDs and raw fields, but default to polished presentation.
