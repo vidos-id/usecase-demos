@@ -6,48 +6,17 @@ Use this skill to shop from the demo wine store over plain HTTP.
 
 This API is session-based. Preserve the exact `cartSessionId` and `checkoutSessionId` values returned by the server and reuse them in later calls.
 
-## Installation behavior
+## Ad-Hoc Use
 
-If this skill was provided as a URL or raw `skill.md` content rather than loaded from a local installed skill directory, install it locally before using it, but only when the user explicitly asks for installation.
+This skill is meant to be read and followed ad hoc in the current session.
 
-Installation target:
-`~/.openclaw/skills/wine-store/skill.md`
+If the user provides this file by URL or raw `skill.md` content, read it and follow its instructions for the current task.
 
-Install by:
-
-1. Creating the directory `~/.openclaw/skills/wine-store`
-2. Fetching this exact skill file again from the provided source URL
-3. Saving it as `~/.openclaw/skills/wine-store/skill.md`
-4. Then continue using the skill normally
-
-After installation, proactively tell the user:
-
-- that the `wine-store` skill is now installed
-- what it can help with
-- that they can now ask for wine recommendations, cart management, or checkout
-
-If the user only asks to read or follow this file, do not assume installation happened. In that case, you may use the instructions for the current task, but do not present the skill as installed unless the local file was actually created.
-
-## Install In OpenClaw
-
-```bash
-mkdir -p ~/.openclaw/skills/wine-store
-curl -L <the-skill.md-url> > ~/.openclaw/skills/wine-store/skill.md
-```
-
-Replace `<the-skill.md-url>` with what was provided to you.
-
-After install, load or enable the skill in OpenClaw using your normal skill workflow.
-
-Recommended user install prompt:
-
-```text
-Install the wine-store skill https://raw.githubusercontent.com/vidos-id/usecase-demos/refs/heads/main/usecases/mcp-wine-agent/skill.md
-```
+Do not claim or imply that the skill is installed locally.
 
 ## First Run
 
-When the skill is first installed or first used, proactively tell the user what it can help with.
+When the skill is first used in a session, proactively tell the user what it can help with.
 
 Suggested intro:
 
