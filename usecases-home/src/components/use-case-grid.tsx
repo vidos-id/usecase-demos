@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import {
 	BookOpen,
 	ChevronRight,
@@ -16,9 +17,9 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import ageIllustration from "../assets/age-verification-illustration.svg";
+import aiMcpIllustration from "../assets/ai-mcp-illustration.svg";
 import bankIllustration from "../assets/bank-illustration.svg";
 import mdlIllustration from "../assets/mdl-illustration.svg";
-import passportIllustration from "../assets/passport-illustration.svg";
 
 const categories = [
 	"All",
@@ -39,8 +40,43 @@ interface UseCase {
 	illustration?: string;
 	icon?: React.ReactNode;
 	status: "live" | "coming-soon";
-	/** Full cross-app URL — only set for live demos */
+	/** External URL or internal route */
 	href?: string;
+	external?: boolean;
+	ctaLabel?: string;
+}
+
+function UseCaseCardLink({
+	uc,
+	children,
+}: {
+	uc: UseCase;
+	children: React.ReactNode;
+}) {
+	const isLive = uc.status === "live" && uc.href;
+
+	if (!isLive) {
+		return <>{children}</>;
+	}
+
+	if (uc.external === false) {
+		return (
+			<Link to={uc.href} className="block h-full">
+				{children}
+			</Link>
+		);
+	}
+
+	return (
+		<a
+			href={uc.href}
+			target="_blank"
+			rel="noopener noreferrer"
+			className="block h-full"
+		>
+			{children}
+		</a>
+	);
 }
 
 const carRentalUrl =
@@ -60,6 +96,7 @@ const useCases: UseCase[] = [
 		illustration: bankIllustration,
 		status: "live",
 		href: demoBankUrl,
+		external: true,
 	},
 	{
 		title: "Car Rental with Mobile Driving Licence",
@@ -69,6 +106,7 @@ const useCases: UseCase[] = [
 		illustration: mdlIllustration,
 		status: "live",
 		href: carRentalUrl,
+		external: true,
 	},
 	{
 		title: "Wine Shop with Age Verification",
@@ -78,14 +116,18 @@ const useCases: UseCase[] = [
 		illustration: ageIllustration,
 		status: "live",
 		href: wineShopUrl,
+		external: true,
 	},
 	{
-		title: "Digital Travel Credential",
+		title: "AI Wine Concierge (MCP)",
 		description:
-			"Present a digital version of your passport or travel document at airport gates. Contactless, fast, and cryptographically verified.",
-		category: "Travel",
-		illustration: passportIllustration,
-		status: "coming-soon",
+			"Set up the MCP app inside ChatGPT, connect it to the Vidos wine store server, and try the guided age-verification purchase flow.",
+		category: "Consumer",
+		illustration: aiMcpIllustration,
+		status: "live",
+		href: "/mcp-wine-agent",
+		external: false,
+		ctaLabel: "Open setup guide",
 	},
 
 	// --- Secondary (icon-based) ---
@@ -125,9 +167,10 @@ const useCases: UseCase[] = [
 
 function FeaturedCard({ uc }: { uc: UseCase }) {
 	const isLive = uc.status === "live" && uc.href;
+	const ctaLabel = uc.ctaLabel ?? "Try the demo";
 	const cardContent = (
 		<Card
-			className={`overflow-hidden flex flex-col bg-card ${isLive ? "card-hover cursor-pointer" : ""}`}
+			className={`h-full overflow-hidden flex flex-col bg-card ${isLive ? "card-hover cursor-pointer" : ""}`}
 		>
 			<div className="flex items-center justify-center p-8 bg-surface border-b">
 				<img
@@ -158,8 +201,12 @@ function FeaturedCard({ uc }: { uc: UseCase }) {
 						className="text-eu-blue hover:text-eu-blue hover:bg-eu-blue-light -ml-2.5 font-medium pointer-events-none"
 						tabIndex={-1}
 					>
-						Try the demo
-						<ExternalLink className="size-3.5" />
+						{ctaLabel}
+						{uc.external === false ? (
+							<ChevronRight className="size-3.5" />
+						) : (
+							<ExternalLink className="size-3.5" />
+						)}
 					</Button>
 				) : (
 					<span className="text-xs text-muted-foreground italic">
@@ -170,21 +217,15 @@ function FeaturedCard({ uc }: { uc: UseCase }) {
 		</Card>
 	);
 
-	if (isLive) {
-		return (
-			<a href={uc.href} target="_blank" rel="noopener noreferrer">
-				{cardContent}
-			</a>
-		);
-	}
-	return cardContent;
+	return <UseCaseCardLink uc={uc}>{cardContent}</UseCaseCardLink>;
 }
 
 function SecondaryCard({ uc }: { uc: UseCase }) {
 	const isLive = uc.status === "live" && uc.href;
+	const ctaLabel = uc.ctaLabel ?? "Try the demo";
 	const cardContent = (
 		<Card
-			className={`flex items-start gap-4 p-5 ${isLive ? "card-hover cursor-pointer" : ""}`}
+			className={`h-full flex items-start gap-4 p-5 ${isLive ? "card-hover cursor-pointer" : ""}`}
 		>
 			<div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-eu-blue-light text-eu-blue">
 				{uc.icon}
@@ -204,8 +245,12 @@ function SecondaryCard({ uc }: { uc: UseCase }) {
 						className="text-eu-blue hover:text-eu-blue hover:bg-eu-blue-light -ml-2.5 mt-2 font-medium pointer-events-none"
 						tabIndex={-1}
 					>
-						Try the demo
-						<ChevronRight className="size-4" />
+						{ctaLabel}
+						{uc.external === false ? (
+							<ChevronRight className="size-4" />
+						) : (
+							<ExternalLink className="size-4" />
+						)}
 					</Button>
 				) : (
 					<span className="inline-flex items-center gap-1.5 mt-2 text-xs text-muted-foreground italic">
@@ -216,14 +261,7 @@ function SecondaryCard({ uc }: { uc: UseCase }) {
 		</Card>
 	);
 
-	if (isLive) {
-		return (
-			<a href={uc.href} target="_blank" rel="noopener noreferrer">
-				{cardContent}
-			</a>
-		);
-	}
-	return cardContent;
+	return <UseCaseCardLink uc={uc}>{cardContent}</UseCaseCardLink>;
 }
 
 function StatusIndicator({ status }: { status: "live" | "coming-soon" }) {

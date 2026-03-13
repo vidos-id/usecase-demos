@@ -7,6 +7,7 @@ import {
 import { App } from "./app";
 import { CredentialPrepPage } from "./pages/credential-prep";
 import { HowDemosWorkPage } from "./pages/how-demos-work";
+import { McpWineAgentPage } from "./pages/mcp-wine-agent";
 import { WalletSetupPage } from "./pages/wallet-setup";
 
 const rootRoute = createRootRoute();
@@ -35,16 +36,24 @@ const howDemosWorkRoute = createRoute({
 	component: HowDemosWorkPage,
 });
 
+const mcpWineAgentRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "/mcp-wine-agent",
+	component: McpWineAgentPage,
+});
+
 const routeTree = rootRoute.addChildren([
 	homeRoute,
 	walletSetupRoute,
 	credentialPrepRoute,
 	howDemosWorkRoute,
+	mcpWineAgentRoute,
 ]);
 
 export const router = createRouter({
 	routeTree,
 	history: createBrowserHistory(),
+	scrollRestoration: true,
 });
 
 declare module "@tanstack/react-router" {

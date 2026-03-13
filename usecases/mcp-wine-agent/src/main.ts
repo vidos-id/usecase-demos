@@ -4,7 +4,7 @@ import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { createServer } from "@/server";
 import { logDebug } from "@/utils/debug";
 
-const port = Number(process.env.PORT ?? 30123);
+const port = Number(process.env.PORT ?? 44182);
 const mcpPath = process.env.MCP_PATH ?? "/mcp";
 
 type SessionContext = {
