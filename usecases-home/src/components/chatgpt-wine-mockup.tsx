@@ -4,7 +4,9 @@ import {
 	CheckCircle2,
 	CreditCard,
 	LoaderCircle,
+	Paperclip,
 	QrCode,
+	Search,
 	ShieldCheck,
 	ShoppingCart,
 	Sparkles,
@@ -12,6 +14,8 @@ import {
 	Wine,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+
+type MockupVariant = "chatgpt" | "openclaw";
 
 // ---------------------------------------------------------------------------
 // Animation keyframes injected once via <style>
@@ -77,10 +81,19 @@ const PHASES = {
 // Sub-components
 // ---------------------------------------------------------------------------
 
-function GptAvatar() {
+function AgentAvatar({ variant }: { variant: MockupVariant }) {
 	return (
-		<div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#10a37f]">
-			<Bot className="h-4 w-4 text-white" />
+		<div
+			className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+			style={{
+				background: variant === "openclaw" ? "#2AABEE" : "#10a37f",
+			}}
+		>
+			{variant === "openclaw" ? (
+				<span className="text-[13px] leading-none">🦞</span>
+			) : (
+				<Bot className="h-4 w-4 text-white" />
+			)}
 		</div>
 	);
 }
@@ -95,11 +108,15 @@ function UserAvatar() {
 
 function AssistantMessage({
 	children,
+	variant,
 	delay = 0,
 }: {
 	children: React.ReactNode;
+	variant: MockupVariant;
 	delay?: number;
 }) {
+	const isOpenClaw = variant === "openclaw";
+
 	return (
 		<div
 			className="flex items-start gap-3"
@@ -107,8 +124,22 @@ function AssistantMessage({
 				animation: `cgpt-msg-in 350ms ease-out ${delay}ms both`,
 			}}
 		>
-			<GptAvatar />
-			<div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-white px-4 py-2.5 text-sm text-[#1a1a1a] shadow-[0_1px_4px_rgba(0,0,0,0.08)] border border-[#e5e5e5]">
+			<AgentAvatar variant={variant} />
+			<div
+				className={
+					isOpenClaw
+						? "max-w-[85%] px-4 py-2.5 text-sm text-[#1a1a1a]"
+						: "max-w-[85%] rounded-2xl rounded-tl-sm bg-white px-4 py-2.5 text-sm text-[#1a1a1a] shadow-[0_1px_4px_rgba(0,0,0,0.08)] border border-[#e5e5e5]"
+				}
+				style={{
+					borderRadius: isOpenClaw ? "18px 18px 18px 6px" : undefined,
+					background: isOpenClaw ? "#ffffff" : undefined,
+					border: isOpenClaw ? "1px solid #d9e7f1" : undefined,
+					boxShadow: isOpenClaw
+						? "0 1px 3px rgba(27, 78, 111, 0.08)"
+						: undefined,
+				}}
+			>
 				{children}
 			</div>
 		</div>
@@ -117,11 +148,15 @@ function AssistantMessage({
 
 function UserMessage({
 	children,
+	variant,
 	delay = 0,
 }: {
 	children: React.ReactNode;
+	variant: MockupVariant;
 	delay?: number;
 }) {
+	const isOpenClaw = variant === "openclaw";
+
 	return (
 		<div
 			className="flex items-start justify-end gap-3"
@@ -129,7 +164,23 @@ function UserMessage({
 				animation: `cgpt-msg-in 350ms ease-out ${delay}ms both`,
 			}}
 		>
-			<div className="max-w-[80%] rounded-2xl rounded-tr-sm bg-[#f4f4f4] px-4 py-2.5 text-sm text-[#1a1a1a]">
+			<div
+				className={
+					isOpenClaw
+						? "max-w-[80%] px-4 py-2.5 text-sm text-[#123247]"
+						: "max-w-[80%] rounded-2xl rounded-tr-sm bg-[#f4f4f4] px-4 py-2.5 text-sm text-[#1a1a1a]"
+				}
+				style={
+					isOpenClaw
+						? {
+								background: "#dff4ff",
+								border: "1px solid #c8e7f9",
+								borderRadius: "18px 18px 6px 18px",
+								boxShadow: "0 1px 3px rgba(27, 78, 111, 0.08)",
+							}
+						: undefined
+				}
+			>
 				{children}
 			</div>
 			<UserAvatar />
@@ -141,13 +192,17 @@ function ToolCallRow({
 	icon,
 	label,
 	status,
+	variant,
 	delay = 0,
 }: {
 	icon: React.ReactNode;
 	label: string;
 	status: "running" | "done" | "success";
+	variant: MockupVariant;
 	delay?: number;
 }) {
+	const isOpenClaw = variant === "openclaw";
+
 	return (
 		<div
 			className="flex items-start gap-3"
@@ -155,10 +210,26 @@ function ToolCallRow({
 				animation: `cgpt-msg-in 350ms ease-out ${delay}ms both`,
 			}}
 		>
-			<GptAvatar />
-			<div className="flex items-center gap-2 rounded-2xl rounded-tl-sm border border-[#e5e5e5] bg-white px-3.5 py-2 text-xs text-[#555] shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
+			<AgentAvatar variant={variant} />
+			<div
+				className={
+					isOpenClaw
+						? "flex items-center gap-2 px-3.5 py-2 text-xs text-[#46667b]"
+						: "flex items-center gap-2 rounded-2xl rounded-tl-sm border border-[#e5e5e5] bg-white px-3.5 py-2 text-xs text-[#555] shadow-[0_1px_4px_rgba(0,0,0,0.06)]"
+				}
+				style={
+					isOpenClaw
+						? {
+								background: "#ffffff",
+								border: "1px solid #d9e7f1",
+								borderRadius: "18px 18px 18px 6px",
+								boxShadow: "0 1px 3px rgba(27, 78, 111, 0.08)",
+							}
+						: undefined
+				}
+			>
 				<span
-					className="text-[#10a37f]"
+					className={isOpenClaw ? "text-[#2AABEE]" : "text-[#10a37f]"}
 					style={
 						status === "running"
 							? { animation: "cgpt-tool-pulse 1s ease-in-out infinite" }
@@ -190,7 +261,15 @@ function ToolCallRow({
 // Wine results card
 // ---------------------------------------------------------------------------
 
-function WineResultsCard({ delay = 0 }: { delay?: number }) {
+function WineResultsCard({
+	variant,
+	delay = 0,
+}: {
+	variant: MockupVariant;
+	delay?: number;
+}) {
+	const isOpenClaw = variant === "openclaw";
+
 	return (
 		<div
 			className="flex items-start gap-3"
@@ -198,8 +277,24 @@ function WineResultsCard({ delay = 0 }: { delay?: number }) {
 				animation: `cgpt-msg-in 350ms ease-out ${delay}ms both`,
 			}}
 		>
-			<GptAvatar />
-			<div className="w-full max-w-[88%] rounded-2xl rounded-tl-sm border border-[#e5e5e5] bg-white px-4 py-3 text-sm shadow-[0_1px_4px_rgba(0,0,0,0.08)]">
+			<AgentAvatar variant={variant} />
+			<div
+				className={
+					isOpenClaw
+						? "w-full max-w-[88%] px-4 py-3 text-sm"
+						: "w-full max-w-[88%] rounded-2xl rounded-tl-sm border border-[#e5e5e5] bg-white px-4 py-3 text-sm shadow-[0_1px_4px_rgba(0,0,0,0.08)]"
+				}
+				style={
+					isOpenClaw
+						? {
+								background: "#ffffff",
+								border: "1px solid #d9e7f1",
+								borderRadius: "18px 18px 18px 6px",
+								boxShadow: "0 1px 3px rgba(27, 78, 111, 0.08)",
+							}
+						: undefined
+				}
+			>
 				<p className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-[#aaa]">
 					Wine search results
 				</p>
@@ -252,9 +347,11 @@ type VerifyPhase = "waiting" | "scanning" | "proof" | "done";
 
 function VerificationWidget({
 	phase,
+	variant,
 	delay = 0,
 }: {
 	phase: VerifyPhase;
+	variant: MockupVariant;
 	delay?: number;
 }) {
 	const WINE = "#722F37";
@@ -273,7 +370,7 @@ function VerificationWidget({
 				animation: `cgpt-msg-in 350ms ease-out ${delay}ms both`,
 			}}
 		>
-			<GptAvatar />
+			<AgentAvatar variant={variant} />
 			<div
 				style={{
 					background: "#FDF8F3",
@@ -414,9 +511,11 @@ type PayPhase = "idle" | "paying" | "done";
 
 function PaymentWidget({
 	phase,
+	variant,
 	delay = 0,
 }: {
 	phase: PayPhase;
+	variant: MockupVariant;
 	delay?: number;
 }) {
 	const WINE = "#722F37";
@@ -428,7 +527,7 @@ function PaymentWidget({
 				animation: `cgpt-payment-in 400ms ease-out ${delay}ms both`,
 			}}
 		>
-			<GptAvatar />
+			<AgentAvatar variant={variant} />
 			<div
 				style={{
 					background: "linear-gradient(180deg, #fffaf6 0%, #fff 100%)",
@@ -537,7 +636,11 @@ function PaymentWidget({
 // Main component
 // ---------------------------------------------------------------------------
 
-export function ChatGptWineMockup() {
+export function ChatGptWineMockup({
+	variant = "chatgpt",
+}: {
+	variant?: MockupVariant;
+}) {
 	const [step, setStep] = useState(0);
 	const [verifyPhase, setVerifyPhase] = useState<VerifyPhase>("waiting");
 	const [payPhase, setPayPhase] = useState<PayPhase>("idle");
@@ -592,77 +695,119 @@ export function ChatGptWineMockup() {
 		};
 	}, [started]);
 
+	const isOpenClaw = variant === "openclaw";
+
 	return (
 		<section
 			ref={startRef}
-			aria-label="ChatGPT wine conversation mockup"
-			className="overflow-hidden rounded-2xl border border-[#e5e5e5] bg-[#f5f4f0] shadow-[0_8px_32px_rgba(0,0,0,0.10)]"
+			aria-label={`${isOpenClaw ? "OpenClaw" : "ChatGPT"} wine conversation mockup`}
+			className="overflow-hidden rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.10)]"
+			style={{
+				border: isOpenClaw ? "1px solid #c9ddeb" : "1px solid #e5e5e5",
+				background: isOpenClaw ? "#e7f1f8" : "#f5f4f0",
+			}}
 		>
 			<style>{KEYFRAMES}</style>
 
 			{/* ── Header bar ── */}
-			<div className="flex items-center justify-between border-b border-[#e0e0e0] bg-white px-4 py-2.5">
-				<div className="flex items-center gap-2">
-					{/* macOS dots */}
-					<span className="h-3 w-3 rounded-full bg-[#ff5f56]" />
-					<span className="h-3 w-3 rounded-full bg-[#ffbd2e]" />
-					<span className="h-3 w-3 rounded-full bg-[#27c93f]" />
-				</div>
-				<div className="flex items-center gap-1.5 rounded-lg border border-[#e5e5e5] px-3 py-1 text-sm font-semibold text-[#1a1a1a]">
-					ChatGPT
-				</div>
-				<div className="flex items-center gap-1.5 text-xs text-[#aaa]">
-					<Sparkles className="h-3.5 w-3.5" />
-					Vinos Wine Store
-				</div>
+			<div
+				className="flex items-center justify-between px-4 py-2.5"
+				style={{
+					borderBottom: isOpenClaw ? "1px solid #c9ddeb" : "1px solid #e0e0e0",
+					background: isOpenClaw ? "#5faee3" : "#ffffff",
+				}}
+			>
+				{isOpenClaw ? (
+					<>
+						<div className="flex items-center gap-3 text-white">
+							<Search className="h-4 w-4 opacity-90" />
+							<div className="flex items-center gap-2">
+								<span className="text-base leading-none">🦞</span>
+								<div>
+									<p className="text-sm font-semibold leading-none">OpenClaw</p>
+									<p className="mt-1 text-[11px] leading-none text-white/80">
+										Vinos Wine Store
+									</p>
+								</div>
+							</div>
+						</div>
+						<Paperclip className="h-4 w-4 text-white/90" />
+					</>
+				) : (
+					<>
+						<div className="flex items-center gap-2">
+							<span className="h-3 w-3 rounded-full bg-[#ff5f56]" />
+							<span className="h-3 w-3 rounded-full bg-[#ffbd2e]" />
+							<span className="h-3 w-3 rounded-full bg-[#27c93f]" />
+						</div>
+						<div className="flex items-center gap-1.5 rounded-lg border border-[#e5e5e5] px-3 py-1 text-sm font-semibold text-[#1a1a1a]">
+							ChatGPT
+						</div>
+						<div className="flex items-center gap-1.5 text-xs text-[#aaa]">
+							<Sparkles className="h-3.5 w-3.5" />
+							Vinos Wine Store
+						</div>
+					</>
+				)}
 			</div>
 
 			{/* ── Chat body ── */}
-			<div className="space-y-4 overflow-hidden bg-[#f5f4f0] px-4 py-5 sm:px-6">
+			<div
+				className="space-y-4 overflow-hidden px-4 py-5 sm:px-6"
+				style={{ background: isOpenClaw ? "#e7f1f8" : "#f5f4f0" }}
+			>
 				{step >= 1 && (
-					<UserMessage>
+					<UserMessage variant={variant}>
 						I'd like to buy a wine for a romantic dinner with my wife.
 					</UserMessage>
 				)}
 
 				{step >= 2 && (
-					<AssistantMessage>
+					<AssistantMessage variant={variant}>
 						Happy to help! Do you have a style in mind — red, white, sparkling,
 						or rosé?
 					</AssistantMessage>
 				)}
 
-				{step >= 3 && <UserMessage>Red would be nice.</UserMessage>}
+				{step >= 3 && (
+					<UserMessage variant={variant}>Red would be nice.</UserMessage>
+				)}
 
 				{step >= 4 && (
 					<ToolCallRow
 						icon={<Sparkles className="h-3.5 w-3.5" />}
 						label="search_wines"
 						status={step >= 5 ? "done" : "running"}
+						variant={variant}
 					/>
 				)}
 
-				{step >= 5 && <WineResultsCard />}
+				{step >= 5 && <WineResultsCard variant={variant} />}
 
 				{step >= 6 && (
-					<AssistantMessage>
+					<AssistantMessage variant={variant}>
 						I found a few great matches. <strong>Rioja Reserva</strong> would be
 						perfect for a romantic evening. Want me to add it to your cart?
 					</AssistantMessage>
 				)}
 
-				{step >= 7 && <UserMessage>Yes, buy the Rioja Reserva.</UserMessage>}
+				{step >= 7 && (
+					<UserMessage variant={variant}>
+						Yes, buy the Rioja Reserva.
+					</UserMessage>
+				)}
 
 				{step >= 8 && (
 					<ToolCallRow
 						icon={<ShoppingCart className="h-3.5 w-3.5" />}
 						label="add_to_cart"
 						status="success"
+						variant={variant}
 					/>
 				)}
 
 				{step >= 9 && (
-					<AssistantMessage>
+					<AssistantMessage variant={variant}>
 						Done — Rioja Reserva is in your cart. I'll start checkout now. Since
 						this is an age-restricted purchase, you'll need to verify your age.
 					</AssistantMessage>
@@ -673,21 +818,24 @@ export function ChatGptWineMockup() {
 						icon={<ShoppingCart className="h-3.5 w-3.5" />}
 						label="initiate_checkout"
 						status="done"
+						variant={variant}
 					/>
 				)}
 
-				{step >= 11 && <VerificationWidget phase={verifyPhase} />}
+				{step >= 11 && (
+					<VerificationWidget phase={verifyPhase} variant={variant} />
+				)}
 
 				{step >= 12 && (
-					<AssistantMessage>
+					<AssistantMessage variant={variant}>
 						Age verified! Here's your payment form.
 					</AssistantMessage>
 				)}
 
-				{step >= 13 && <PaymentWidget phase={payPhase} />}
+				{step >= 13 && <PaymentWidget phase={payPhase} variant={variant} />}
 
 				{step >= 14 && (
-					<AssistantMessage>
+					<AssistantMessage variant={variant}>
 						Payment successful! Your <strong>Rioja Reserva</strong> will be
 						shipped soon. Enjoy your romantic dinner! 🍷
 					</AssistantMessage>
@@ -695,9 +843,24 @@ export function ChatGptWineMockup() {
 			</div>
 
 			{/* ── Input bar (decorative) ── */}
-			<div className="border-t border-[#e0e0e0] bg-white px-4 py-3">
-				<div className="flex items-center gap-2 rounded-xl border border-[#e0e0e0] bg-[#fafafa] px-3.5 py-2 text-sm text-[#bbb]">
-					<span className="flex-1">Message ChatGPT</span>
+			<div
+				className="px-4 py-3"
+				style={{
+					borderTop: isOpenClaw ? "1px solid #c9ddeb" : "1px solid #e0e0e0",
+					background: isOpenClaw ? "#f1f7fb" : "#ffffff",
+				}}
+			>
+				<div
+					className="flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm"
+					style={{
+						border: isOpenClaw ? "1px solid #d5e6f1" : "1px solid #e0e0e0",
+						background: isOpenClaw ? "#ffffff" : "#fafafa",
+						color: isOpenClaw ? "#7d98aa" : "#bbb",
+					}}
+				>
+					<span className="flex-1">
+						{isOpenClaw ? "Message OpenClaw" : "Message ChatGPT"}
+					</span>
 				</div>
 			</div>
 		</section>
