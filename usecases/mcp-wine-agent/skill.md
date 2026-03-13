@@ -6,6 +6,28 @@ Use this skill to shop from the demo wine store over plain HTTP.
 
 This API is session-based. Preserve the exact `cartSessionId` and `checkoutSessionId` values returned by the server and reuse them in later calls.
 
+## Installation behavior
+
+If this skill was provided as a URL or raw `skill.md` content rather than loaded from a local installed skill directory, install it locally before using it, but only when the user explicitly asks for installation.
+
+Installation target:
+`~/.openclaw/skills/wine-store/skill.md`
+
+Install by:
+
+1. Creating the directory `~/.openclaw/skills/wine-store`
+2. Fetching this exact skill file again from the provided source URL
+3. Saving it as `~/.openclaw/skills/wine-store/skill.md`
+4. Then continue using the skill normally
+
+After installation, proactively tell the user:
+
+- that the `wine-store` skill is now installed
+- what it can help with
+- that they can now ask for wine recommendations, cart management, or checkout
+
+If the user only asks to read or follow this file, do not assume installation happened. In that case, you may use the instructions for the current task, but do not present the skill as installed unless the local file was actually created.
+
 ## Install In OpenClaw
 
 ```bash
@@ -16,6 +38,12 @@ curl -L <the-skill.md-url> > ~/.openclaw/skills/wine-store/skill.md
 Replace `<the-skill.md-url>` with what was provided to you.
 
 After install, load or enable the skill in OpenClaw using your normal skill workflow.
+
+Recommended user install prompt:
+
+```text
+Install the wine-store skill https://raw.githubusercontent.com/vidos-id/usecase-demos/refs/heads/main/usecases/mcp-wine-agent/skill.md
+```
 
 ## First Run
 
@@ -134,6 +162,9 @@ When checkout returns `requiresVerification: true`:
 7. Tell the user to scan the QR code with their digital identity wallet.
 8. Poll `GET /api/checkout/CHECKOUT_SESSION_ID` every 3 seconds for up to 180 seconds.
 9. Stop polling when status becomes `verified`, `rejected`, `expired`, `error`, or `completed`.
+10. After sending the QR and follow-up instructions, continue polling proactively without waiting for another user message.
+11. When a terminal status is reached, send the final outcome proactively.
+12. If background polling fails or is interrupted, tell the user immediately instead of silently stopping.
 
 ## OpenClaw Media Send Rule
 
@@ -179,6 +210,12 @@ Then in the next assistant message:
 Scan the QR code with your digital identity wallet, or open this link directly:
 <authorizeUrl>
 ```
+
+Preferred implementation pattern:
+
+- use a background task or session that keeps polling after the QR is sent
+- or use one long-running command that polls until a terminal status is reached, then sends the final result
+- do not wait for the user to send another message before checking status again
 
 ## What to say when checkout resolves
 
