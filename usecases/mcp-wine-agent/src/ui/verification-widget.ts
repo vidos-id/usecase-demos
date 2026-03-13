@@ -258,6 +258,77 @@ function generateAppWidgetHtml(): string {
       color: ${WINE_TEXT}99;
       text-align: center;
     }
+
+    /* ── Verification result banner ── */
+    .verification-result {
+      border-radius: 16px;
+      padding: 28px 20px;
+      text-align: center;
+      margin-bottom: 20px;
+      animation: resultReveal 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    }
+    @keyframes resultReveal {
+      0% { opacity: 0; transform: scale(0.92) translateY(12px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    @keyframes checkPop {
+      0% { transform: scale(0); opacity: 0; }
+      50% { transform: scale(1.15); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .verification-result .result-icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      animation: checkPop 0.45s 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+    .verification-result .result-icon svg {
+      width: 40px;
+      height: 40px;
+    }
+    .verification-result .result-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+      letter-spacing: -0.01em;
+    }
+    .verification-result .result-detail {
+      font-size: 0.95rem;
+      line-height: 1.5;
+      opacity: 0.88;
+    }
+
+    /* Success */
+    .verification-result.result-success {
+      background: linear-gradient(135deg, #e8f9ee 0%, #d0f0db 100%);
+      border: 2px solid #34a853;
+      color: #145a28;
+    }
+    .verification-result.result-success .result-icon {
+      background: #34a853;
+    }
+    .verification-result.result-success .result-title {
+      color: #145a28;
+    }
+
+    /* Failure */
+    .verification-result.result-failure {
+      background: linear-gradient(135deg, #fde8e8 0%, #fad0d0 100%);
+      border: 2px solid #d93025;
+      color: #7a1a14;
+    }
+    .verification-result.result-failure .result-icon {
+      background: #d93025;
+    }
+    .verification-result.result-failure .result-title {
+      color: #7a1a14;
+    }
+
     .hidden { display: none; }
     @media (max-width: 480px) {
       body {
@@ -288,7 +359,9 @@ function generateAppWidgetHtml(): string {
       <div id="status" class="status">Waiting for checkout session details...</div>
     </div>
 
-    <div class="instructions">
+    <div id="verification-result" class="hidden"></div>
+
+    <div id="instructions-section" class="instructions">
       <strong>Verify with your wallet</strong>
       <div id="instructions-text">Scan this QR code with your EUDI Wallet app.</div>
       <div id="authorization-link" class="hidden"></div>
@@ -329,7 +402,9 @@ function generateAppWidgetHtml(): string {
     const qrCodeEl = document.getElementById("qr-code");
     const statusEl = document.getElementById("status");
     const instructionsTextEl = document.getElementById("instructions-text");
+    const instructionsSectionEl = document.getElementById("instructions-section");
     const authorizationLinkEl = document.getElementById("authorization-link");
+    const verificationResultEl = document.getElementById("verification-result");
     const paymentPanelEl = document.getElementById("payment-panel");
     const checkoutButtonEl = document.getElementById("checkout-button");
     const paymentSuccessEl = document.getElementById("payment-success");
@@ -355,6 +430,7 @@ function generateAppWidgetHtml(): string {
 
     function setVerificationVisible(visible) {
       qrCodeEl.parentElement.classList.toggle("hidden", !visible);
+      instructionsSectionEl.classList.toggle("hidden", !visible);
       authorizationLinkEl.classList.toggle("hidden", !visible || !latestAuthorizeUrl);
     }
 
@@ -366,6 +442,65 @@ function generateAppWidgetHtml(): string {
       paymentSuccessEl.classList.toggle("hidden", !visible);
       checkoutButtonEl.disabled = visible;
       checkoutButtonEl.textContent = visible ? "Paid" : "Pay now";
+    }
+
+    const CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+    const X_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+
+    function showVerificationResult(data) {
+      const status = data?.status;
+      if (!status) return;
+
+      const isSuccess = status === "verified" || status === "completed";
+      const isFailure = status === "rejected" || status === "expired" || status === "error";
+      if (!isSuccess && !isFailure) return;
+
+      let title = "";
+      let detail = "";
+      let icon = CHECK_SVG;
+      let cls = "result-success";
+
+      if (isSuccess) {
+        title = "Age Verified";
+        const age = data?.verification?.ageCheck;
+        if (age?.actualAge) {
+          detail = "Identity confirmed — age " + age.actualAge + ", meets " + age.requiredAge + "+ requirement.";
+        } else if (age?.requiredAge) {
+          detail = "Identity confirmed — " + age.requiredAge + "+ eligibility verified.";
+        } else {
+          detail = "Identity confirmed — eligible to purchase age-restricted wines.";
+        }
+      } else {
+        icon = X_SVG;
+        cls = "result-failure";
+        if (status === "rejected") {
+          const age = data?.verification?.ageCheck;
+          if (age && !age.eligible && age.actualAge != null) {
+            title = "Age Verification Failed";
+            detail = "Buyer is " + age.actualAge + " years old — minimum age is " + age.requiredAge + ".";
+          } else {
+            title = "Verification Rejected";
+            detail = data?.verification?.lastError ?? "The verification was not accepted. Try again.";
+          }
+        } else if (status === "expired") {
+          title = "Verification Expired";
+          detail = "The session timed out before completion. Restart checkout to try again.";
+        } else {
+          title = "Verification Error";
+          detail = data?.verification?.lastError ?? "Something went wrong. Restart checkout to try again.";
+        }
+      }
+
+      verificationResultEl.className = "verification-result " + cls;
+      verificationResultEl.innerHTML =
+        '<div class="result-icon">' + icon + '</div>' +
+        '<div class="result-title">' + title + '</div>' +
+        '<div class="result-detail">' + detail + '</div>';
+      verificationResultEl.classList.remove("hidden");
+
+      // Hide QR, instructions, and old status when result is shown
+      qrCodeEl.parentElement.classList.add("hidden");
+      instructionsSectionEl.classList.add("hidden");
     }
 
     function normalizeToolOutput(raw) {
@@ -540,7 +675,7 @@ function generateAppWidgetHtml(): string {
       if (qrSvg) {
         qrCodeEl.innerHTML = qrSvg;
       } else {
-        qrCodeEl.innerHTML = '<div class="placeholder">QR code unavailable.</div>';
+        qrCodeEl.innerHTML = '<div class="placeholder">QR code loading.</div>';
       }
 
       instructionsTextEl.textContent = buildInstructionText(data);
@@ -562,6 +697,7 @@ function generateAppWidgetHtml(): string {
       }
 
       if (terminalStatuses.has(data?.status)) {
+        showVerificationResult(data);
         stopPolling();
         void notifyAgent(data);
         return;
