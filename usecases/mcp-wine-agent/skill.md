@@ -126,22 +126,59 @@ Example body for an existing cart:
 When checkout returns `requiresVerification: true`:
 
 1. Read `authorizeUrl` from the response.
-2. Generate a QR code from `authorizeUrl` with the Node package `qrcode`.
-3. VERY IMPORTANT: send the QR code as a separate image output, not as plain text and not embedded only as a code block.
-4. After the QR image, send one single follow-up message that contains both the scanning instructions and a clickable `authorizeUrl` for users who prefer to click instead of scanning.
-5. Tell the user to scan the QR code with their digital identity wallet.
-6. Poll `GET /api/checkout/CHECKOUT_SESSION_ID` every 3 seconds for up to 180 seconds.
-7. Stop polling when status becomes `verified`, `rejected`, `expired`, `error`, or `completed`.
+2. Generate a QR code PNG from `authorizeUrl` with the Node package `qrcode`.
+3. Save the QR code to a local PNG file.
+4. VERY IMPORTANT: send the QR code using OpenClaw outbound media syntax with a `MEDIA:<absolute-path>` line on its own line.
+5. Do not send the QR only as plain text, base64, markdown image syntax, or a code block.
+6. After the media message, send one single follow-up message that contains both the scanning instructions and a clickable `authorizeUrl` for users who prefer to click instead of scanning.
+7. Tell the user to scan the QR code with their digital identity wallet.
+8. Poll `GET /api/checkout/CHECKOUT_SESSION_ID` every 3 seconds for up to 180 seconds.
+9. Stop polling when status becomes `verified`, `rejected`, `expired`, `error`, or `completed`.
+
+## OpenClaw Media Send Rule
+
+After generating the QR PNG file locally, send it using OpenClaw outbound media syntax.
+
+Do not rely on reading the image file into the model as a way to send it.
+Do not send the QR only as base64, markdown image syntax, or a code block.
+
+Instead, reply with a normal text line plus a separate line in this exact form:
+
+```text
+Scan this QR code with your digital identity wallet.
+MEDIA:/absolute/path/to/qr.png
+```
+
+Rules:
+
+- `MEDIA:` must be uppercase
+- it must be on its own line
+- use an absolute local path or a direct URL
+- do not wrap the `MEDIA:` line in backticks or markdown
+- after the media message, send one follow-up message with instructions and the clickable `authorizeUrl`
+- if the QR is regenerated, always send the newest file path using a fresh `MEDIA:` line
 
 Recommended Node example for QR generation:
 
 ```js
 import QRCode from "qrcode";
 
-const qrDataUrl = await QRCode.toDataURL(authorizeUrl);
+await QRCode.toFile("/absolute/path/to/wine-checkout-qr.png", authorizeUrl);
 ```
 
-If your runtime supports writing files or binary image attachments, prefer generating a PNG image and sending that image to the user. If not, use the best available image-capable output supported by OpenClaw.
+Example OpenClaw send sequence:
+
+```text
+Your identity check is ready.
+MEDIA:/root/.openclaw/workspace/tmp/wine-checkout-qr.png
+```
+
+Then in the next assistant message:
+
+```text
+Scan the QR code with your digital identity wallet, or open this link directly:
+<authorizeUrl>
+```
 
 ## What to say when checkout resolves
 
