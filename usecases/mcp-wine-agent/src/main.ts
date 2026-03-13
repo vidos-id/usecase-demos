@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
+import { handleApiRequest } from "@/api/router";
 import { createServer } from "@/server";
 import { logDebug } from "@/utils/debug";
 
@@ -159,6 +160,25 @@ async function startServer() {
 				return new Response(null, { status: 204 });
 			}
 
+			if (url.pathname.startsWith("/api/")) {
+				try {
+					return await handleApiRequest(request);
+				} catch (error) {
+					console.error("Failed to handle API request:", error);
+					logDebug("http", "unhandled API request error", {
+						path: url.pathname,
+						error: error instanceof Error ? error.message : String(error),
+					});
+					return Response.json(
+						{
+							success: false,
+							message: "Internal server error",
+						},
+						{ status: 500 },
+					);
+				}
+			}
+
 			if (url.pathname === mcpPath) {
 				try {
 					return await handleMcpRequest(request);
@@ -189,6 +209,7 @@ async function startServer() {
 				{
 					name: "mcp-wine-agent",
 					status: "ok",
+					apiPath: "/api",
 					mcpPath,
 				},
 				{ status: 200 },

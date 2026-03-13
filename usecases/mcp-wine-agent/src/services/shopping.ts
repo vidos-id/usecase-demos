@@ -27,12 +27,13 @@ export function addToCart(
 	wineId: string,
 	quantity: number,
 ): Cart {
-	let cart = carts.get(sessionId);
+	const cart = carts.get(sessionId);
 	if (!cart) {
-		logDebug("shopping", "cart missing during add, creating replacement", {
-			requestedCartSessionId: sessionId,
+		logDebug("shopping", "cart missing during add", {
+			cartSessionId: sessionId,
+			wineId,
 		});
-		cart = createCart();
+		throw new Error("Cart not found");
 	}
 
 	const existingItem = cart.items.find((item) => item.wineId === wineId);
@@ -45,8 +46,7 @@ export function addToCart(
 	cart.updatedAt = new Date().toISOString();
 	carts.set(cart.sessionId, cart);
 	logDebug("shopping", "cart updated after add", {
-		requestedCartSessionId: sessionId,
-		storedCartSessionId: cart.sessionId,
+		cartSessionId: cart.sessionId,
 		wineId,
 		quantity,
 		itemCount: cart.items.length,

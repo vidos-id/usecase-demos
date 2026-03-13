@@ -6,6 +6,8 @@ An AI-agent-driven wine shopping demo using the Model Context Protocol (MCP) and
 
 This demo showcases how an AI agent can help users browse wines, manage a cart, and complete age-verified purchases using European Digital Identity (EUDI) Wallet credentials. The interaction is primarily text-based through chat, with a minimal QR code UI for the verification step.
 
+The demo supports both MCP consumption and a regular HTTP API for OpenClaw-style agents.
+
 ## Features
 
 - **Text-first product discovery**: Browse wines, view recommendations, and manage your cart through natural conversation
@@ -15,14 +17,27 @@ This demo showcases how an AI agent can help users browse wines, manage a cart, 
 
 ## Architecture
 
+MCP mode:
+
 ```
 User <-> ChatGPT <-> MCP Server <-> Vidos Authorizer API <-> EUDI Wallet
+```
+
+HTTP API mode:
+
+```
+User <-> OpenClaw <-> Wine Store API <-> Vidos Authorizer API <-> EUDI Wallet
 ```
 
 The MCP server exposes tools for:
 - Wine catalog search (`search_wines`)
 - Cart management (`add_to_cart`, `remove_from_cart`, `get_cart`)
 - Checkout flow (`initiate_checkout`, `get_checkout_status`)
+
+The HTTP API exposes endpoints for:
+- Wine search (`POST /api/wines/search`)
+- Cart management (`POST /api/cart/items`, `GET /api/cart/:cartSessionId`, `DELETE /api/cart/:cartSessionId/items/:wineId`)
+- Checkout (`POST /api/checkout`, `GET /api/checkout/:checkoutSessionId`)
 
 ## Local Setup
 
@@ -56,14 +71,70 @@ MCP_PATH=/mcp
 ### Running Locally
 
 ```bash
-# Start the MCP server
+# Start the app
 bun run dev
 
 # Or
 bun run start
 ```
 
-The server runs as a Bun-hosted Streamable HTTP MCP endpoint. By default, the MCP endpoint is `http://localhost:30123/mcp` and the health endpoint is `http://localhost:30123/health`.
+The server runs as a Bun-hosted app exposing MCP and HTTP routes.
+
+- MCP endpoint: `http://localhost:30123/mcp`
+- API base: `http://localhost:30123/api`
+- Health endpoint: `http://localhost:30123/health`
+
+## Regular API Usage
+
+This mode is intended for OpenClaw or any agent that prefers plain HTTP instead of MCP.
+
+### Search wines
+
+```bash
+curl -X POST http://localhost:30123/api/wines/search \
+  -H "Content-Type: application/json" \
+  -d '{"type":"red","country":"Italy","maxPrice":80}'
+```
+
+### Add to cart
+
+```bash
+curl -X POST http://localhost:30123/api/cart/items \
+  -H "Content-Type: application/json" \
+  -d '{"wineId":"brunello-di-montalcino-riserva-2016","quantity":1}'
+```
+
+Reuse the returned `cartSessionId` exactly in later calls.
+
+### Get cart
+
+```bash
+curl http://localhost:30123/api/cart/CART_SESSION_ID
+```
+
+### Remove from cart
+
+```bash
+curl -X DELETE http://localhost:30123/api/cart/CART_SESSION_ID/items/WINE_ID
+```
+
+### Initiate checkout
+
+```bash
+curl -X POST http://localhost:30123/api/checkout \
+  -H "Content-Type: application/json" \
+  -d '{"cartSessionId":"CART_SESSION_ID"}'
+```
+
+For API clients, the server returns `authorizeUrl` but does not generate a QR code. The consuming agent should generate the QR code itself and also display the raw URL directly below it for phone users.
+
+### Get checkout status
+
+```bash
+curl http://localhost:30123/api/checkout/CHECKOUT_SESSION_ID
+```
+
+Poll every few seconds for up to three minutes while waiting for verification to complete.
 
 ## ChatGPT Connector Usage
 
@@ -118,6 +189,8 @@ For local development with ChatGPT, expose the MCP endpoint with a public URL us
 
 6. **Agent Notification**: The next `get_checkout_status` call returns the result, which the agent narrates to the user
 
+7. **Mock Payment Completion**: In HTTP API mode, once status becomes `verified`, the consuming agent should tell the user the wine was paid with a mock card and the order is confirmed
+
 ### Status Outcomes
 
 | Status | Meaning | Agent Message |
@@ -154,6 +227,13 @@ bun run format
 
 ```
 src/
+├── api/
+│   ├── router.ts              # HTTP API router
+│   ├── responses.ts           # JSON response helpers
+│   └── routes/
+│       ├── cart.ts            # Cart HTTP endpoints
+│       ├── checkout.ts        # Checkout HTTP endpoints
+│       └── wines.ts           # Wine search HTTP endpoint
 ├── main.ts                    # Entry point
 ├── server.ts                  # MCP server creation and tool registration
 ├── schemas/

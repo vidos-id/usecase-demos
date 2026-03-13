@@ -181,7 +181,22 @@ export function addToCartTool(args: unknown): ToolResponse {
 		});
 	}
 
-	addToCart(sessionId, wineId, quantity);
+	try {
+		addToCart(sessionId, wineId, quantity);
+	} catch (error) {
+		logDebug("tool:add_to_cart", "failed to add item to cart", {
+			cartSessionId: sessionId,
+			wineId,
+			error: error instanceof Error ? error.message : String(error),
+		});
+		return {
+			success: false,
+			message:
+				`Failed to add to cart: ${error instanceof Error ? error.message : String(error)}. ` +
+				"Use the exact `cartSessionId` returned earlier.",
+		};
+	}
+
 	const summary = getCartSummary(sessionId);
 	logDebug("tool:add_to_cart", "added item to cart", {
 		cartSessionId: sessionId,
