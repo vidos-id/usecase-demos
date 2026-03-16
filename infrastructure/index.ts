@@ -90,36 +90,17 @@ const mcpEcrPullerPrincipalArn = mcpService.privateRegistryAccess.apply(
 	},
 );
 
-const repositoryPolicyDocument = ecrPullerPrincipalArn.apply((principalArn) =>
-	JSON.stringify({
-		Version: "2012-10-17",
-		Statement: [
-			{
-				Sid: "AllowLightsailPull",
-				Effect: "Allow",
-				Principal: {
-					AWS: principalArn,
-				},
-				Action: [
-					"ecr:BatchCheckLayerAvailability",
-					"ecr:BatchGetImage",
-					"ecr:GetDownloadUrlForLayer",
-				],
-			},
-		],
-	}),
-);
-
-const mcpRepositoryPolicyDocument = mcpEcrPullerPrincipalArn.apply(
-	(principalArn) =>
+const repositoryPolicyDocument = pulumi
+	.all([ecrPullerPrincipalArn, mcpEcrPullerPrincipalArn])
+	.apply(([usecaseArn, mcpArn]) =>
 		JSON.stringify({
 			Version: "2012-10-17",
 			Statement: [
 				{
-					Sid: "AllowMcpLightsailPull",
+					Sid: "AllowLightsailPull",
 					Effect: "Allow",
 					Principal: {
-						AWS: principalArn,
+						AWS: [usecaseArn, mcpArn],
 					},
 					Action: [
 						"ecr:BatchCheckLayerAvailability",
@@ -129,7 +110,7 @@ const mcpRepositoryPolicyDocument = mcpEcrPullerPrincipalArn.apply(
 				},
 			],
 		}),
-);
+	);
 
 new aws.ecr.RepositoryPolicy(
 	"usecaseDemos",
@@ -138,18 +119,7 @@ new aws.ecr.RepositoryPolicy(
 		policy: repositoryPolicyDocument,
 	},
 	{
-		dependsOn: service,
-	},
-);
-
-new aws.ecr.RepositoryPolicy(
-	"mcpWineAgent",
-	{
-		repository: repository.name,
-		policy: mcpRepositoryPolicyDocument,
-	},
-	{
-		dependsOn: mcpService,
+		dependsOn: [service, mcpService],
 	},
 );
 
