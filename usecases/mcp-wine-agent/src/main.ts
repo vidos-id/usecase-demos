@@ -3,6 +3,9 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { handleApiRequest } from "@/api/router";
 import { createServer } from "@/server";
+import { serveWidgetAsset } from "@/ui/widget-assets";
+import { ensureWidgetBuilt } from "@/ui/widget-build";
+import { WIDGET_ASSETS_ROUTE } from "@/ui/widget-config";
 import { logDebug } from "@/utils/debug";
 
 const port = Number(process.env.PORT ?? 44182);
@@ -150,10 +153,18 @@ async function handleMcpRequest(request: Request): Promise<Response> {
 
 async function startServer() {
 	logDebug("startup", "starting MCP Wine Agent server", { port, mcpPath });
+	await ensureWidgetBuilt();
 	const app = Bun.serve({
 		port,
 		async fetch(request) {
 			const url = new URL(request.url);
+
+			if (url.pathname.startsWith(`${WIDGET_ASSETS_ROUTE}/`)) {
+				const assetResponse = await serveWidgetAsset(url.pathname);
+				if (assetResponse) {
+					return assetResponse;
+				}
+			}
 
 			if (url.pathname === "/health") {
 				logDebug("http", "health check", { method: request.method });
