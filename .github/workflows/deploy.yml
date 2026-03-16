@@ -29,6 +29,7 @@ env:
 
   VITE_WINE_SHOP_URL: https://eudi-usecase.demo.vidos.id/wine-shop
   VITE_WINE_SHOP_AUTHORIZER_URL: ${{ vars.VITE_WINE_SHOP_AUTHORIZER_URL }}
+  VITE_MCP_WINE_AGENT_URL: https://mcp-wine-agent.demo.vidos.id/mcp
 
 
 # Allow one concurrent deployment
@@ -41,6 +42,7 @@ jobs:
     runs-on: ubuntu-24.04-arm
     outputs:
       server_url: ${{ steps.stack-outputs.outputs.server_url }}
+      mcp_url: ${{ steps.stack-outputs.outputs.mcp_url }}
     env:
       AWS_REGION: ${{ secrets.AWS_REGION }}
       PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
@@ -79,6 +81,7 @@ jobs:
           aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$repo_uri"
           docker buildx create --use
           docker buildx build --platform linux/amd64 -f Dockerfile.server -t "$repo_uri:latest" --push .
+          docker buildx build --platform linux/amd64 -f Dockerfile.mcp-wine-agent -t "$repo_uri:mcp-latest" --push .
       - name: Pulumi up (deploy image)
         run: |
           pulumi login "$PULUMI_BACKEND_URL"
@@ -93,6 +96,7 @@ jobs:
         id: stack-outputs
         run: |
           echo "server_url=$(pulumi stack output endpoint)" >> "$GITHUB_OUTPUT"
+          echo "mcp_url=$(pulumi stack output mcpEndpoint)" >> "$GITHUB_OUTPUT"
         working-directory: infrastructure
   deploy:
     needs: deploy-infra
@@ -130,6 +134,8 @@ jobs:
         working-directory: infrastructure
 
       - name: Build Usecases Home
+        env:
+          VITE_MCP_WINE_AGENT_URL: ${{ needs.deploy-infra.outputs.mcp_url }}
         run: |
           bun run build --filter=usecases-home
           cp "usecases-home/dist/index.html" "usecases-home/dist/404.html"

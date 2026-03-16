@@ -1,0 +1,19 @@
+# Bun MCP Wine Agent server (JIT - no build step)
+FROM oven/bun:1-alpine
+
+WORKDIR /app
+
+# Copy everything (client excluded via .dockerignore)
+COPY . .
+
+# Install workspace deps for MCP agent only
+RUN bun install --frozen-lockfile --production --filter "mcp-wine-agent"
+
+USER bun
+ENV NODE_ENV=production
+ENV PORT=30123
+ENV MCP_PATH=/mcp
+
+EXPOSE 30123
+
+CMD ["bun", "run", "usecases/mcp-wine-agent/src/main.ts"]
