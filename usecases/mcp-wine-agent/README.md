@@ -1,280 +1,151 @@
 # MCP Wine Agent Demo
 
-An AI-agent-driven wine shopping demo using the Model Context Protocol (MCP) and Vidos for age verification.
+This demo shows a text-first wine shopping agent with one critical trust step: age verification for checkout.
 
-## Overview
+It is built to demonstrate two integration surfaces over the same domain logic:
 
-This demo showcases how an AI agent can help users browse wines, manage a cart, and complete age-verified purchases using European Digital Identity (EUDI) Wallet credentials. The interaction is primarily text-based through chat, with a minimal QR code UI for the verification step.
+- `MCP` for ChatGPT-style hosts
+- `HTTP API` for OpenClaw-style agents
 
-The demo supports both MCP consumption and a regular HTTP API for OpenClaw-style agents.
+The core story is simple: discover wine in chat, build a cart, trigger checkout, verify age with a wallet, then complete the order.
 
-## Features
+## What The Demo Proves
 
-- **Text-first product discovery**: Browse wines, view recommendations, and manage your cart through natural conversation
-- **AI-guided checkout**: The agent walks you through the purchase process
-- **Privacy-preserving age verification**: Uses Vidos to verify age via EUDI Wallet without exposing unnecessary personal data
-- **Minimal UI**: Only the QR code verification step uses a custom widget; everything else stays in chat
+- Conversational commerce can stay mostly in chat
+- A regulated step can be isolated into a minimal verification UI
+- The same backend flow can support both MCP-native and plain HTTP agents
+- Age verification can be done with Vidos and EUDI Wallet credentials without turning the whole experience into a traditional web app
 
-## Architecture
+## Demo Flow
 
-MCP mode:
+1. The agent helps the user search the wine catalog.
+2. The agent adds one or more wines to a server-side cart.
+3. Checkout starts from that cart.
+4. Because wine is age-restricted, the backend creates a Vidos authorization.
+5. The user verifies age in a wallet flow.
+6. The backend evaluates the result and updates checkout status.
+7. The agent confirms success or rejection.
 
-```
-User <-> ChatGPT <-> MCP Server <-> Vidos Authorizer API <-> EUDI Wallet
-```
+## MCP Flow
 
-HTTP API mode:
+In MCP mode, the shopping journey stays in chat and only the verification step becomes UI. The diagram below keeps the user story concrete while also showing the MCP and Vidos handoff.
 
-```
-User <-> OpenClaw <-> Wine Store API <-> Vidos Authorizer API <-> EUDI Wallet
-```
+```mermaid
+sequenceDiagram
+    participant User
+    participant ChatGPT
+    participant MCP as MCP Server
+    participant Vidos
+    participant Wallet
 
-The MCP server exposes tools for:
-- Wine catalog search (`search_wines`)
-- Cart management (`add_to_cart`, `remove_from_cart`, `get_cart`)
-- Checkout flow (`initiate_checkout`, `get_checkout_status`)
+    User->>ChatGPT: "Show me 3 Italian red wines under 80 EUR"
+    ChatGPT->>MCP: `search_wines`
+    MCP-->>ChatGPT: Ranked wine results
+    ChatGPT-->>User: "Here are 3 options."
 
-The HTTP API exposes endpoints for:
-- Wine search (`POST /api/wines/search`)
-- Cart management (`POST /api/cart/items`, `GET /api/cart/:cartSessionId`, `DELETE /api/cart/:cartSessionId/items/:wineId`)
-- Checkout (`POST /api/checkout`, `GET /api/checkout/:checkoutSessionId`)
+    User->>ChatGPT: "Add the Brunello to my cart"
+    ChatGPT->>MCP: `add_to_cart`
+    MCP-->>ChatGPT: `cartSessionId` + cart summary
+    ChatGPT-->>User: "Added. Ready to check out?"
 
-## Local Setup
+    User->>ChatGPT: "Yes, check out"
+    ChatGPT->>MCP: `initiate_checkout(cartSessionId)`
+    MCP->>Vidos: Create authorization request for 18+ proof
+    Vidos-->>MCP: `authorizationId` + `authorizeUrl`
+    MCP-->>ChatGPT: `checkoutSessionId` + widget resource + QR payload
+    ChatGPT-->>User: Show verification widget with QR code
 
-### Prerequisites
-
-- [Bun](https://bun.sh/) runtime (v1.0+)
-- A Vidos account with Authorizer API access
-- (Optional) EUDI Wallet app for testing verification
-
-### Installation
-
-```bash
-# From repo root
-bun install
-
-# Navigate to this workspace
-cd usecases/mcp-wine-agent
-```
-
-### Environment Variables
-
-Create a `.env` file in this directory:
-
-```env
-VIDOS_AUTHORIZER_URL=https://authorizer.staging.vidos.id
-VIDOS_API_KEY=your_api_key_here  # Optional, depending on your Vidos setup
-PORT=30123
-MCP_PATH=/mcp
+    User->>Wallet: Scan QR and approve age proof
+    Wallet->>Vidos: Present credential proof
+    MCP->>Vidos: Poll authorization status
+    Vidos-->>MCP: Policy result + disclosed claims
+    MCP-->>ChatGPT: `get_checkout_status` returns `verified` or `rejected`
+    ChatGPT-->>User: "Age verified. Your order is confirmed." / "Verification failed."
 ```
 
-### Running Locally
+## Regular API Flow
 
-```bash
-# Start the app
-bun run dev
+In HTTP mode, OpenClaw drives the same backend through JSON endpoints instead of MCP tools. The user journey stays similar, but the agent is responsible for presenting the verification URL or QR step itself.
 
-# Or
-bun run start
+```mermaid
+sequenceDiagram
+    participant User
+    participant OpenClaw
+    participant API as Wine Store API
+    participant Vidos
+    participant Wallet
+
+    User->>OpenClaw: "Show me 3 Italian red wines under 80 EUR"
+    OpenClaw->>API: `POST /api/wines/search`
+    API-->>OpenClaw: Ranked wine results
+    OpenClaw-->>User: "Here are 3 options."
+
+    User->>OpenClaw: "Add the Brunello to my cart"
+    OpenClaw->>API: `POST /api/cart/items`
+    API-->>OpenClaw: `cartSessionId` + cart summary
+    OpenClaw-->>User: "Added. Ready to check out?"
+
+    User->>OpenClaw: "Yes, check out"
+    OpenClaw->>API: `POST /api/checkout`
+    API->>Vidos: Create authorization request for 18+ proof
+    Vidos-->>API: `authorizationId` + `authorizeUrl`
+    API-->>OpenClaw: `checkoutSessionId` + `authorizeUrl`
+    OpenClaw-->>User: Show QR or raw verification link
+
+    User->>Wallet: Open link or scan QR and approve
+    Wallet->>Vidos: Present credential proof
+    API->>Vidos: Poll authorization status
+    Vidos-->>API: Policy result + disclosed claims
+    OpenClaw->>API: `GET /api/checkout/:checkoutSessionId`
+    API-->>OpenClaw: `verified` or `rejected`
+    OpenClaw-->>User: "Age verified. Your order is confirmed." / "Verification failed."
 ```
 
-The server runs as a Bun-hosted app exposing MCP and HTTP routes.
+## MCP Surface
 
-- MCP endpoint: `http://localhost:30123/mcp`
-- API base: `http://localhost:30123/api`
-- Health endpoint: `http://localhost:30123/health`
+The MCP server exposes these tools:
 
-## Regular API Usage
+- `search_wines`
+- `add_to_cart`
+- `remove_from_cart`
+- `get_cart`
+- `initiate_checkout`
+- `get_checkout_status`
 
-This mode is intended for OpenClaw or any agent that prefers plain HTTP instead of MCP.
+The key MCP-specific detail is that `initiate_checkout` is linked to a UI resource. That lets the host render a verification widget inline when checkout needs age proof, while all other steps remain text-first.
 
-### Search wines
+## API Surface
 
-```bash
-curl -X POST http://localhost:30123/api/wines/search \
-  -H "Content-Type: application/json" \
-  -d '{"type":"red","country":"Italy","maxPrice":80}'
-```
+The HTTP API exposes the same journey as endpoints:
 
-### Add to cart
+- `POST /api/wines/search`
+- `POST /api/cart/items`
+- `GET /api/cart/:cartSessionId`
+- `DELETE /api/cart/:cartSessionId/items/:wineId`
+- `POST /api/checkout`
+- `GET /api/checkout/:checkoutSessionId`
 
-```bash
-curl -X POST http://localhost:30123/api/cart/items \
-  -H "Content-Type: application/json" \
-  -d '{"wineId":"brunello-di-montalcino-riserva-2016","quantity":1}'
-```
+In this mode, the backend returns the authorization URL and checkout state. The consuming agent is responsible for how it renders or narrates the verification step.
 
-Reuse the returned `cartSessionId` exactly in later calls.
+## Verification Model
 
-### Get cart
+This demo keeps verification intentionally narrow:
 
-```bash
-curl http://localhost:30123/api/cart/CART_SESSION_ID
-```
+- wine purchases are treated as age-restricted
+- checkout creates a Vidos authorization request
+- the backend monitors authorization status asynchronously
+- on success, the backend reads disclosed credential claims
+- eligibility is evaluated against an `18+` threshold
+- checkout resolves to `verified`, `rejected`, `expired`, or `error`
 
-### Remove from cart
+## Why The Design Is Intentionally Minimal
 
-```bash
-curl -X DELETE http://localhost:30123/api/cart/CART_SESSION_ID/items/WINE_ID
-```
+- `Text-first`: keeps the agent experience conversational
+- `Single-purpose UI`: only the QR verification step needs visual interaction
+- `Shared backend`: both MCP and HTTP flows reuse the same cart and checkout logic
+- `High signal demo`: the interesting part is the regulated checkout handoff, not storefront polish
+- `Tight state model`: carts and checkout sessions are server-side and in-memory, which keeps the demo easy to inspect
 
-### Initiate checkout
+## Takeaway
 
-```bash
-curl -X POST http://localhost:30123/api/checkout \
-  -H "Content-Type: application/json" \
-  -d '{"cartSessionId":"CART_SESSION_ID"}'
-```
-
-For API clients, the server returns `authorizeUrl` but does not generate a QR code. The consuming agent should generate the QR code itself and also display the raw URL directly below it for phone users.
-
-### Get checkout status
-
-```bash
-curl http://localhost:30123/api/checkout/CHECKOUT_SESSION_ID
-```
-
-Poll every few seconds for up to three minutes while waiting for verification to complete.
-
-## ChatGPT Connector Usage
-
-### Setting up in ChatGPT
-
-1. Go to [ChatGPT](https://chat.openai.com) and create a new GPT
-2. In the Configure tab, add an action with the MCP schema
-3. Use the following configuration:
-
-Use your deployed MCP endpoint URL, for example `https://your-domain.example/mcp`.
-
-For local development with ChatGPT, expose the MCP endpoint with a public URL using a tunnel or deployment.
-
-### Example Conversation Flow
-
-**User**: "Show me some red wines from Italy"
-
-**Agent**: *Uses `search_wines` tool to find matching wines and presents them in text*
-
-**User**: "Add the Chianti to my cart"
-
-**Agent**: *Uses `add_to_cart` tool and confirms the addition*
-
-**User**: "I'm ready to checkout"
-
-**Agent**: *Uses `initiate_checkout`, detects age-restricted items, informs user verification is needed*
-
-**Agent**: *Uses `initiate_checkout`, creates the Vidos authorization automatically, and displays the QR widget*
-
-**User**: *Scans QR with EUDI Wallet, completes verification*
-
-**Agent**: *Polls `get_checkout_status`, confirms age verification success*
-
-## Verification Flow
-
-1. **Checkout Initiation**: When a cart contains wine, `initiate_checkout` detects the age-restricted product, creates the Vidos authorization immediately, and returns `verification_required` state with the authorization URL
-
-2. **Authorization Request**: `initiate_checkout` sends a Vidos authorization request with a DCQL query requesting:
-   - `given_name` (required)
-   - `family_name` (required)
-   - `birth_date` (required for age check)
-   - `portrait` (optional)
-
-3. **QR Presentation**: A minimal wine-themed widget displays the QR code for wallet scanning
-
-4. **Background Monitoring**: The server polls Vidos for authorization status updates
-
-5. **Age Evaluation**: Upon successful credential presentation, the server:
-   - Extracts birth_date from the SD-JWT PID
-   - Calculates age and compares against legal drinking age (18)
-   - Updates checkout status to `verified` or `rejected`
-
-6. **Agent Notification**: The next `get_checkout_status` call returns the result, which the agent narrates to the user
-
-7. **Mock Payment Completion**: In HTTP API mode, once status becomes `verified`, the consuming agent should tell the user the wine was paid with a mock card and the order is confirmed
-
-### Status Outcomes
-
-| Status | Meaning | Agent Message |
-|--------|---------|---------------|
-| `pending` | No verification needed | "Ready to complete checkout" |
-| `verification_required` | Awaiting user consent | "Age verification required" |
-| `verifying` | QR shown, waiting for wallet | "Please scan the QR code..." |
-| `verified` | Age confirmed | "✓ Verification successful! Age confirmed: 25 years old" |
-| `rejected` | Underage or policy fail | "✗ Age verification failed: 16 years old (18 required)" |
-| `expired` | Session timed out | "Session expired. Please restart." |
-| `error` | Technical failure | "An error occurred. Please try again." |
-
-## Development
-
-### Type Checking
-
-```bash
-bun run check-types
-```
-
-### Linting
-
-```bash
-bun run lint
-```
-
-### Formatting
-
-```bash
-bun run format
-```
-
-## Project Structure
-
-```
-src/
-├── api/
-│   ├── router.ts              # HTTP API router
-│   ├── responses.ts           # JSON response helpers
-│   └── routes/
-│       ├── cart.ts            # Cart HTTP endpoints
-│       ├── checkout.ts        # Checkout HTTP endpoints
-│       └── wines.ts           # Wine search HTTP endpoint
-├── main.ts                    # Entry point
-├── server.ts                  # MCP server creation and tool registration
-├── schemas/
-│   ├── catalog.ts            # Wine and cart types
-│   └── verification.ts       # Checkout and verification types
-├── services/
-│   ├── shopping.ts           # Cart/wine logic
-│   ├── wine-catalog.ts       # Wine data
-│   ├── checkout.ts           # Checkout session management
-│   ├── vidos-client.ts       # Vidos API client
-│   └── authorization-monitor.ts  # Background polling
-├── tools/
-│   ├── shopping-tools.ts     # Wine/cart MCP tools
-│   └── checkout-tools.ts     # Checkout/verification tools
-└── ui/
-    └── verification-widget.ts # QR code widget HTML generator
-```
-
-## Design Decisions
-
-- **Text-first UX**: Product browsing stays in chat to maintain conversational flow
-- **Minimal widget**: Only QR code display uses custom UI (better UX for wallet scanning)
-- **Server-side state**: Cart and checkout state lives on the server for consistency
-- **Streamable HTTP transport**: Correct primary transport for a publicly hosted ChatGPT MCP server
-- **Polling-based updates**: Works reliably with ChatGPT's current tool calling model
-- **Wine branding**: QR widget uses burgundy/gold colors matching the wine shop theme
-
-## Troubleshooting
-
-**MCP server not connecting**
-- Ensure Bun is installed and on PATH
-- Check that all dependencies are installed: `bun install`
-
-**Vidos API errors**
-- Verify `VIDOS_AUTHORIZER_URL` is set correctly
-- Check that your Vidos API key is valid
-
-**Age verification not working**
-- Ensure your EUDI Wallet has a valid PID credential
-- Check wallet is configured for the correct environment (staging/production)
-
-## License
-
-Internal use only - Vidos demo application.
+This is not a full commerce app. It is a focused demonstration of how an agent can own product discovery and checkout orchestration, while handing off one trust-critical step - age verification - to a wallet-backed identity flow with minimal UI.
