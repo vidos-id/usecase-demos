@@ -1,13 +1,14 @@
 import "./styles.css";
-import { createBridge } from "./lib/bridge.js";
-import { createDomElements } from "./lib/dom.js";
-import { createPolling } from "./lib/polling.js";
-import { renderApp } from "./lib/render.js";
+import { createBridge } from "./lib/bridge";
+import { createDomElements } from "./lib/dom";
+import { createPolling } from "./lib/polling";
+import { renderApp } from "./lib/render";
+import type { AppState, WidgetToolPayload } from "./lib/types";
 
 const dom = createDomElements();
 const bridge = createBridge();
 
-const appState = {
+const appState: AppState = {
 	latestToolOutput: null,
 	latestSessionId: null,
 	latestQrSvg: "",
@@ -24,21 +25,19 @@ const polling = createPolling({
 			"Unable to refresh verification status right now. Still waiting for wallet completion...";
 	},
 	getSessionId: () => appState.latestSessionId,
-	getStatus: () =>
-		bridge.normalizeToolOutput(appState.latestToolOutput)?.status,
+	getStatus: () => bridge.normalizeToolOutput(appState.latestToolOutput).status,
 });
 
-function render(raw) {
+function render(raw: WidgetToolPayload): void {
 	appState.latestToolOutput = raw;
 	const data = bridge.normalizeToolOutput(raw);
-	const qrSvg = data?.qrSvg ?? appState.latestQrSvg;
+	const qrSvg = data.qrSvg ?? appState.latestQrSvg;
 	const authorizeUrl =
-		data?.authorization?.authorizeUrl ??
-		data?.authorizeUrl ??
+		data.authorization?.authorizeUrl ??
+		data.authorizeUrl ??
 		appState.latestAuthorizeUrl;
 
-	appState.latestSessionId =
-		data?.checkoutSessionId ?? appState.latestSessionId;
+	appState.latestSessionId = data.checkoutSessionId ?? appState.latestSessionId;
 	appState.latestQrSvg = qrSvg || appState.latestQrSvg;
 	appState.latestAuthorizeUrl = authorizeUrl || appState.latestAuthorizeUrl;
 
@@ -50,11 +49,11 @@ function render(raw) {
 	});
 
 	if (
-		data?.status === "verified" ||
-		data?.status === "completed" ||
-		data?.status === "rejected" ||
-		data?.status === "expired" ||
-		data?.status === "error"
+		data.status === "verified" ||
+		data.status === "completed" ||
+		data.status === "rejected" ||
+		data.status === "expired" ||
+		data.status === "error"
 	) {
 		polling.stopPolling();
 		if (!appState.completionNotified) {

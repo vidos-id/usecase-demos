@@ -1,13 +1,17 @@
-function getRequiredElement(id) {
+import type { DomElements } from "./types";
+
+function getRequiredElement<TElement extends HTMLElement>(
+	id: string,
+): TElement {
 	const element = document.getElementById(id);
-	if (!element) {
+	if (!(element instanceof HTMLElement)) {
 		throw new Error(`Missing required element: ${id}`);
 	}
 
-	return element;
+	return element as TElement;
 }
 
-export function createDomElements() {
+export function createDomElements(): DomElements {
 	return {
 		qrCodeEl: getRequiredElement("qr-code"),
 		qrContainerEl: getRequiredElement("qr-container"),
@@ -17,7 +21,7 @@ export function createDomElements() {
 		authorizationLinkEl: getRequiredElement("authorization-link"),
 		verificationResultEl: getRequiredElement("verification-result"),
 		paymentPanelEl: getRequiredElement("payment-panel"),
-		checkoutButtonEl: getRequiredElement("checkout-button"),
+		checkoutButtonEl: getRequiredElement<HTMLButtonElement>("checkout-button"),
 		paymentSuccessEl: getRequiredElement("payment-success"),
 	};
 }

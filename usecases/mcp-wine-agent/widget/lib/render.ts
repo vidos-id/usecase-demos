@@ -2,13 +2,14 @@ import {
 	buildInstructionText,
 	buildStatusText,
 	buildVerificationResult,
-} from "./state.js";
+} from "./state";
+import type { DomElements, RenderViewState } from "./types";
 
-function setHidden(element, hidden) {
+function setHidden(element: HTMLElement, hidden: boolean): void {
 	element.classList.toggle("hidden", hidden);
 }
 
-function renderQrCode(dom, qrSvg) {
+function renderQrCode(dom: DomElements, qrSvg: string): void {
 	if (qrSvg) {
 		dom.qrCodeEl.innerHTML = qrSvg;
 		return;
@@ -17,7 +18,11 @@ function renderQrCode(dom, qrSvg) {
 	dom.qrCodeEl.innerHTML = '<div class="placeholder">QR code loading.</div>';
 }
 
-function renderAuthorizationLink(dom, authorizeUrl, hideLink) {
+function renderAuthorizationLink(
+	dom: DomElements,
+	authorizeUrl: string,
+	hideLink: boolean,
+): void {
 	if (!authorizeUrl || hideLink) {
 		setHidden(dom.authorizationLinkEl, true);
 		dom.authorizationLinkEl.textContent = "";
@@ -28,7 +33,10 @@ function renderAuthorizationLink(dom, authorizeUrl, hideLink) {
 	dom.authorizationLinkEl.innerHTML = `<a class="wallet-link" href="${authorizeUrl}" target="_blank" rel="noreferrer">Open Vinos in wallet</a>`;
 }
 
-function renderVerificationResult(dom, data) {
+function renderVerificationResult(
+	dom: DomElements,
+	data: RenderViewState["data"],
+): void {
 	const result = buildVerificationResult(data);
 	if (!result) {
 		setHidden(dom.verificationResultEl, true);
@@ -45,16 +53,15 @@ function renderVerificationResult(dom, data) {
 	setHidden(dom.verificationResultEl, false);
 }
 
-export function renderApp(dom, viewState) {
+export function renderApp(dom: DomElements, viewState: RenderViewState): void {
 	const { data, qrSvg, authorizeUrl, paymentCompleted } = viewState;
-	const isPaid = paymentCompleted || data?.status === "completed";
-	const isVerified =
-		data?.status === "verified" || data?.status === "completed";
+	const isPaid = paymentCompleted || data.status === "completed";
+	const isVerified = data.status === "verified" || data.status === "completed";
 	const showResult =
 		isVerified ||
-		data?.status === "rejected" ||
-		data?.status === "expired" ||
-		data?.status === "error";
+		data.status === "rejected" ||
+		data.status === "expired" ||
+		data.status === "error";
 
 	renderQrCode(dom, qrSvg);
 	dom.instructionsTextEl.textContent = buildInstructionText(data);

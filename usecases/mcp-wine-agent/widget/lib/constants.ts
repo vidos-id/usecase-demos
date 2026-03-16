@@ -1,5 +1,8 @@
+import type { VerificationStatus } from "./types";
+
 export const POLL_INTERVAL_MS = 2000;
-export const TERMINAL_STATUSES = new Set([
+
+export const TERMINAL_STATUSES = new Set<VerificationStatus>([
 	"verified",
 	"rejected",
 	"expired",
