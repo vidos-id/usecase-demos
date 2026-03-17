@@ -48,6 +48,7 @@ export function registerVerificationWidgetResource(server: McpServer) {
 		},
 		async (uri) => {
 			const widgetCsp = getWidgetCsp();
+			const widgetDomain = getWidgetDomain();
 
 			return {
 				contents: [
@@ -58,7 +59,7 @@ export function registerVerificationWidgetResource(server: McpServer) {
 						_meta: {
 							ui: {
 								prefersBorder: true,
-								domain: getWidgetDomain(),
+								...(widgetDomain ? { domain: widgetDomain } : {}),
 								csp: widgetCsp,
 							},
 						},
