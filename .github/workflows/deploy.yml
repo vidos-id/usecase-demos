@@ -67,23 +67,17 @@ jobs:
       - name: Build infrastructure
         run: bun run build
         working-directory: infrastructure
-      - name: Pulumi up (create infra)
+      - name: Prepare Pulumi stack
         run: |
           pulumi login "$PULUMI_BACKEND_URL"
           pulumi stack select "$PULUMI_STACK"
-          pulumi config set vidos:authorizerUrl "$VIDOS_AUTHORIZER_URL" --secret
-          pulumi config set vidos:apiKey "$VIDOS_API_KEY" --secret
-          if [ -n "$MCP_PUBLIC_DOMAIN_NAME" ]; then
-            pulumi config set lightsail:mcpPublicDomainName "$MCP_PUBLIC_DOMAIN_NAME"
-          fi
-          if [ -n "$MCP_CERTIFICATE_NAME" ]; then
-            pulumi config set lightsail:mcpCertificateName "$MCP_CERTIFICATE_NAME"
-          fi
-          pulumi config set lightsail:deploy false
-          pulumi cancel --yes || true
-          pulumi up --yes
         working-directory: infrastructure
       - name: Build and push latest image
+        env:
+          VIDOS_AUTHORIZER_URL: ${{ secrets.VIDOS_AUTHORIZER_URL }}
+          VIDOS_API_KEY: ${{ secrets.VIDOS_API_KEY }}
+          MCP_PUBLIC_DOMAIN_NAME: ${{ vars.MCP_PUBLIC_DOMAIN_NAME }}
+          MCP_CERTIFICATE_NAME: ${{ vars.MCP_CERTIFICATE_NAME }}
         run: |
           repo_uri=$(pulumi stack output ecrRepositoryUrl --cwd infrastructure)
           image_tag=${GITHUB_SHA}
@@ -92,6 +86,11 @@ jobs:
           docker buildx build --platform linux/amd64 -f Dockerfile.server -t "$repo_uri:$image_tag" --push .
           docker buildx build --platform linux/amd64 -f Dockerfile.mcp-wine-agent -t "$repo_uri:mcp-$image_tag" --push .
       - name: Pulumi up (deploy image)
+        env:
+          VIDOS_AUTHORIZER_URL: ${{ secrets.VIDOS_AUTHORIZER_URL }}
+          VIDOS_API_KEY: ${{ secrets.VIDOS_API_KEY }}
+          MCP_PUBLIC_DOMAIN_NAME: ${{ vars.MCP_PUBLIC_DOMAIN_NAME }}
+          MCP_CERTIFICATE_NAME: ${{ vars.MCP_CERTIFICATE_NAME }}
         run: |
           pulumi login "$PULUMI_BACKEND_URL"
           pulumi stack select "$PULUMI_STACK"
