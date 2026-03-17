@@ -11,6 +11,14 @@ import { logDebug } from "@/utils/debug";
 const port = Number(process.env.PORT ?? 44182);
 const mcpPath = process.env.MCP_PATH ?? "/mcp";
 
+const MCP_CORS_HEADERS = {
+	"Access-Control-Allow-Origin": "*",
+	"Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+	"Access-Control-Allow-Headers":
+		"content-type, accept, mcp-session-id, mcp-protocol-version, last-event-id",
+	"Access-Control-Expose-Headers": "mcp-session-id",
+};
+
 type SessionContext = {
 	server: ReturnType<typeof createServer>;
 	transport: WebStandardStreamableHTTPServerTransport;
@@ -151,6 +159,19 @@ async function handleMcpRequest(request: Request): Promise<Response> {
 	);
 }
 
+function withMcpCors(response: Response): Response {
+	const headers = new Headers(response.headers);
+	for (const [key, value] of Object.entries(MCP_CORS_HEADERS)) {
+		headers.set(key, value);
+	}
+
+	return new Response(response.body, {
+		status: response.status,
+		statusText: response.statusText,
+		headers,
+	});
+}
+
 async function startServer() {
 	logDebug("startup", "starting MCP Wine Agent server", { port, mcpPath });
 	await ensureWidgetBuilt();
@@ -158,6 +179,13 @@ async function startServer() {
 		port,
 		async fetch(request) {
 			const url = new URL(request.url);
+
+			if (url.pathname === mcpPath && request.method === "OPTIONS") {
+				return new Response(null, {
+					status: 204,
+					headers: MCP_CORS_HEADERS,
+				});
+			}
 
 			if (url.pathname.startsWith(`${WIDGET_ASSETS_ROUTE}/`)) {
 				const assetResponse = await serveWidgetAsset(url.pathname);
@@ -192,22 +220,24 @@ async function startServer() {
 
 			if (url.pathname === mcpPath) {
 				try {
-					return await handleMcpRequest(request);
+					return withMcpCors(await handleMcpRequest(request));
 				} catch (error) {
 					console.error("Failed to handle MCP request:", error);
 					logDebug("http", "unhandled MCP request error", {
 						error: error instanceof Error ? error.message : String(error),
 					});
-					return Response.json(
-						{
-							jsonrpc: "2.0",
-							error: {
-								code: -32603,
-								message: "Internal server error",
+					return withMcpCors(
+						Response.json(
+							{
+								jsonrpc: "2.0",
+								error: {
+									code: -32603,
+									message: "Internal server error",
+								},
+								id: null,
 							},
-							id: null,
-						},
-						{ status: 500 },
+							{ status: 500 },
+						),
 					);
 				}
 			}

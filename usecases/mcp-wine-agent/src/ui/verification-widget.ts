@@ -1,3 +1,7 @@
+import {
+	RESOURCE_MIME_TYPE,
+	registerAppResource,
+} from "@modelcontextprotocol/ext-apps/server";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import QRCode from "qrcode";
 import { getBuiltWidgetHtml } from "@/ui/widget-build";
@@ -33,13 +37,14 @@ export async function generateQrSvg(url: string): Promise<string> {
 }
 
 export function registerVerificationWidgetResource(server: McpServer) {
-	server.registerResource(
+	registerAppResource(
+		server,
 		"verification-widget",
 		VERIFICATION_WIDGET_URI,
 		{
 			title: "Verification Widget",
 			description: "QR code widget for wine checkout age verification.",
-			mimeType: VERIFICATION_WIDGET_MIME_TYPE,
+			mimeType: RESOURCE_MIME_TYPE,
 		},
 		async (uri) => {
 			const widgetCsp = getWidgetCsp();
@@ -48,21 +53,13 @@ export function registerVerificationWidgetResource(server: McpServer) {
 				contents: [
 					{
 						uri: uri.toString(),
-						mimeType: VERIFICATION_WIDGET_MIME_TYPE,
+						mimeType: RESOURCE_MIME_TYPE,
 						text: await getBuiltWidgetHtml(),
 						_meta: {
 							ui: {
 								prefersBorder: true,
 								domain: getWidgetDomain(),
 								csp: widgetCsp,
-							},
-							"openai/widgetDescription":
-								"Displays the wine age-verification QR code and minimal verification context.",
-							"openai/widgetPrefersBorder": true,
-							"openai/widgetDomain": getWidgetDomain(),
-							"openai/widgetCSP": {
-								connect_domains: widgetCsp.connectDomains,
-								resource_domains: widgetCsp.resourceDomains,
 							},
 						},
 					},

@@ -1,5 +1,7 @@
+import { RESOURCE_MIME_TYPE } from "@modelcontextprotocol/ext-apps/server";
+
 export const VERIFICATION_WIDGET_URI = "ui://widget/verification.html";
-export const VERIFICATION_WIDGET_MIME_TYPE = "text/html;profile=mcp-app";
+export const VERIFICATION_WIDGET_MIME_TYPE = RESOURCE_MIME_TYPE;
 export const WIDGET_ASSETS_ROUTE = "/widget-assets";
 
 const DEFAULT_PUBLIC_BASE_URL = "https://mcp-wine-agent.example.com";
@@ -31,6 +33,7 @@ export function getWidgetOrigin(): string {
 export function getWidgetCsp() {
 	return {
 		connectDomains: [],
-		resourceDomains: [getWidgetOrigin(), "https://persistent.oaistatic.com"],
+		resourceDomains: [],
+		frameDomains: [],
 	};
 }

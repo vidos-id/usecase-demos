@@ -1,3 +1,4 @@
+import { registerAppTool } from "@modelcontextprotocol/ext-apps/server";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { ToolResponse } from "@/schemas/catalog";
@@ -312,48 +313,72 @@ export function getCartTool(args: unknown): ToolResponse {
 }
 
 export function registerSearchWinesTool(server: McpServer) {
-	server.registerTool(
+	registerAppTool(
+		server,
 		"search_wines",
 		{
 			description:
 				"Search the wine catalog by type, region, price range, occasion, or quality tier. Returns matching wines with descriptions, tasting notes, and pairing suggestions.",
 			inputSchema: SearchWinesInputSchema,
+			_meta: {
+				ui: {
+					visibility: ["model", "app"],
+				},
+			},
 		},
 		async (args) => toToolResult(searchWinesTool(args)),
 	);
 }
 
 export function registerAddToCartTool(server: McpServer) {
-	server.registerTool(
+	registerAppTool(
+		server,
 		"add_to_cart",
 		{
 			description:
 				"Add a wine to a cart. If cartSessionId is omitted, a new cart is created and returned. Reuse the returned cartSessionId in later cart and checkout calls.",
 			inputSchema: AddToCartInputSchema,
+			_meta: {
+				ui: {
+					visibility: ["model", "app"],
+				},
+			},
 		},
 		async (args) => toToolResult(addToCartTool(args)),
 	);
 }
 
 export function registerRemoveFromCartTool(server: McpServer) {
-	server.registerTool(
+	registerAppTool(
+		server,
 		"remove_from_cart",
 		{
 			description:
 				"Remove a wine from a cart by wine ID. Requires the exact cartSessionId returned earlier.",
 			inputSchema: RemoveFromCartInputSchema,
+			_meta: {
+				ui: {
+					visibility: ["model", "app"],
+				},
+			},
 		},
 		async (args) => toToolResult(removeFromCartTool(args)),
 	);
 }
 
 export function registerGetCartTool(server: McpServer) {
-	server.registerTool(
+	registerAppTool(
+		server,
 		"get_cart",
 		{
 			description:
 				"Get the current cart contents and summary, including verification requirements. Requires the exact cartSessionId returned earlier.",
 			inputSchema: GetCartInputSchema,
+			_meta: {
+				ui: {
+					visibility: ["model", "app"],
+				},
+			},
 		},
 		async (args) => toToolResult(getCartTool(args)),
 	);

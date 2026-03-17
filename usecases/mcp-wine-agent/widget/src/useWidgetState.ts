@@ -1,3 +1,4 @@
+import type { App } from "@modelcontextprotocol/ext-apps";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { POLL_INTERVAL_MS } from "../lib/constants";
@@ -7,7 +8,6 @@ import type {
 	VerificationViewData,
 	WidgetToolPayload,
 } from "../lib/types";
-import { bridge } from "./hostStore";
 
 export type WidgetViewState = {
 	data: VerificationViewData;
@@ -91,7 +91,10 @@ function extractViewState(
 	};
 }
 
-export function useWidgetState(rawToolOutput: WidgetToolPayload) {
+export function useWidgetState(
+	app: App | null,
+	rawToolOutput: WidgetToolPayload,
+) {
 	const hostView = useMemo(
 		() => extractViewState(rawToolOutput, EMPTY_VIEW),
 		[rawToolOutput],
@@ -119,11 +122,16 @@ export function useWidgetState(rawToolOutput: WidgetToolPayload) {
 	useQuery({
 		queryKey: ["checkout-status", sessionId, view.data.status],
 		queryFn: async () => {
-			if (!sessionId) {
+			if (!app || !sessionId) {
 				return view;
 			}
 
-			const raw = await bridge.callCheckoutStatus(sessionId);
+			const raw = await app.callServerTool({
+				name: "get_checkout_status",
+				arguments: {
+					checkoutSessionId: sessionId,
+				},
+			});
 			setView((current) => {
 				if (current.sessionId !== sessionId) {
 					return current;
@@ -134,7 +142,7 @@ export function useWidgetState(rawToolOutput: WidgetToolPayload) {
 
 			return null;
 		},
-		enabled: !!sessionId && !isTerminal,
+		enabled: !!app && !!sessionId && !isTerminal,
 		refetchInterval: POLL_INTERVAL_MS,
 		refetchIntervalInBackground: true,
 	});

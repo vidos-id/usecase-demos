@@ -1,3 +1,4 @@
+import { registerAppTool } from "@modelcontextprotocol/ext-apps/server";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
@@ -237,7 +238,8 @@ function buildCheckoutStatusData(
 }
 
 export function registerInitiateCheckoutTool(server: McpServer) {
-	server.registerTool(
+	registerAppTool(
+		server,
 		"initiate_checkout",
 		{
 			description:
@@ -247,8 +249,6 @@ export function registerInitiateCheckoutTool(server: McpServer) {
 				ui: {
 					resourceUri: VERIFICATION_WIDGET_URI,
 				},
-				"ui/resourceUri": VERIFICATION_WIDGET_URI,
-				"openai/outputTemplate": VERIFICATION_WIDGET_URI,
 			},
 		},
 		async (args) => toToolResult(await initiateCheckoutTool(args)),
@@ -256,12 +256,18 @@ export function registerInitiateCheckoutTool(server: McpServer) {
 }
 
 export function registerGetCheckoutStatusTool(server: McpServer) {
-	server.registerTool(
+	registerAppTool(
+		server,
 		"get_checkout_status",
 		{
 			description:
 				"Get the current checkout and verification status. Poll this to check if verification is complete.",
 			inputSchema: GetCheckoutStatusInputSchema,
+			_meta: {
+				ui: {
+					visibility: ["model", "app"],
+				},
+			},
 		},
 		async (args) => toToolResult(getCheckoutStatusTool(args)),
 	);

@@ -2,8 +2,7 @@
 
 :root {
 	--wine-text: #2d1810;
-	font-family:
-		-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+	font-family: var(--font-sans, "Iowan Old Style", "Palatino Linotype", serif);
 }
 
 *,
@@ -25,6 +24,7 @@ body {
 	color: var(--wine-text);
 	display: flex;
 	justify-content: center;
+	margin: 0;
 }
 
 #root {
