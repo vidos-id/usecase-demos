@@ -115,6 +115,7 @@ export async function initiateCheckoutTool(
 			messageParts.push(
 				"",
 				"Use 'get_checkout_status' to check verification progress.",
+				"After verification succeeds, continue the order in chat and describe payment as a mock card confirmation.",
 			);
 
 			return {

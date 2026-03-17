@@ -62,7 +62,6 @@ export type RenderViewState = {
 	data: VerificationViewData;
 	qrSvg: string;
 	authorizeUrl: string;
-	paymentCompleted: boolean;
 };
 
 export type AppState = {
@@ -71,7 +70,6 @@ export type AppState = {
 	latestQrSvg: string;
 	latestAuthorizeUrl: string;
 	completionNotified: boolean;
-	paymentCompleted: boolean;
 };
 
 export type PendingRpcRequest = {

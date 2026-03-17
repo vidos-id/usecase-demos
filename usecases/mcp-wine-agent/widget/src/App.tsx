@@ -9,7 +9,7 @@ import { PaymentPanel } from "./components/PaymentPanel";
 import { QrSection } from "./components/QrSection";
 import { VerificationResult } from "./components/VerificationResult";
 import { VinosLogo } from "./components/VinosLogo";
-import { bridge, useToolOutput } from "./hostStore";
+import { useToolOutput } from "./hostStore";
 import { useWidgetState } from "./useWidgetState";
 
 export function App() {
@@ -32,13 +32,6 @@ export function App() {
 	const showPaymentPanel = isVerified;
 	const showQrSection = !showResult;
 	const showInstructions = !showResult && !isVerified;
-
-	useEffect(() => {
-		if (isTerminal && !notifiedRef.current) {
-			notifiedRef.current = true;
-			void bridge.notifyAgent(data, sessionId);
-		}
-	}, [data, isTerminal, sessionId]);
 
 	useEffect(() => {
 		if (sessionId && previousSessionRef.current !== sessionId) {

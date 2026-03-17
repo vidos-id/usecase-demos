@@ -12,8 +12,7 @@ export function PaymentPanel({ onPay, isPaid }: Props) {
 						Complete your Vinos payment
 					</h2>
 					<p className="mb-5 text-center text-sm leading-relaxed text-[rgba(45,24,16,0.73)]">
-						Verification is complete. Continue with payment below if the chat
-						does not proceed automatically.
+						Verification is complete. Continue with payment below.
 					</p>
 					<div className="grid gap-4">
 						<div className="flex flex-col gap-1.5">
