@@ -15,6 +15,8 @@ const scale = Number(lightsailConfig.get("scale") ?? "1");
 const deployEnabled = lightsailConfig.getBoolean("deploy") ?? true;
 const backendImageTag = lightsailConfig.get("backendImageTag") ?? "latest";
 const mcpImageTag = lightsailConfig.get("mcpImageTag") ?? "mcp-latest";
+const mcpPublicDomainName = lightsailConfig.get("mcpPublicDomainName") ?? "";
+const mcpCertificateName = lightsailConfig.get("mcpCertificateName") ?? "";
 
 const tags = {
 	Project: "usecase-demos",
@@ -60,6 +62,18 @@ const service = new aws.lightsail.ContainerService("usecaseDemos", {
 	tags,
 });
 
+const mcpPublicDomainNames =
+	mcpPublicDomainName && mcpCertificateName
+		? ({
+				certificates: [
+					{
+						certificateName: mcpCertificateName,
+						domainNames: [mcpPublicDomainName],
+					},
+				],
+			} as aws.types.input.lightsail.ContainerServicePublicDomainNames)
+		: undefined;
+
 const mcpService = new aws.lightsail.ContainerService("mcpWineAgent", {
 	name: pulumi.interpolate`mcp-wine-agent-${pulumi.getStack()}`,
 	power: serviceTier,
@@ -69,6 +83,7 @@ const mcpService = new aws.lightsail.ContainerService("mcpWineAgent", {
 			isActive: true,
 		},
 	},
+	publicDomainNames: mcpPublicDomainNames,
 	tags,
 });
 
