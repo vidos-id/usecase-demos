@@ -10,7 +10,9 @@ COPY . .
 RUN bun install --frozen-lockfile --filter "mcp-wine-agent"
 
 # Build widget assets at image build time
-RUN bunx --cwd /app/usecases/mcp-wine-agent vite build --config vite.config.ts
+WORKDIR /app/usecases/mcp-wine-agent
+RUN bun run build:widget
+WORKDIR /app
 
 USER bun
 ENV NODE_ENV=production
