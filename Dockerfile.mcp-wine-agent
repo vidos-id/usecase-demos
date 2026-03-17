@@ -6,13 +6,17 @@ WORKDIR /app
 # Copy everything (client excluded via .dockerignore)
 COPY . .
 
-# Install workspace deps for MCP agent only
-RUN bun install --frozen-lockfile --production --filter "mcp-wine-agent"
+# Install workspace deps for MCP agent only (include dev deps for widget build)
+RUN bun install --frozen-lockfile --filter "mcp-wine-agent"
+
+# Build widget assets at image build time
+RUN bunx --cwd /app/usecases/mcp-wine-agent vite build --config vite.config.ts
 
 USER bun
 ENV NODE_ENV=production
 ENV PORT=30123
 ENV MCP_PATH=/mcp
+ENV SKIP_WIDGET_BUILD=1
 
 EXPOSE 30123
 
