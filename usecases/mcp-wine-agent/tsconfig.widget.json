@@ -3,7 +3,13 @@
 	"compilerOptions": {
 		"noEmit": true,
 		"rootDir": ".",
+		"jsx": "react-jsx",
 		"types": ["vite/client"]
 	},
-	"include": ["widget/**/*.ts", "src/schemas/verification.ts", "vite.config.ts"]
+	"include": [
+		"widget/**/*.ts",
+		"widget/**/*.tsx",
+		"src/schemas/verification.ts",
+		"vite.config.ts"
+	]
 }
