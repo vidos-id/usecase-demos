@@ -89,6 +89,7 @@ jobs:
         env:
           VIDOS_AUTHORIZER_URL: ${{ secrets.VIDOS_AUTHORIZER_URL }}
           VIDOS_API_KEY: ${{ secrets.VIDOS_API_KEY }}
+          PUBLIC_BASE_URL: ${{ vars.PUBLIC_BASE_URL }}
           MCP_PUBLIC_DOMAIN_NAME: ${{ vars.MCP_PUBLIC_DOMAIN_NAME }}
           MCP_CERTIFICATE_NAME: ${{ vars.MCP_CERTIFICATE_NAME }}
         run: |
@@ -96,6 +97,9 @@ jobs:
           pulumi stack select "$PULUMI_STACK"
           pulumi config set vidos:authorizerUrl "$VIDOS_AUTHORIZER_URL" --secret
           pulumi config set vidos:apiKey "$VIDOS_API_KEY" --secret
+          if [ -n "$PUBLIC_BASE_URL" ]; then
+            pulumi config set vidos:mcpPublicBaseUrl "$PUBLIC_BASE_URL"
+          fi
           pulumi config set lightsail:backendImageTag "$GITHUB_SHA"
           pulumi config set lightsail:mcpImageTag "mcp-$GITHUB_SHA"
           if [ -n "$MCP_PUBLIC_DOMAIN_NAME" ]; then

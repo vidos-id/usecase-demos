@@ -28,6 +28,7 @@ Secrets are stored via Pulumi config:
 
 - `vidos:authorizerUrl` (required)
 - `vidos:apiKey` (optional)
+- `vidos:mcpPublicBaseUrl` (optional, overrides computed public base URL)
 - `vidos:mcpPort` (optional, default 30123)
 - `vidos:mcpPath` (optional, default /mcp)
 - `vidos:mcpWidgetDomain` (optional, default empty)
@@ -37,6 +38,7 @@ Update configuration:
 ```bash
 pulumi config set vidos:authorizerUrl <url> --secret
 pulumi config set vidos:apiKey <key> --secret
+pulumi config set vidos:mcpPublicBaseUrl https://mcp-wine-agent.demo.vidos.id/mcp
 pulumi config set vidos:mcpPort 30123
 pulumi config set vidos:mcpPath /mcp
 pulumi config set vidos:mcpWidgetDomain https://mcp-wine-agent.demo.vidos.id

@@ -5,6 +5,7 @@ const vidosConfig = new pulumi.Config("vidos");
 const vidosAuthorizerUrl = vidosConfig.requireSecret("authorizerUrl");
 const vidosApiKey = vidosConfig.getSecret("apiKey") ?? pulumi.secret("");
 const databasePath = "/app/data/vidos-demo.db";
+const mcpPublicBaseUrl = vidosConfig.get("mcpPublicBaseUrl") ?? "";
 const mcpPort = Number(vidosConfig.get("mcpPort") ?? "30123");
 const mcpPath = vidosConfig.get("mcpPath") ?? "/mcp";
 const mcpWidgetDomain = vidosConfig.get("mcpWidgetDomain") ?? "";
@@ -195,6 +196,12 @@ if (deployEnabled) {
 						PORT: mcpPort.toString(),
 						MCP_PATH: mcpPath,
 						WIDGET_DOMAIN: mcpWidgetDomain,
+						PUBLIC_BASE_URL:
+							mcpPublicBaseUrl.length > 0
+								? mcpPublicBaseUrl
+								: mcpPublicDomainName
+									? pulumi.interpolate`https://${mcpPublicDomainName}${mcpPath}`
+									: "",
 					},
 				},
 			],
