@@ -13,6 +13,8 @@ const lightsailConfig = new pulumi.Config("lightsail");
 const serviceTier = lightsailConfig.get("serviceTier") ?? "micro";
 const scale = Number(lightsailConfig.get("scale") ?? "1");
 const deployEnabled = lightsailConfig.getBoolean("deploy") ?? true;
+const backendImageTag = lightsailConfig.get("backendImageTag") ?? "latest";
+const mcpImageTag = lightsailConfig.get("mcpImageTag") ?? "mcp-latest";
 
 const tags = {
 	Project: "usecase-demos",
@@ -131,7 +133,9 @@ if (deployEnabled) {
 			containers: [
 				{
 					containerName: "backend",
-					image: repository.repositoryUrl.apply((url) => `${url}:latest`),
+					image: repository.repositoryUrl.apply(
+						(url) => `${url}:${backendImageTag}`,
+					),
 					ports: {
 						"53913": "HTTP",
 					},
@@ -164,7 +168,9 @@ if (deployEnabled) {
 			containers: [
 				{
 					containerName: "mcp",
-					image: repository.repositoryUrl.apply((url) => `${url}:mcp-latest`),
+					image: repository.repositoryUrl.apply(
+						(url) => `${url}:${mcpImageTag}`,
+					),
 					ports: {
 						[mcpPort.toString()]: "HTTP",
 					},

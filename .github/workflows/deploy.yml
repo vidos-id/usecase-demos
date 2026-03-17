@@ -78,16 +78,19 @@ jobs:
       - name: Build and push latest image
         run: |
           repo_uri=$(pulumi stack output ecrRepositoryUrl --cwd infrastructure)
+          image_tag=${GITHUB_SHA}
           aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$repo_uri"
           docker buildx create --use
-          docker buildx build --platform linux/amd64 -f Dockerfile.server -t "$repo_uri:latest" --push .
-          docker buildx build --platform linux/amd64 -f Dockerfile.mcp-wine-agent -t "$repo_uri:mcp-latest" --push .
+          docker buildx build --platform linux/amd64 -f Dockerfile.server -t "$repo_uri:$image_tag" --push .
+          docker buildx build --platform linux/amd64 -f Dockerfile.mcp-wine-agent -t "$repo_uri:mcp-$image_tag" --push .
       - name: Pulumi up (deploy image)
         run: |
           pulumi login "$PULUMI_BACKEND_URL"
           pulumi stack select "$PULUMI_STACK"
           pulumi config set vidos:authorizerUrl "$VIDOS_AUTHORIZER_URL" --secret
           pulumi config set vidos:apiKey "$VIDOS_API_KEY" --secret
+          pulumi config set lightsail:backendImageTag "$GITHUB_SHA"
+          pulumi config set lightsail:mcpImageTag "mcp-$GITHUB_SHA"
           pulumi config set lightsail:deploy true
           pulumi cancel --yes || true
           pulumi up --yes
