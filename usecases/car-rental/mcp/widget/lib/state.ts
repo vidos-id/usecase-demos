@@ -1,4 +1,4 @@
-import type { BookingSnapshot } from "../../src/schemas/booking";
+import type { BookingView } from "../../src/schemas/booking";
 import type { RentalWidgetData } from "./types";
 
 export const POLL_INTERVAL_MS = 2000;
@@ -17,13 +17,13 @@ export function normalizeToolOutput(raw: unknown): RentalWidgetData {
 	return raw as RentalWidgetData;
 }
 
-export function isTerminal(booking: BookingSnapshot | undefined): boolean {
+export function isTerminal(booking: BookingView | undefined): boolean {
 	return booking
 		? ["approved", "rejected", "expired", "error"].includes(booking.status)
 		: false;
 }
 
-export function buildResumeMessage(booking: BookingSnapshot): string {
+export function buildResumeMessage(booking: BookingView): string {
 	if (booking.status === "approved") {
 		return `Verification succeeded for booking ${booking.bookingSessionId}. Please continue and confirm the car rental pickup details.`;
 	}

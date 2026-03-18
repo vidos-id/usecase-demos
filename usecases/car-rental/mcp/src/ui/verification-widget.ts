@@ -3,7 +3,6 @@ import {
 	registerAppResource,
 } from "@modelcontextprotocol/ext-apps/server";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import QRCode from "qrcode";
 import { getBuiltWidgetHtml } from "@/ui/widget-build";
 import {
 	getWidgetCsp,
@@ -12,24 +11,7 @@ import {
 	RENTAL_WIDGET_URI,
 } from "@/ui/widget-config";
 
-const PRIMARY = "#0b5f63";
-
 export { RENTAL_WIDGET_MIME_TYPE, RENTAL_WIDGET_URI } from "@/ui/widget-config";
-
-export async function generateQrCodeDataUrl(url: string): Promise<string> {
-	try {
-		return await QRCode.toDataURL(url, {
-			margin: 2,
-			width: 220,
-			color: {
-				dark: PRIMARY,
-				light: "#FFFFFF",
-			},
-		});
-	} catch {
-		return "";
-	}
-}
 
 export function registerRentalWidgetResource(server: McpServer) {
 	registerAppResource(

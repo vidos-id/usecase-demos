@@ -3,6 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { rentalTripContextSchema } from "demo-car-rental-shared/types/rental";
 import { z } from "zod";
+import { toBookingView, toSearchCarsResult } from "@/presenters/booking-view";
 import { startAuthorizationMonitor } from "@/services/authorization-monitor";
 import {
 	createNonce,
@@ -13,10 +14,7 @@ import {
 	setVerification,
 } from "@/services/booking-store";
 import { createAuthorization } from "@/services/vidos-client";
-import {
-	generateQrCodeDataUrl,
-	RENTAL_WIDGET_URI,
-} from "@/ui/verification-widget";
+import { RENTAL_WIDGET_URI } from "@/ui/verification-widget";
 
 const SearchCarsInputSchema = rentalTripContextSchema;
 
@@ -94,7 +92,10 @@ async function searchCarsTool(args: unknown): Promise<CallToolResult> {
 		),
 		{
 			bookingSessionId: result.booking.bookingSessionId,
-			search: result.search,
+			results: toSearchCarsResult(
+				result.booking.bookingSessionId,
+				result.search,
+			).results,
 		},
 	);
 }
@@ -114,7 +115,7 @@ async function selectCarTool(args: unknown): Promise<CallToolResult> {
 		}
 		return toToolResult(
 			`${booking.selectedVehicle.name} is selected in booking session ${booking.bookingSessionId}. Do not collect age, name, email, phone, insurance, or extras in chat. To continue, call start_booking with this bookingSessionId so the user can share their mDL in the UI widget.`,
-			{ booking },
+			{ booking: toBookingView(booking) },
 		);
 	} catch (error) {
 		return toToolResult(
@@ -156,9 +157,6 @@ async function startBookingTool(args: unknown): Promise<CallToolResult> {
 			"verification_required",
 		);
 		startAuthorizationMonitor(parsed.data.bookingSessionId);
-		const qrCodeDataUrl = authorization.authorizeUrl
-			? await generateQrCodeDataUrl(authorization.authorizeUrl)
-			: "";
 
 		const text = [
 			`Booking started for ${booking.selectedVehicle.name}.`,
@@ -172,9 +170,9 @@ async function startBookingTool(args: unknown): Promise<CallToolResult> {
 		return toToolResult(
 			text,
 			{
-				booking: updated,
+				booking: toBookingView(updated),
 				widgetUri: RENTAL_WIDGET_URI,
-				qrCodeDataUrl,
+				authorizationUrl: authorization.authorizeUrl,
 			},
 			false,
 			true,
@@ -209,7 +207,7 @@ async function getBookingStatusTool(args: unknown): Promise<CallToolResult> {
 		return toToolResult(
 			plainText,
 			{
-				booking,
+				booking: toBookingView(booking),
 			},
 			false,
 			Boolean(booking.verification),

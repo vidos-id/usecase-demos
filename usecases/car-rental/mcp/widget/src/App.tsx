@@ -12,9 +12,43 @@ import {
 	LoaderCircle,
 	Shield,
 } from "lucide-react";
+import QRCode from "qrcode";
 import { useEffect, useMemo, useState } from "react";
 import type { WidgetToolPayload } from "../lib/types";
 import { useWidgetState } from "./useWidgetState";
+
+const PRIMARY = "#0b5f63";
+
+function QrCodePanel({
+	authorizationUrl,
+}: {
+	authorizationUrl?: string | null;
+}) {
+	const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>("");
+
+	useEffect(() => {
+		if (!authorizationUrl) {
+			return;
+		}
+
+		void QRCode.toDataURL(authorizationUrl, {
+			margin: 2,
+			width: 220,
+			color: {
+				dark: PRIMARY,
+				light: "#FFFFFF",
+			},
+		}).then(setQrCodeDataUrl);
+	}, [authorizationUrl]);
+
+	return (
+		<img
+			src={qrCodeDataUrl}
+			alt="Scan this QR code with your wallet"
+			className="h-56 w-56 rounded-2xl border border-[var(--border)] bg-white p-3 shadow-sm"
+		/>
+	);
+}
 
 function BookingScreen({
 	app,
@@ -51,6 +85,7 @@ function BookingScreen({
 		booking.status === "expired" ||
 		booking.status === "error";
 	const waitingForWallet = booking.verification?.lifecycle === "pending_wallet";
+	const authorizationUrl = view.authorizationUrl;
 
 	return (
 		<div className="min-h-full text-[var(--foreground)]" style={safeAreaStyle}>
@@ -101,23 +136,23 @@ function BookingScreen({
 										{waitingForWallet ? "Scan your wallet" : "Processing proof"}
 									</div>
 									<div className="mt-4 flex min-h-[17rem] items-center justify-center rounded-[22px] border border-dashed border-[var(--border)] bg-white p-4">
-										{view.qrCodeDataUrl ? (
-											<img
-												src={view.qrCodeDataUrl}
-												alt="Scan this QR code with your wallet"
-												className="h-56 w-56 rounded-2xl border border-[var(--border)] bg-white p-3 shadow-sm"
-											/>
-										) : (
-											<div className="py-10 text-sm text-[var(--muted-foreground)]">
-												QR code loading...
-											</div>
-										)}
+										<QrCodePanel authorizationUrl={authorizationUrl} />
 									</div>
 									<p className="mt-4 text-sm leading-relaxed text-[var(--muted-foreground)]">
 										Open your wallet, scan the QR code, and approve disclosure
 										of your mobile driving licence. The agent can confirm the
 										rental only after this succeeds.
 									</p>
+									{authorizationUrl && (
+										<a
+											href={authorizationUrl}
+											target="_blank"
+											rel="noreferrer"
+											className="mt-4 inline-flex text-sm font-medium text-[var(--primary)] underline underline-offset-4"
+										>
+											Open wallet link directly
+										</a>
+									)}
 								</div>
 
 								<div className="space-y-4">

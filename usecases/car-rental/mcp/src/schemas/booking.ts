@@ -1,6 +1,7 @@
 import {
 	bookingLocationSchema,
 	bookingVehicleSchema,
+	licenceCategorySchema,
 	rentalTripContextSchema,
 } from "demo-car-rental-shared/types/rental";
 import { z } from "zod";
@@ -59,20 +60,59 @@ export const bookingSnapshotSchema = z.object({
 	updatedAt: z.string(),
 });
 
-export const searchCarsToolDataSchema = z.object({
-	search: rentalSearchResponseSchema,
+export const bookingViewSchema = z.object({
 	bookingSessionId: z.string(),
+	status: bookingStatusSchema,
+	destination: z.string(),
+	selectedVehicle: bookingVehicleSchema.nullable(),
+	requirements: z
+		.object({
+			requiredLicenceCategory: z.string().min(1),
+		})
+		.nullable(),
+	verification: z
+		.object({
+			lifecycle: verificationLifecycleSchema,
+			lastError: z.string().nullable(),
+		})
+		.nullable(),
+	eligibility: z
+		.object({
+			bookingApproved: z.boolean(),
+			requiredLicenceCategory: licenceCategorySchema,
+			presentedCategories: z.array(z.string()),
+			reasonCode: rentalEligibilitySchema.shape.reasonCode,
+			reasonText: z.string().min(1),
+		})
+		.nullable(),
+	confirmation: z
+		.object({
+			bookingReference: z.string().min(1),
+			pickupLocation: z.object({
+				name: bookingLocationSchema.shape.name,
+			}),
+			lockerId: z.string().min(1),
+			lockerPin: z.string().min(4),
+			instructions: z.string().min(1),
+		})
+		.nullable(),
 });
 
-export const bookingToolDataSchema = z.object({
-	booking: bookingSnapshotSchema,
+export const searchCarsResultSchema = z.object({
+	bookingSessionId: z.string(),
+	results: rentalSearchResponseSchema.shape.results,
+});
+
+export const bookingResultSchema = z.object({
+	booking: bookingViewSchema,
 	widgetUri: z.string().optional(),
-	qrCodeDataUrl: z.string().optional(),
+	authorizationUrl: z.string().nullable().optional(),
 });
 
 export type VerificationLifecycle = z.infer<typeof verificationLifecycleSchema>;
 export type BookingStatus = z.infer<typeof bookingStatusSchema>;
 export type VerificationSnapshot = z.infer<typeof verificationSnapshotSchema>;
 export type BookingSnapshot = z.infer<typeof bookingSnapshotSchema>;
-export type SearchCarsToolData = z.infer<typeof searchCarsToolDataSchema>;
-export type BookingToolData = z.infer<typeof bookingToolDataSchema>;
+export type BookingView = z.infer<typeof bookingViewSchema>;
+export type SearchCarsResult = z.infer<typeof searchCarsResultSchema>;
+export type BookingResult = z.infer<typeof bookingResultSchema>;
