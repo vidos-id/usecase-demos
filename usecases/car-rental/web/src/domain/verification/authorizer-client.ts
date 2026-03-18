@@ -1,9 +1,5 @@
+import { buildCarRentalMdlAuthorizationQuery } from "demo-car-rental-shared/lib/car-rental-verification";
 import createClient from "openapi-fetch";
-import {
-	MDL_CREDENTIAL_ID,
-	MDL_DOC_TYPE,
-	MDL_NAMESPACE,
-} from "@/domain/verification/verification-constants";
 import type { paths } from "@/generated/authorizer-api";
 
 type CreateAuthorizationBody = NonNullable<
@@ -70,37 +66,7 @@ function createAuthorizerClient(baseUrl: string, apiKey?: string) {
 }
 
 function buildCreateAuthorizationBody(nonce: string): CreateAuthorizationBody {
-	const body = {
-		nonce,
-		responseMode: "direct_post.jwt",
-		query: {
-			type: "DCQL",
-			dcql: {
-				id: `car-rental-${nonce.slice(0, 12)}`,
-				purpose: "Verify driving licence eligibility for rental release",
-				credentials: [
-					{
-						id: MDL_CREDENTIAL_ID,
-						format: "mso_mdoc",
-						meta: {
-							doctype_value: MDL_DOC_TYPE,
-						},
-						claims: [
-							{ path: [MDL_NAMESPACE, "given_name"] },
-							{ path: [MDL_NAMESPACE, "family_name"] },
-							{ path: [MDL_NAMESPACE, "birth_date"] },
-							{ path: [MDL_NAMESPACE, "document_number"] },
-							{ path: [MDL_NAMESPACE, "expiry_date"] },
-							{ path: [MDL_NAMESPACE, "driving_privileges"] },
-							{ path: [MDL_NAMESPACE, "portrait"] },
-						],
-					},
-				],
-			},
-		},
-	} satisfies CreateAuthorizationBody;
-
-	return body;
+	return buildCarRentalMdlAuthorizationQuery(nonce) as CreateAuthorizationBody;
 }
 
 function toAuthorizeUrl(response: CreateAuthorizationResponse): string | null {

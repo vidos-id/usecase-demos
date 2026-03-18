@@ -63,6 +63,7 @@
         "@modelcontextprotocol/sdk": "^1.27.1",
         "@tanstack/react-query": "^5.90.21",
         "demo-car-rental-shared": "workspace:*",
+        "lucide-react": "^0.564.0",
         "openapi-fetch": "^0.17.0",
         "qrcode": "^1.5.4",
         "react": "^19.2.4",

@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+:root {
+	--background: oklch(0.985 0.003 90);
+	--foreground: oklch(0.12 0.02 250);
+	--card: oklch(1 0 0);
+	--card-foreground: oklch(0.12 0.02 250);
+	--primary: oklch(0.42 0.1 220);
+	--primary-foreground: oklch(0.99 0 0);
+	--amber: oklch(0.78 0.16 75);
+	--amber-foreground: oklch(0.25 0.06 75);
+	--muted: oklch(0.955 0.005 90);
+	--muted-foreground: oklch(0.5 0.015 250);
+	--surface: oklch(0.97 0.005 90);
+	--border: oklch(0.91 0.005 250);
+	--success: oklch(0.52 0.16 145);
+	--success-bg: oklch(0.52 0.16 145 / 0.06);
+	--danger: oklch(0.55 0.22 25);
+	--danger-bg: oklch(0.55 0.22 25 / 0.06);
+	--radius: 0.75rem;
+	--font-heading: "Outfit", system-ui, sans-serif;
+	--font-body: "DM Sans", system-ui, sans-serif;
+	--font-mono: "JetBrains Mono", monospace;
+}
+
+@layer base {
+	* {
+		box-sizing: border-box;
+	}
+
+	html,
+	body,
+	#root {
+		min-height: 100%;
+	}
+
+	body {
+		margin: 0;
+		background:
+			radial-gradient(
+				circle at top,
+				color-mix(in oklch, var(--primary) 12%, white) 0%,
+				transparent 38%
+			),
+			linear-gradient(
+				180deg,
+				color-mix(in oklch, var(--background) 88%, white) 0%,
+				var(--background) 100%
+			);
+		color: var(--foreground);
+		font-family: var(--font-body);
+	}
+
+	h1,
+	h2,
+	h3,
+	h4,
+	h5,
+	h6 {
+		font-family: var(--font-heading);
+	}
+}

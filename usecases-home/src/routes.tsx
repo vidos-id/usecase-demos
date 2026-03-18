@@ -7,6 +7,7 @@ import {
 import { App } from "./app";
 import { CredentialPrepPage } from "./pages/credential-prep";
 import { HowDemosWorkPage } from "./pages/how-demos-work";
+import { McpCarRentalAgentPage } from "./pages/mcp-car-rental-agent";
 import { McpWineAgentPage } from "./pages/mcp-wine-agent";
 import { WalletSetupPage } from "./pages/wallet-setup";
 
@@ -42,11 +43,18 @@ const mcpWineAgentRoute = createRoute({
 	component: McpWineAgentPage,
 });
 
+const mcpCarRentalAgentRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "/mcp-car-rental-agent",
+	component: McpCarRentalAgentPage,
+});
+
 const routeTree = rootRoute.addChildren([
 	homeRoute,
 	walletSetupRoute,
 	credentialPrepRoute,
 	howDemosWorkRoute,
+	mcpCarRentalAgentRoute,
 	mcpWineAgentRoute,
 ]);
 

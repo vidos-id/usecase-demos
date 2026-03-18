@@ -1,0 +1,13 @@
+{
+	"extends": "../../../tsconfig.json",
+	"compilerOptions": {
+		"baseUrl": ".",
+		"paths": {
+			"@/*": ["./src/*"],
+			"demo-car-rental-shared/types/*": ["../shared/src/types/*"],
+			"demo-car-rental-shared/lib/*": ["../shared/src/lib/*"]
+		},
+		"noEmit": true
+	},
+	"include": ["src"]
+}

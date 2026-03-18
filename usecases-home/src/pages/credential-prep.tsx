@@ -210,15 +210,21 @@ export function CredentialPrepPage() {
 							name="PID — Person Identification Data"
 							standard="SD-JWT VC / MSO mDoc"
 							description="The foundational EU Digital Identity credential. Required claims vary by flow — sign-up requests: given_name, family_name, birth_date, nationality, personal_administrative_number, document_number, portrait. Sign-in only needs personal_administrative_number. Payment/loan requests given_name, family_name, personal_administrative_number."
-							liveIn={[{ label: "VidosDemoBank", href: demoBankUrl }]}
+							liveIn={[
+								{ label: "VidosDemoBank", href: demoBankUrl },
+								{ label: "AI Car Rental Guide", href: "/mcp-car-rental-agent" },
+							]}
 							comingSoonIn={["Age Verification", "Online Services"]}
 						/>
 						<CredentialCard
 							icon={<Car className="h-5 w-5" />}
 							name="mDL — Mobile Driving Licence"
 							standard="ISO 18013-5 mDoc"
-							description="Required claims: given_name, family_name, birth_date, document_number, expiry_date, driving_privileges (all required). Portrait is optional. The demo checks that driving_privileges contains a category matching the selected vehicle (e.g. category B for standard cars)."
-							liveIn={[{ label: "Car Rental Demo", href: carRentalUrl }]}
+							description="Required claims: given_name, family_name, birth_date, document_number, expiry_date, driving_privileges (all required). Portrait is optional. Both the browser car-rental flow and the MCP rental concierge check that driving_privileges contains the category required by the selected vehicle."
+							liveIn={[
+								{ label: "Car Rental Demo", href: carRentalUrl },
+								{ label: "AI Car Rental Guide", href: "/mcp-car-rental-agent" },
+							]}
 							comingSoonIn={["Proximity ID", "Vehicle Registration"]}
 						/>
 						<CredentialCard

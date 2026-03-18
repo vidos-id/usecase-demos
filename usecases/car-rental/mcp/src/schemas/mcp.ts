@@ -1,10 +1,10 @@
-import { z } from "zod";
 import {
 	bookingLocationSchema,
 	bookingVehicleSchema,
 	licenceCategorySchema,
 	rentalTripContextSchema,
-} from "./rental";
+} from "demo-car-rental-shared/types/rental";
+import { z } from "zod";
 
 export const rentalSearchResultSchema = z.object({
 	vehicle: bookingVehicleSchema,

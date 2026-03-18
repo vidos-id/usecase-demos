@@ -129,6 +129,17 @@ const useCases: UseCase[] = [
 		external: false,
 		ctaLabel: "Open setup guide",
 	},
+	{
+		title: "AI Car Rental Concierge (MCP)",
+		description:
+			"Let a conversational agent search rentals, start booking, and trigger PID + driving-licence verification in one compact wallet widget.",
+		category: "Travel",
+		illustration: aiMcpIllustration,
+		status: "live",
+		href: "/mcp-car-rental-agent",
+		external: false,
+		ctaLabel: "Open setup guide",
+	},
 
 	// --- Secondary (icon-based) ---
 	{
