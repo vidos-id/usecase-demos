@@ -1,287 +1,61 @@
 import {
-	Bot,
 	Check,
 	CheckCircle2,
 	CreditCard,
 	LoaderCircle,
-	Paperclip,
 	QrCode,
-	Search,
 	ShieldCheck,
 	ShoppingCart,
 	Sparkles,
-	User,
 	Wine,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+	AnimatedChatMockup,
+	type ChatMockupConfig,
+	MockupAssistantRow,
+	type MockupVariant,
+} from "./animated-chat-mockup";
 
-type MockupVariant = "chatgpt" | "openclaw";
+type VerifyPhase = "waiting" | "scanning" | "proof" | "done";
+type PayPhase = "idle" | "paying" | "done";
 
-// ---------------------------------------------------------------------------
-// Animation keyframes injected once via <style>
-// ---------------------------------------------------------------------------
+type WineMockupState = {
+	payPhase: PayPhase;
+	searchStatus: "done" | "running";
+	verifyPhase: VerifyPhase;
+};
 
-const KEYFRAMES = `
-@keyframes cgpt-msg-in {
-	from { opacity: 0; transform: translateY(8px); }
-	to   { opacity: 1; transform: translateY(0);   }
-}
-@keyframes cgpt-tool-pulse {
-	0%, 100% { opacity: 1; }
-	50%       { opacity: 0.45; }
-}
-@keyframes cgpt-scan-line {
-	0%   { top: 0;    opacity: 0; }
-	8%   { opacity: 1; }
-	92%  { opacity: 1; }
-	100% { top: 100%; opacity: 0; }
-}
-@keyframes cgpt-check-pop {
-	0%   { opacity: 0; transform: scale(0.4); }
-	60%  { transform: scale(1.15); }
-	80%  { transform: scale(0.95); }
-	100% { opacity: 1; transform: scale(1); }
-}
-@keyframes cgpt-fade-in {
-	from { opacity: 0; }
-	to   { opacity: 1; }
-}
-@keyframes cgpt-payment-in {
-	from { opacity: 0; transform: translateY(6px); }
-	to   { opacity: 1; transform: translateY(0);   }
-}
-`;
-
-// ---------------------------------------------------------------------------
-// Sequence phases (ms from component mount)
-// ---------------------------------------------------------------------------
 const PHASES = {
-	msg1: 300, // user: romantic dinner
-	msg2: 1100, // assistant: style?
-	msg3: 1900, // user: red
-	tool1Start: 2500, // search_wines running
-	tool1Done: 3600, // search_wines complete + results
-	msg4: 4000, // assistant: rioja
-	msg5: 4800, // user: buy rioja
-	tool2: 5300, // add_to_cart done
-	msg6: 5800, // assistant: done, need age verify
-	tool3: 6400, // initiate_checkout
-	widget: 7000, // verification widget appears
-	widgetScan: 9000, // scan animation starts → already running from widget mount
-	widgetProof: 10500, // "Wallet proof received"
-	widgetDone: 12000, // verified ✓
-	msg7: 12600, // assistant: age verified
-	payment: 13200, // payment panel
-	paymentPay: 15200, // auto-pay click
-	paymentDone: 16200, // success
-	msg8: 17000, // assistant: order confirmed
+	msg1: 300,
+	msg2: 1100,
+	msg3: 1900,
+	tool1Start: 2500,
+	tool1Done: 3600,
+	msg4: 4000,
+	msg5: 4800,
+	tool2: 5300,
+	msg6: 5800,
+	tool3: 6400,
+	widget: 7000,
+	widgetScan: 9000,
+	widgetProof: 10500,
+	widgetDone: 12000,
+	msg7: 12600,
+	payment: 13200,
+	paymentPay: 15200,
+	paymentDone: 16200,
+	msg8: 17000,
 } as const;
 
-// ---------------------------------------------------------------------------
-// Sub-components
-// ---------------------------------------------------------------------------
-
-function AgentAvatar({ variant }: { variant: MockupVariant }) {
-	return (
-		<div
-			className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
-			style={{
-				background: variant === "openclaw" ? "#2AABEE" : "#10a37f",
-			}}
-		>
-			{variant === "openclaw" ? (
-				<span className="text-[13px] leading-none">🦞</span>
-			) : (
-				<Bot className="h-4 w-4 text-white" />
-			)}
-		</div>
-	);
-}
-
-function UserAvatar() {
-	return (
-		<div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#e8e3dd]">
-			<User className="h-4 w-4 text-[#555]" />
-		</div>
-	);
-}
-
-function AssistantMessage({
-	children,
-	variant,
-	delay = 0,
-}: {
-	children: React.ReactNode;
-	variant: MockupVariant;
-	delay?: number;
-}) {
+function WineResultsCard({ variant }: { variant: MockupVariant }) {
 	const isOpenClaw = variant === "openclaw";
 
 	return (
-		<div
-			className="flex items-start gap-3"
-			style={{
-				animation: `cgpt-msg-in 350ms ease-out ${delay}ms both`,
-			}}
-		>
-			<AgentAvatar variant={variant} />
+		<MockupAssistantRow variant={variant}>
 			<div
 				className={
 					isOpenClaw
-						? "max-w-[85%] px-4 py-2.5 text-sm text-[#1a1a1a]"
-						: "max-w-[85%] rounded-2xl rounded-tl-sm bg-white px-4 py-2.5 text-sm text-[#1a1a1a] shadow-[0_1px_4px_rgba(0,0,0,0.08)] border border-[#e5e5e5]"
-				}
-				style={{
-					borderRadius: isOpenClaw ? "18px 18px 18px 6px" : undefined,
-					background: isOpenClaw ? "#ffffff" : undefined,
-					border: isOpenClaw ? "1px solid #d9e7f1" : undefined,
-					boxShadow: isOpenClaw
-						? "0 1px 3px rgba(27, 78, 111, 0.08)"
-						: undefined,
-				}}
-			>
-				{children}
-			</div>
-		</div>
-	);
-}
-
-function UserMessage({
-	children,
-	variant,
-	delay = 0,
-}: {
-	children: React.ReactNode;
-	variant: MockupVariant;
-	delay?: number;
-}) {
-	const isOpenClaw = variant === "openclaw";
-
-	return (
-		<div
-			className="flex items-start justify-end gap-3"
-			style={{
-				animation: `cgpt-msg-in 350ms ease-out ${delay}ms both`,
-			}}
-		>
-			<div
-				className={
-					isOpenClaw
-						? "max-w-[80%] px-4 py-2.5 text-sm text-[#123247]"
-						: "max-w-[80%] rounded-2xl rounded-tr-sm bg-[#f4f4f4] px-4 py-2.5 text-sm text-[#1a1a1a]"
-				}
-				style={
-					isOpenClaw
-						? {
-								background: "#dff4ff",
-								border: "1px solid #c8e7f9",
-								borderRadius: "18px 18px 6px 18px",
-								boxShadow: "0 1px 3px rgba(27, 78, 111, 0.08)",
-							}
-						: undefined
-				}
-			>
-				{children}
-			</div>
-			<UserAvatar />
-		</div>
-	);
-}
-
-function ToolCallRow({
-	icon,
-	label,
-	status,
-	variant,
-	delay = 0,
-}: {
-	icon: React.ReactNode;
-	label: string;
-	status: "running" | "done" | "success";
-	variant: MockupVariant;
-	delay?: number;
-}) {
-	const isOpenClaw = variant === "openclaw";
-
-	return (
-		<div
-			className="flex items-start gap-3"
-			style={{
-				animation: `cgpt-msg-in 350ms ease-out ${delay}ms both`,
-			}}
-		>
-			<AgentAvatar variant={variant} />
-			<div
-				className={
-					isOpenClaw
-						? "flex items-center gap-2 px-3.5 py-2 text-xs text-[#46667b]"
-						: "flex items-center gap-2 rounded-2xl rounded-tl-sm border border-[#e5e5e5] bg-white px-3.5 py-2 text-xs text-[#555] shadow-[0_1px_4px_rgba(0,0,0,0.06)]"
-				}
-				style={
-					isOpenClaw
-						? {
-								background: "#ffffff",
-								border: "1px solid #d9e7f1",
-								borderRadius: "18px 18px 18px 6px",
-								boxShadow: "0 1px 3px rgba(27, 78, 111, 0.08)",
-							}
-						: undefined
-				}
-			>
-				<span
-					className={isOpenClaw ? "text-[#2AABEE]" : "text-[#10a37f]"}
-					style={
-						status === "running"
-							? { animation: "cgpt-tool-pulse 1s ease-in-out infinite" }
-							: undefined
-					}
-				>
-					{icon}
-				</span>
-				<span className="font-mono font-medium text-[#333]">{label}</span>
-				{status === "running" && (
-					<LoaderCircle className="h-3.5 w-3.5 animate-spin text-[#aaa]" />
-				)}
-				{status === "done" && (
-					<span className="rounded-full bg-[#f0f0f0] px-2 py-0.5 text-[10px] text-[#777]">
-						Complete
-					</span>
-				)}
-				{status === "success" && (
-					<span className="flex items-center gap-1 rounded-full bg-[#eaf7ef] px-2 py-0.5 text-[10px] text-[#1a7a46]">
-						<CheckCircle2 className="h-3 w-3" />1 item added
-					</span>
-				)}
-			</div>
-		</div>
-	);
-}
-
-// ---------------------------------------------------------------------------
-// Wine results card
-// ---------------------------------------------------------------------------
-
-function WineResultsCard({
-	variant,
-	delay = 0,
-}: {
-	variant: MockupVariant;
-	delay?: number;
-}) {
-	const isOpenClaw = variant === "openclaw";
-
-	return (
-		<div
-			className="flex items-start gap-3"
-			style={{
-				animation: `cgpt-msg-in 350ms ease-out ${delay}ms both`,
-			}}
-		>
-			<AgentAvatar variant={variant} />
-			<div
-				className={
-					isOpenClaw
-						? "w-full max-w-[88%] px-4 py-3 text-sm"
+						? "w-full max-w-[88%] rounded-[18px] rounded-bl-[6px] border px-4 py-3 text-sm"
 						: "w-full max-w-[88%] rounded-2xl rounded-tl-sm border border-[#e5e5e5] bg-white px-4 py-3 text-sm shadow-[0_1px_4px_rgba(0,0,0,0.08)]"
 				}
 				style={
@@ -289,7 +63,6 @@ function WineResultsCard({
 						? {
 								background: "#ffffff",
 								border: "1px solid #d9e7f1",
-								borderRadius: "18px 18px 18px 6px",
 								boxShadow: "0 1px 3px rgba(27, 78, 111, 0.08)",
 							}
 						: undefined
@@ -301,20 +74,20 @@ function WineResultsCard({
 				<div className="grid gap-2 sm:grid-cols-3">
 					{[
 						{
-							name: "Rioja Reserva",
-							desc: "Cherry, oak — perfect for candlelit dinners",
+							desc: "Cherry, oak - perfect for candlelit dinners",
 							highlight: true,
+							name: "Rioja Reserva",
 						},
 						{
-							name: "Chianti Classico",
 							desc: "Savory, elegant, food-friendly",
+							name: "Chianti Classico",
 						},
-						{ name: "Pinot Noir", desc: "Light body, smooth finish" },
-					].map((w) => (
+						{ desc: "Light body, smooth finish", name: "Pinot Noir" },
+					].map((wine) => (
 						<div
-							key={w.name}
+							key={wine.name}
 							className={`rounded-xl border p-3 ${
-								w.highlight
+								wine.highlight
 									? "border-[#722F3740] bg-[#FDF8F3]"
 									: "border-[#f0f0f0] bg-[#fafafa]"
 							}`}
@@ -325,136 +98,118 @@ function WineResultsCard({
 									style={{ color: "#722F37" }}
 								/>
 								<p className="text-[13px] font-semibold text-[#1a1a1a]">
-									{w.name}
+									{wine.name}
 								</p>
 							</div>
 							<p className="mt-1 text-[11px] leading-snug text-[#888]">
-								{w.desc}
+								{wine.desc}
 							</p>
 						</div>
 					))}
 				</div>
 			</div>
-		</div>
+		</MockupAssistantRow>
 	);
 }
-
-// ---------------------------------------------------------------------------
-// Verification Widget
-// ---------------------------------------------------------------------------
-
-type VerifyPhase = "waiting" | "scanning" | "proof" | "done";
 
 function VerificationWidget({
 	phase,
 	variant,
-	delay = 0,
 }: {
 	phase: VerifyPhase;
 	variant: MockupVariant;
-	delay?: number;
 }) {
-	const WINE = "#722F37";
+	const wine = "#722F37";
 
 	const statusText: Record<VerifyPhase, string> = {
-		waiting: "Waiting for wallet scan…",
-		scanning: "Scanning…",
-		proof: "Wallet proof received. Finalizing age verification…",
 		done: "Verification succeeded",
+		proof: "Wallet proof received. Finalizing age verification...",
+		scanning: "Scanning...",
+		waiting: "Waiting for wallet scan...",
 	};
 
 	return (
-		<div
-			className="flex items-start gap-3"
-			style={{
-				animation: `cgpt-msg-in 350ms ease-out ${delay}ms both`,
-			}}
-		>
-			<AgentAvatar variant={variant} />
+		<MockupAssistantRow variant={variant}>
 			<div
 				style={{
 					background: "#FDF8F3",
-					border: `1px solid ${WINE}15`,
+					border: `1px solid ${wine}15`,
 					borderRadius: "16px",
 					boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+					maxWidth: "340px",
 					padding: "16px",
 					width: "100%",
-					maxWidth: "340px",
 				}}
 			>
-				{/* Header */}
 				<div className="mb-3 flex items-center gap-2">
-					<ShieldCheck className="h-4 w-4" style={{ color: WINE }} />
-					<p className="text-sm font-semibold" style={{ color: WINE }}>
+					<ShieldCheck className="h-4 w-4" style={{ color: wine }} />
+					<p className="text-sm font-semibold" style={{ color: wine }}>
 						Checkout Verification
 					</p>
 				</div>
 
-				{/* QR area */}
 				<div
 					style={{
-						position: "relative",
 						background: "#fff",
-						border: `2px solid ${WINE}20`,
+						border: `2px solid ${wine}20`,
 						borderRadius: "12px",
-						padding: "24px",
 						overflow: "hidden",
+						padding: "24px",
+						position: "relative",
 					}}
 				>
 					<div
 						className="flex items-center justify-center"
-						style={{ width: "100%", aspectRatio: "1 / 1" }}
+						style={{ aspectRatio: "1 / 1", width: "100%" }}
 					>
 						<QrCode
 							style={{
-								width: "80%",
+								color: wine,
 								height: "80%",
-								color: WINE,
 								opacity: 0.85,
+								width: "80%",
 							}}
 							strokeWidth={1}
 						/>
 					</div>
 
-					{/* Scan line */}
 					{(phase === "scanning" || phase === "waiting") && (
 						<div
 							style={{
-								position: "absolute",
-								left: 0,
-								right: 0,
-								height: "2px",
-								background: `linear-gradient(90deg, transparent, ${WINE}, transparent)`,
 								animation: "cgpt-scan-line 2s linear infinite",
+								background: `linear-gradient(90deg, transparent, ${wine}, transparent)`,
+								height: "2px",
+								left: 0,
+								position: "absolute",
+								right: 0,
 							}}
 						/>
 					)}
 
-					{/* Success overlay */}
 					{phase === "done" && (
 						<div
 							style={{
-								position: "absolute",
-								inset: 0,
+								alignItems: "center",
+								animation: "cgpt-fade-in 300ms ease-out both",
 								background: "rgba(255,255,255,0.88)",
 								display: "flex",
-								alignItems: "center",
+								inset: 0,
 								justifyContent: "center",
-								animation: "cgpt-fade-in 300ms ease-out both",
+								position: "absolute",
 							}}
 						>
 							<div
 								style={{
-									width: 48,
-									height: 48,
-									borderRadius: "50%",
-									background: "#22c55e",
-									display: "flex",
 									alignItems: "center",
-									justifyContent: "center",
-									boxShadow: "0 4px 16px rgba(34,197,94,0.35)",
 									animation:
 										"cgpt-check-pop 450ms cubic-bezier(.34,1.56,.64,1) both",
+									background: "#22c55e",
+									borderRadius: "50%",
+									boxShadow: "0 4px 16px rgba(34,197,94,0.35)",
+									display: "flex",
+									height: 48,
+									justifyContent: "center",
+									width: 48,
 								}}
 							>
 								<Check className="h-6 w-6 text-white" />
@@ -463,12 +218,11 @@ function VerificationWidget({
 					)}
 				</div>
 
-				{/* Instructions */}
 				<div
 					style={{
-						marginTop: "10px",
-						background: `${WINE}08`,
+						background: `${wine}08`,
 						borderRadius: "8px",
+						marginTop: "10px",
 						padding: "8px 10px",
 					}}
 				>
@@ -478,14 +232,13 @@ function VerificationWidget({
 					</p>
 				</div>
 
-				{/* Status */}
 				<div className="mt-2.5 flex items-center gap-1.5">
 					{phase === "done" ? (
 						<CheckCircle2 className="h-3.5 w-3.5 text-[#22c55e]" />
 					) : (
 						<LoaderCircle
 							className="h-3.5 w-3.5 animate-spin"
-							style={{ color: WINE }}
+							style={{ color: wine }}
 						/>
 					)}
 					<p
@@ -499,49 +252,35 @@ function VerificationWidget({
 					</p>
 				</div>
 			</div>
-		</div>
+		</MockupAssistantRow>
 	);
 }
-
-// ---------------------------------------------------------------------------
-// Payment Widget
-// ---------------------------------------------------------------------------
-
-type PayPhase = "idle" | "paying" | "done";
 
 function PaymentWidget({
 	phase,
 	variant,
-	delay = 0,
 }: {
 	phase: PayPhase;
 	variant: MockupVariant;
-	delay?: number;
 }) {
-	const WINE = "#722F37";
+	const wine = "#722F37";
 
 	return (
-		<div
-			className="flex items-start gap-3"
-			style={{
-				animation: `cgpt-payment-in 400ms ease-out ${delay}ms both`,
-			}}
-		>
-			<AgentAvatar variant={variant} />
+		<MockupAssistantRow variant={variant} animation="payment">
 			<div
 				style={{
 					background: "linear-gradient(180deg, #fffaf6 0%, #fff 100%)",
-					border: `1px solid ${WINE}18`,
+					border: `1px solid ${wine}18`,
 					borderRadius: "16px",
 					boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+					maxWidth: "340px",
 					padding: "16px",
 					width: "100%",
-					maxWidth: "340px",
 				}}
 			>
 				<div className="mb-3 flex items-center gap-2">
-					<CreditCard className="h-4 w-4" style={{ color: WINE }} />
-					<p className="text-sm font-semibold" style={{ color: WINE }}>
+					<CreditCard className="h-4 w-4" style={{ color: wine }} />
+					<p className="text-sm font-semibold" style={{ color: wine }}>
 						Complete your Vinos payment
 					</p>
 				</div>
@@ -554,25 +293,25 @@ function PaymentWidget({
 								{ label: "Card number", value: "4242 4242 4242 4242" },
 								{ label: "Expiry", value: "12/28" },
 								{ label: "CVC", value: "123" },
-							].map((f) => (
-								<div key={f.label}>
+							].map((field) => (
+								<div key={field.label}>
 									<p
 										className="mb-0.5 text-[10px] font-medium uppercase tracking-wide"
 										style={{ color: "#999" }}
 									>
-										{f.label}
+										{field.label}
 									</p>
 									<div
 										style={{
 											background: "#f5f5f5",
 											border: "1px solid #e0e0e0",
 											borderRadius: "8px",
-											padding: "6px 10px",
-											fontSize: "13px",
 											color: "#555",
+											fontSize: "13px",
+											padding: "6px 10px",
 										}}
 									>
-										{f.value}
+										{field.value}
 									</div>
 								</div>
 							))}
@@ -581,27 +320,27 @@ function PaymentWidget({
 						<button
 							type="button"
 							style={{
-								marginTop: "12px",
-								width: "100%",
-								padding: "9px 0",
-								background: phase === "paying" ? "#a05060" : WINE,
-								color: "#fff",
+								alignItems: "center",
+								background: phase === "paying" ? "#a05060" : wine,
 								border: "none",
 								borderRadius: "999px",
-								fontSize: "13px",
-								fontWeight: 600,
+								color: "#fff",
 								cursor: "default",
 								display: "flex",
-								alignItems: "center",
-								justifyContent: "center",
+								fontSize: "13px",
+								fontWeight: 600,
 								gap: "6px",
+								justifyContent: "center",
+								marginTop: "12px",
+								padding: "9px 0",
 								transition: "background 200ms",
+								width: "100%",
 							}}
 						>
 							{phase === "paying" ? (
 								<>
 									<LoaderCircle className="h-3.5 w-3.5 animate-spin" />
-									Processing…
+									Processing...
 								</>
 							) : (
 								"Pay now"
@@ -611,14 +350,14 @@ function PaymentWidget({
 				) : (
 					<div
 						style={{
+							alignItems: "center",
+							animation: "cgpt-fade-in 400ms ease-out both",
 							background: "#eaf7ef",
 							border: "1px solid #b6e8c8",
 							borderRadius: "10px",
-							padding: "12px",
 							display: "flex",
-							alignItems: "center",
 							gap: "8px",
-							animation: "cgpt-fade-in 400ms ease-out both",
+							padding: "12px",
 						}}
 					>
 						<CheckCircle2 className="h-5 w-5 shrink-0 text-[#22c55e]" />
@@ -628,241 +367,157 @@ function PaymentWidget({
 					</div>
 				)}
 			</div>
-		</div>
+		</MockupAssistantRow>
 	);
 }
 
-// ---------------------------------------------------------------------------
-// Main component
-// ---------------------------------------------------------------------------
+const wineMockupConfig: ChatMockupConfig<WineMockupState> = {
+	ariaLabel: "wine conversation mockup",
+	brandLabel: "Vinos Wine Store",
+	initialState: {
+		payPhase: "idle",
+		searchStatus: "running",
+		verifyPhase: "waiting",
+	},
+	items: [
+		{
+			content: "I'd like to buy a wine for a romantic dinner with my wife.",
+			id: "user-1",
+			showAt: 1,
+			type: "user-message",
+		},
+		{
+			content:
+				"Happy to help! Do you have a style in mind - red, white, sparkling, or rose?",
+			id: "assistant-1",
+			showAt: 2,
+			type: "assistant-message",
+		},
+		{
+			content: "Red would be nice.",
+			id: "user-2",
+			showAt: 3,
+			type: "user-message",
+		},
+		{
+			icon: <Sparkles className="h-3.5 w-3.5" />,
+			id: "tool-search",
+			label: "search_wines",
+			showAt: 4,
+			status: ({ state }) => state.searchStatus,
+			type: "tool-call",
+		},
+		{
+			id: "results",
+			render: ({ variant }) => <WineResultsCard variant={variant} />,
+			showAt: 5,
+			type: "custom",
+		},
+		{
+			content: (
+				<>
+					I found a few great matches. <strong>Rioja Reserva</strong> would be
+					perfect for a romantic evening. Want me to add it to your cart?
+				</>
+			),
+			id: "assistant-2",
+			showAt: 6,
+			type: "assistant-message",
+		},
+		{
+			content: "Yes, buy the Rioja Reserva.",
+			id: "user-3",
+			showAt: 7,
+			type: "user-message",
+		},
+		{
+			icon: <ShoppingCart className="h-3.5 w-3.5" />,
+			id: "tool-cart",
+			label: "add_to_cart",
+			showAt: 8,
+			status: "success",
+			successLabel: "1 item added",
+			type: "tool-call",
+		},
+		{
+			content:
+				"Done - Rioja Reserva is in your cart. I'll start checkout now. Since this is an age-restricted purchase, you'll need to verify your age.",
+			id: "assistant-3",
+			showAt: 9,
+			type: "assistant-message",
+		},
+		{
+			icon: <ShoppingCart className="h-3.5 w-3.5" />,
+			id: "tool-checkout",
+			label: "initiate_checkout",
+			showAt: 10,
+			status: "done",
+			type: "tool-call",
+		},
+		{
+			id: "verify-widget",
+			render: ({ state, variant }) => (
+				<VerificationWidget phase={state.verifyPhase} variant={variant} />
+			),
+			showAt: 11,
+			type: "custom",
+		},
+		{
+			content: "Age verified! Here's your payment form.",
+			id: "assistant-4",
+			showAt: 12,
+			type: "assistant-message",
+		},
+		{
+			id: "payment-widget",
+			render: ({ state, variant }) => (
+				<PaymentWidget phase={state.payPhase} variant={variant} />
+			),
+			showAt: 13,
+			type: "custom",
+		},
+		{
+			content: (
+				<>
+					Payment successful! Your <strong>Rioja Reserva</strong> will be
+					shipped soon. Enjoy your romantic dinner! 🍷
+				</>
+			),
+			id: "assistant-5",
+			showAt: 14,
+			type: "assistant-message",
+		},
+	],
+	stateTransitions: [
+		{ at: PHASES.tool1Done, patch: { searchStatus: "done" } },
+		{ at: PHASES.widgetScan, patch: { verifyPhase: "scanning" } },
+		{ at: PHASES.widgetProof, patch: { verifyPhase: "proof" } },
+		{ at: PHASES.widgetDone, patch: { verifyPhase: "done" } },
+		{ at: PHASES.paymentPay, patch: { payPhase: "paying" } },
+		{ at: PHASES.paymentDone, patch: { payPhase: "done" } },
+	],
+	stepTimings: [
+		PHASES.msg1,
+		PHASES.msg2,
+		PHASES.msg3,
+		PHASES.tool1Start,
+		PHASES.tool1Done,
+		PHASES.msg4,
+		PHASES.msg5,
+		PHASES.tool2,
+		PHASES.msg6,
+		PHASES.tool3,
+		PHASES.widget,
+		PHASES.msg7,
+		PHASES.payment,
+		PHASES.msg8,
+	],
+};
 
 export function ChatGptWineMockup({
 	variant = "chatgpt",
 }: {
 	variant?: MockupVariant;
 }) {
-	const [step, setStep] = useState(0);
-	const [verifyPhase, setVerifyPhase] = useState<VerifyPhase>("waiting");
-	const [payPhase, setPayPhase] = useState<PayPhase>("idle");
-	const [started, setStarted] = useState(false);
-	const sectionRef = useRef<HTMLElement>(null);
-
-	// Start the animation sequence only when the component is visible
-	const startRef = useCallback((node: HTMLElement | null) => {
-		if (!node) return;
-		(sectionRef as React.MutableRefObject<HTMLElement | null>).current = node;
-		const observer = new IntersectionObserver(
-			([entry]) => {
-				if (entry.isIntersecting) {
-					setStarted(true);
-					observer.disconnect();
-				}
-			},
-			{ threshold: 0.15 },
-		);
-		observer.observe(node);
-	}, []);
-
-	useEffect(() => {
-		if (!started) return;
-
-		const t = (ms: number, fn: () => void) => window.setTimeout(fn, ms);
-
-		const timers = [
-			t(PHASES.msg1, () => setStep(1)),
-			t(PHASES.msg2, () => setStep(2)),
-			t(PHASES.msg3, () => setStep(3)),
-			t(PHASES.tool1Start, () => setStep(4)),
-			t(PHASES.tool1Done, () => setStep(5)),
-			t(PHASES.msg4, () => setStep(6)),
-			t(PHASES.msg5, () => setStep(7)),
-			t(PHASES.tool2, () => setStep(8)),
-			t(PHASES.msg6, () => setStep(9)),
-			t(PHASES.tool3, () => setStep(10)),
-			t(PHASES.widget, () => setStep(11)),
-			t(PHASES.widgetScan, () => setVerifyPhase("scanning")),
-			t(PHASES.widgetProof, () => setVerifyPhase("proof")),
-			t(PHASES.widgetDone, () => setVerifyPhase("done")),
-			t(PHASES.msg7, () => setStep(12)),
-			t(PHASES.payment, () => setStep(13)),
-			t(PHASES.paymentPay, () => setPayPhase("paying")),
-			t(PHASES.paymentDone, () => setPayPhase("done")),
-			t(PHASES.msg8, () => setStep(14)),
-		];
-
-		return () => {
-			for (const id of timers) window.clearTimeout(id);
-		};
-	}, [started]);
-
-	const isOpenClaw = variant === "openclaw";
-
-	return (
-		<section
-			ref={startRef}
-			aria-label={`${isOpenClaw ? "OpenClaw" : "ChatGPT"} wine conversation mockup`}
-			className="overflow-hidden rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.10)]"
-			style={{
-				border: isOpenClaw ? "1px solid #c9ddeb" : "1px solid #e5e5e5",
-				background: isOpenClaw ? "#e7f1f8" : "#f5f4f0",
-			}}
-		>
-			<style>{KEYFRAMES}</style>
-
-			{/* ── Header bar ── */}
-			<div
-				className="flex items-center justify-between px-4 py-2.5"
-				style={{
-					borderBottom: isOpenClaw ? "1px solid #c9ddeb" : "1px solid #e0e0e0",
-					background: isOpenClaw ? "#5faee3" : "#ffffff",
-				}}
-			>
-				{isOpenClaw ? (
-					<>
-						<div className="flex items-center gap-3 text-white">
-							<Search className="h-4 w-4 opacity-90" />
-							<div className="flex items-center gap-2">
-								<span className="text-base leading-none">🦞</span>
-								<div>
-									<p className="text-sm font-semibold leading-none">OpenClaw</p>
-									<p className="mt-1 text-[11px] leading-none text-white/80">
-										Vinos Wine Store
-									</p>
-								</div>
-							</div>
-						</div>
-						<Paperclip className="h-4 w-4 text-white/90" />
-					</>
-				) : (
-					<>
-						<div className="flex items-center gap-2">
-							<span className="h-3 w-3 rounded-full bg-[#ff5f56]" />
-							<span className="h-3 w-3 rounded-full bg-[#ffbd2e]" />
-							<span className="h-3 w-3 rounded-full bg-[#27c93f]" />
-						</div>
-						<div className="flex items-center gap-1.5 rounded-lg border border-[#e5e5e5] px-3 py-1 text-sm font-semibold text-[#1a1a1a]">
-							ChatGPT
-						</div>
-						<div className="flex items-center gap-1.5 text-xs text-[#aaa]">
-							<Sparkles className="h-3.5 w-3.5" />
-							Vinos Wine Store
-						</div>
-					</>
-				)}
-			</div>
-
-			{/* ── Chat body ── */}
-			<div
-				className="space-y-4 overflow-hidden px-4 py-5 sm:px-6"
-				style={{ background: isOpenClaw ? "#e7f1f8" : "#f5f4f0" }}
-			>
-				{step >= 1 && (
-					<UserMessage variant={variant}>
-						I'd like to buy a wine for a romantic dinner with my wife.
-					</UserMessage>
-				)}
-
-				{step >= 2 && (
-					<AssistantMessage variant={variant}>
-						Happy to help! Do you have a style in mind — red, white, sparkling,
-						or rosé?
-					</AssistantMessage>
-				)}
-
-				{step >= 3 && (
-					<UserMessage variant={variant}>Red would be nice.</UserMessage>
-				)}
-
-				{step >= 4 && (
-					<ToolCallRow
-						icon={<Sparkles className="h-3.5 w-3.5" />}
-						label="search_wines"
-						status={step >= 5 ? "done" : "running"}
-						variant={variant}
-					/>
-				)}
-
-				{step >= 5 && <WineResultsCard variant={variant} />}
-
-				{step >= 6 && (
-					<AssistantMessage variant={variant}>
-						I found a few great matches. <strong>Rioja Reserva</strong> would be
-						perfect for a romantic evening. Want me to add it to your cart?
-					</AssistantMessage>
-				)}
-
-				{step >= 7 && (
-					<UserMessage variant={variant}>
-						Yes, buy the Rioja Reserva.
-					</UserMessage>
-				)}
-
-				{step >= 8 && (
-					<ToolCallRow
-						icon={<ShoppingCart className="h-3.5 w-3.5" />}
-						label="add_to_cart"
-						status="success"
-						variant={variant}
-					/>
-				)}
-
-				{step >= 9 && (
-					<AssistantMessage variant={variant}>
-						Done — Rioja Reserva is in your cart. I'll start checkout now. Since
-						this is an age-restricted purchase, you'll need to verify your age.
-					</AssistantMessage>
-				)}
-
-				{step >= 10 && (
-					<ToolCallRow
-						icon={<ShoppingCart className="h-3.5 w-3.5" />}
-						label="initiate_checkout"
-						status="done"
-						variant={variant}
-					/>
-				)}
-
-				{step >= 11 && (
-					<VerificationWidget phase={verifyPhase} variant={variant} />
-				)}
-
-				{step >= 12 && (
-					<AssistantMessage variant={variant}>
-						Age verified! Here's your payment form.
-					</AssistantMessage>
-				)}
-
-				{step >= 13 && <PaymentWidget phase={payPhase} variant={variant} />}
-
-				{step >= 14 && (
-					<AssistantMessage variant={variant}>
-						Payment successful! Your <strong>Rioja Reserva</strong> will be
-						shipped soon. Enjoy your romantic dinner! 🍷
-					</AssistantMessage>
-				)}
-			</div>
-
-			{/* ── Input bar (decorative) ── */}
-			<div
-				className="px-4 py-3"
-				style={{
-					borderTop: isOpenClaw ? "1px solid #c9ddeb" : "1px solid #e0e0e0",
-					background: isOpenClaw ? "#f1f7fb" : "#ffffff",
-				}}
-			>
-				<div
-					className="flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm"
-					style={{
-						border: isOpenClaw ? "1px solid #d5e6f1" : "1px solid #e0e0e0",
-						background: isOpenClaw ? "#ffffff" : "#fafafa",
-						color: isOpenClaw ? "#7d98aa" : "#bbb",
-					}}
-				>
-					<span className="flex-1">
-						{isOpenClaw ? "Message OpenClaw" : "Message ChatGPT"}
-					</span>
-				</div>
-			</div>
-		</section>
-	);
+	return <AnimatedChatMockup config={wineMockupConfig} variant={variant} />;
 }
