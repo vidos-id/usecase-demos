@@ -72,7 +72,7 @@ export function buildDcqlPidQuery(): CreateAuthorizationBody {
 			vct_values: ["urn:eudi:pid:1"],
 		},
 		require_cryptographic_holder_binding: true,
-		claims: [{ path: ["age_equal_or_over", "18"] }],
+		claims: [{ path: ["birthdate"] }],
 	} as CreateAuthorizationBody["query"]["dcql"]["credentials"][number] & {
 		require_cryptographic_holder_binding: boolean;
 	};

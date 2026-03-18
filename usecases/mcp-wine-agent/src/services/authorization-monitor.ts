@@ -220,7 +220,7 @@ function extractPidClaims(
 	const pidCredential = credentials.find(
 		(cred) =>
 			cred.format === "dc+sd-jwt" ||
-			cred.claims.birth_date !== undefined ||
+			cred.claims.birthdate !== undefined ||
 			cred.claims.age_equal_or_over !== undefined,
 	);
 
@@ -239,7 +239,7 @@ function extractPidClaims(
 		givenName: typeof claims.given_name === "string" ? claims.given_name : null,
 		familyName:
 			typeof claims.family_name === "string" ? claims.family_name : null,
-		birthDate: typeof claims.birth_date === "string" ? claims.birth_date : null,
+		birthDate: typeof claims.birthdate === "string" ? claims.birthdate : null,
 		portrait: typeof claims.portrait === "string" ? claims.portrait : null,
 		...(claims.age_equal_or_over !== undefined
 			? { ageEqualOrOver: claims.age_equal_or_over }
