@@ -1,6 +1,6 @@
 # Car Rental API Skill
 
-Use this skill to book from the demo car-rental concierge over plain HTTP.
+Use this skill to operate the demo car-rental concierge over its regular HTTP API.
 
 **Base URL:** `https://mcp-car-rent.demo.vidos.id`
 
@@ -24,28 +24,28 @@ Suggested intro:
 
 - search rental cars by destination and trip context
 - compare ranked options in plain language
-- select a car and start booking
-- guide the user through wallet-based driving licence verification
-- confirm the booking with locker pickup details
+- reserve one specific car
+- start booking and launch wallet verification
+- confirm pickup reference, locker ID, and PIN after approval
 
 ## What you can do
 
 - Search rental cars
-- Compare the returned options
-- Select a specific vehicle
+- Compare and explain the returned options
+- Select one vehicle
 - Start booking
-- Guide the user through Vidos verification
+- Guide the user through wallet verification
 - Poll booking status until approval or failure
-- Confirm the final pickup details
+- Confirm final pickup details
 
-## Fixed Booking Flow
+## Fixed Flow
 
 Always keep the conversation tightly scoped to this sequence:
 
 1. `POST /api/cars/search`
 2. `POST /api/bookings/select`
 3. `POST /api/bookings/start`
-4. `GET /api/bookings/BOOKING_SESSION_ID`
+4. `GET /api/bookings/:bookingSessionId`
 
 Do not ask for or collect:
 
@@ -86,9 +86,11 @@ When presenting results:
 Preferred presentation per car:
 
 - car name
-- category and transmission if relevant
+- category
+- transmission when relevant
 - licence category required
-- EUR per day and total estimate
+- price per day in EUR
+- total estimate in EUR
 - short reason it fits the trip
 - `vehicleId` only when needed for the next action
 
@@ -174,7 +176,7 @@ await QRCode.toFile("/absolute/path/to/car-rental-qr.png", authorizeUrl);
 
 ## What to Say When Booking Resolves
 
-- `approved`: Tell the user driving licence verification succeeded and confirm booking reference, locker ID, PIN, and pickup instructions.
+- `approved`: Tell the user driving-licence verification succeeded and confirm booking reference, locker ID, PIN, and pickup instructions.
 - `rejected`: Tell the user verification failed and the rental cannot proceed.
 - `expired`: Tell the user the verification session expired and booking should be restarted.
 - `error`: Tell the user verification hit an error and booking should be restarted.
@@ -193,5 +195,6 @@ await QRCode.toFile("/absolute/path/to/car-rental-qr.png", authorizeUrl);
 ## Extra Recommendations
 
 - When a booking search is created, remind yourself to retain the exact `bookingSessionId`.
+- After vehicle selection, go straight into booking instead of reopening discovery.
 - If verification fails, explain the outcome plainly and suggest restarting booking only when appropriate.
 - If the user asks for direct details, you can provide IDs and raw fields, but default to polished presentation.
