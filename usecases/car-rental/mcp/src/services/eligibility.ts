@@ -37,7 +37,10 @@ export function normalizeCredentials(
 		credential.credentialType.toLowerCase().includes("pid"),
 	);
 	const mdl = credentials.find(
-		(credential) => credential.format === "mso_mdoc",
+		(credential) =>
+			credential.format === "mso_mdoc" ||
+			credential.format === "mdoc" ||
+			credential.credentialType.toLowerCase().includes("mdl"),
 	);
 	const givenName = (mdl?.claims.given_name ?? pid?.claims.given_name) as
 		| string

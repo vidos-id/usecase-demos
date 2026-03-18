@@ -74,9 +74,9 @@ function formatSearchMessage(
 		return `${index + 1}. ${vehicle.name} - vehicleId: \`${vehicle.id}\`, ${vehicle.category}, licence ${vehicle.requiredLicenceCategory}, EUR ${vehicle.pricePerDay}/day, estimate EUR ${result.totalEstimate}. Best for: ${result.reason}.`;
 	});
 	return [
-		`Found ${results.length} rental options for ${destination}. Flow: 1) search_cars, 2) select_car, 3) start_booking. Selection alone does not finish the booking.`,
+		`Found ${results.length} rental options for ${destination}. Fixed flow: 1) search_cars, 2) select_car, 3) start_booking. Do not ask for driver details, insurance, extras, or other add-ons in chat.`,
 		...lines,
-		`If the user picks one, call select_car with bookingSessionId ${bookingSessionId} and the exact vehicleId. After select_car succeeds, you must still call start_booking to actually initiate the booking and wallet verification.`,
+		`If the user picks one, call select_car with bookingSessionId ${bookingSessionId} and the exact vehicleId. After select_car succeeds, the next step is start_booking, which opens the widget-based wallet verification. Do not ask the user to paste licence details into chat.`,
 	].join("\n");
 }
 
@@ -113,7 +113,7 @@ async function selectCarTool(args: unknown): Promise<CallToolResult> {
 			return toToolResult("Vehicle selection failed.", {}, true);
 		}
 		return toToolResult(
-			`${booking.selectedVehicle.name} is selected and locked into booking session ${booking.bookingSessionId}, but the booking is not finished yet. Requirement is licence category ${booking.requirements.requiredLicenceCategory}. To continue and actually start the booking flow, call start_booking with this bookingSessionId.`,
+			`${booking.selectedVehicle.name} is selected in booking session ${booking.bookingSessionId}. Do not collect age, name, email, phone, insurance, or extras in chat. To continue, call start_booking with this bookingSessionId so the user can share their mDL in the UI widget.`,
 			{ booking },
 		);
 	} catch (error) {
@@ -164,7 +164,7 @@ async function startBookingTool(args: unknown): Promise<CallToolResult> {
 			`Booking started for ${booking.selectedVehicle.name}.`,
 			`Verification is required: licence category ${booking.requirements.requiredLicenceCategory} and a valid, non-expired driving licence.`,
 			authorization.authorizeUrl
-				? `Ask the user to scan the wallet QR or open ${authorization.authorizeUrl}.`
+				? `Tell the user to use the UI widget to scan the wallet QR or open ${authorization.authorizeUrl}. Do not ask for the licence in chat.`
 				: "Ask the user to complete wallet verification.",
 			"Use get_booking_status to monitor progress until approval or failure. Only after approval is the booking finished and pickup details available.",
 		].join("\n");
@@ -204,7 +204,7 @@ async function getBookingStatusTool(args: unknown): Promise<CallToolResult> {
 						? "Verification expired. Restart booking to issue a fresh wallet request."
 						: booking.status === "error"
 							? `Verification failed. ${booking.verification?.lastError ?? booking.eligibility?.reasonText ?? "Unknown authorizer error."}`
-							: `Booking ${booking.bookingSessionId} is waiting for wallet verification.`;
+							: `Booking ${booking.bookingSessionId} is waiting for wallet verification in the UI widget.`;
 
 		return toToolResult(
 			plainText,
@@ -229,8 +229,14 @@ export function registerCarRentalTools(server: McpServer) {
 		"search_cars",
 		{
 			description:
-				"Search rental cars by destination and trip context. Returns text-first ranked options with vehicle IDs for selection.",
+				"Search rental cars by destination and trip context. Keep the conversation tightly scoped to search, select_car, and start_booking only.",
 			inputSchema: SearchCarsInputSchema,
+			annotations: {
+				readOnlyHint: true,
+				destructiveHint: false,
+				idempotentHint: true,
+				openWorldHint: false,
+			},
 			_meta: { ui: { visibility: ["model", "app"] } },
 		},
 		searchCarsTool,
@@ -241,8 +247,14 @@ export function registerCarRentalTools(server: McpServer) {
 		"select_car",
 		{
 			description:
-				"Select one vehicle from the previous search results and create authoritative booking context.",
+				"Select one vehicle from the previous search results. This is a safe step and must not trigger collection of extra details in chat.",
 			inputSchema: SelectCarInputSchema,
+			annotations: {
+				readOnlyHint: false,
+				destructiveHint: false,
+				idempotentHint: true,
+				openWorldHint: false,
+			},
 			_meta: { ui: { visibility: ["model", "app"] } },
 		},
 		selectCarTool,
@@ -253,8 +265,14 @@ export function registerCarRentalTools(server: McpServer) {
 		"start_booking",
 		{
 			description:
-				"Start booking for the selected vehicle, check licence eligibility, and launch wallet verification when needed.",
+				"Start booking for the selected vehicle and launch widget-based wallet verification. The user shares the mDL in the UI widget, never in chat.",
 			inputSchema: StartBookingInputSchema,
+			annotations: {
+				readOnlyHint: false,
+				destructiveHint: false,
+				idempotentHint: false,
+				openWorldHint: true,
+			},
 			_meta: { ui: { resourceUri: RENTAL_WIDGET_URI } },
 		},
 		startBookingTool,
@@ -267,6 +285,12 @@ export function registerCarRentalTools(server: McpServer) {
 			description:
 				"Get the current booking and verification status. The widget uses this to poll until approval or failure.",
 			inputSchema: GetBookingStatusInputSchema,
+			annotations: {
+				readOnlyHint: true,
+				destructiveHint: false,
+				idempotentHint: true,
+				openWorldHint: false,
+			},
 			_meta: { ui: { visibility: ["model", "app"] } },
 		},
 		getBookingStatusTool,
