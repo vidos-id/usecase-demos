@@ -19,7 +19,9 @@
 		"noUncheckedSideEffectImports": true,
 		"baseUrl": ".",
 		"paths": {
-			"@/*": ["./src/*"]
+			"@/*": ["./src/*"],
+			"demo-car-rental-shared/types/*": ["../shared/src/types/*"],
+			"demo-car-rental-shared/lib/*": ["../shared/src/lib/*"]
 		}
 	},
 	"include": ["src"]

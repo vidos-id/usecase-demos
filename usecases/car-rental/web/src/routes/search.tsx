@@ -1,5 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
+	cars,
+	estimateRentalDays,
+	toBookingVehicle,
+} from "demo-car-rental-shared/lib/cars";
+import type { RentalVehicle as Car } from "demo-car-rental-shared/types/rental";
+import {
 	Calendar,
 	Car as CarIcon,
 	ChevronRight,
@@ -17,8 +23,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { VerifyStepBreadcrumb } from "@/components/verification/verify-step-breadcrumb";
-import type { Car } from "@/data/cars";
-import { cars } from "@/data/cars";
 import { useBookingStore } from "@/domain/booking/booking-store";
 import { useVerificationStore } from "@/domain/verification/verification-store";
 import { cn } from "@/lib/utils";
@@ -324,10 +328,11 @@ type CarCardProps = {
 	car: Car;
 	onSelect: (car: Car) => void;
 	showDemoHint?: boolean;
+	rentalDays: number;
 };
 
-function CarCard({ car, onSelect, showDemoHint }: CarCardProps) {
-	const days = 5;
+function CarCard({ car, onSelect, showDemoHint, rentalDays }: CarCardProps) {
+	const days = rentalDays;
 	const total = car.pricePerDay * days;
 
 	return (
@@ -341,9 +346,9 @@ function CarCard({ car, onSelect, showDemoHint }: CarCardProps) {
 				className="relative flex aspect-video w-full items-center justify-center overflow-hidden sm:aspect-auto sm:w-72 sm:shrink-0"
 				style={{ background: "var(--muted)" }}
 			>
-				{car.imageUrl ? (
+				{car.imagePath ? (
 					<img
-						src={car.imageUrl}
+						src={car.imagePath}
 						alt={car.name}
 						className="size-full object-contain p-2 transition-transform duration-500 group-hover:scale-105"
 					/>
@@ -537,18 +542,17 @@ function SearchPage() {
 
 	const handleSelectCar = (car: Car) => {
 		selectVehicle({
-			id: car.id,
-			name: car.name,
-			category: car.category,
-			requiredLicenceCategory: car.requiredLicenceCategory,
-			imageUrl: car.imageUrl,
-			pricePerDay: car.pricePerDay,
-			currency: "EUR",
+			...toBookingVehicle(car),
 		});
 		rewindToStep("review");
 		resetVerification();
 		navigate({ to: "/review" });
 	};
+
+	const estimatedDays = estimateRentalDays({
+		pickupDate: state.rentalDetails.pickupDateTime ?? undefined,
+		dropoffDate: state.rentalDetails.dropoffDateTime ?? undefined,
+	});
 
 	const filteredAndSortedCars = useMemo(() => {
 		const filtered = cars.filter((car) => {
@@ -641,6 +645,7 @@ function SearchPage() {
 									car={car}
 									onSelect={handleSelectCar}
 									showDemoHint={i === 0}
+									rentalDays={estimatedDays}
 								/>
 							))}
 							{filteredAndSortedCars.length === 0 && (

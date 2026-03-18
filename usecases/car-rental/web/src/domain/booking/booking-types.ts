@@ -1,3 +1,13 @@
+import type {
+	BookingLocation,
+	BookingVehicle,
+} from "demo-car-rental-shared/types/rental";
+
+export type {
+	BookingLocation,
+	BookingVehicle,
+} from "demo-car-rental-shared/types/rental";
+
 import type { BookingConfirmationPayload } from "@/domain/booking/booking-confirmation";
 
 export type BookingLifecycleStatus =
@@ -8,22 +18,6 @@ export type BookingLifecycleStatus =
 	| "payment_confirmed"
 	| "completed"
 	| "failed";
-
-export type BookingLocation = {
-	id: string;
-	name: string;
-	code: string;
-};
-
-export type BookingVehicle = {
-	id: string;
-	name: string;
-	category: string;
-	requiredLicenceCategory: string;
-	imageUrl: string;
-	pricePerDay: number;
-	currency: "EUR";
-};
 
 export type BookingRentalDetails = {
 	location: BookingLocation | null;

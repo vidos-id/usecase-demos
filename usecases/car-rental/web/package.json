@@ -8,7 +8,7 @@
 		"build": "vite build",
 		"check-types": "tsc -b",
 		"preview": "vite preview",
-		"generate-api": "openapi-typescript ../../authorizer.service.yaml --output src/generated/authorizer-api.ts"
+		"generate-api": "openapi-typescript ../../../authorizer.service.yaml --output src/generated/authorizer-api.ts"
 	},
 	"dependencies": {
 		"@radix-ui/react-slot": "^1.2.4",
@@ -23,6 +23,7 @@
 		"radix-ui": "^1.4.3",
 		"react": "^19.2.3",
 		"react-dom": "^19.2.3",
+		"demo-car-rental-shared": "workspace:*",
 		"shadcn": "^3.8.5",
 		"tailwind-merge": "^3.4.1",
 		"tailwindcss": "^4.1.18",

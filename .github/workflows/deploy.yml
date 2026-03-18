@@ -170,7 +170,7 @@ jobs:
       - name: Build Car Rental
         run: |
           bun run build --filter=demo-car-rental
-          cp "usecases/car-rental/dist/index.html" "usecases/car-rental/dist/404.html"
+          cp "usecases/car-rental/web/dist/index.html" "usecases/car-rental/web/dist/404.html"
     
       - name: Build Wine Shop
         run: |
@@ -183,7 +183,7 @@ jobs:
           mkdir -p site/bank site/car-rental
           cp -R "usecases-home/dist/." site
           cp -R "usecases/demo-bank/client/dist/." site/bank
-          cp -R "usecases/car-rental/dist/." site/car-rental
+          cp -R "usecases/car-rental/web/dist/." site/car-rental
           cp -R "usecases/wine-shop/dist/." site/wine-shop
 
       - name: Create SPA fallback redirect

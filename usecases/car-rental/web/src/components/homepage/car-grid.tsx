@@ -1,9 +1,9 @@
+import { cars } from "demo-car-rental-shared/lib/cars";
+import type { RentalVehicle as CarType } from "demo-car-rental-shared/types/rental";
 import { Car as CarIcon, Fuel, Settings2, Users, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import type { Car as CarType } from "@/data/cars";
-import { cars } from "@/data/cars";
 import { cn } from "@/lib/utils";
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -41,9 +41,9 @@ function CarCard({ car, index }: { car: CarType; index: number }) {
 				className="relative flex aspect-video items-center justify-center overflow-hidden"
 				style={{ background: "var(--muted)" }}
 			>
-				{car.imageUrl ? (
+				{car.imagePath ? (
 					<img
-						src={car.imageUrl}
+						src={car.imagePath}
 						alt={car.name}
 						className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
 					/>

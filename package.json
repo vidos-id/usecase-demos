@@ -14,6 +14,7 @@
 		"dev": "turbo dev",
 		"build": "turbo build",
 		"dev:demo-car-rental": "turbo dev --filter=demo-car-rental",
+		"dev:demo-car-rental-mcp": "turbo dev --filter=mcp-car-rental-agent",
 		"dev:demo-bank-client": "turbo dev --filter=demo-bank-client",
 		"dev:demo-bank-server": "turbo dev --filter=demo-bank-server",
 		"build:demo-bank-client": "turbo build --filter=demo-bank-client",

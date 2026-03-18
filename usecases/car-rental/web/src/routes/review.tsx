@@ -122,7 +122,7 @@ function ReviewPage() {
 									style={{ background: "var(--muted)" }}
 								>
 									<img
-										src={selectedVehicle.imageUrl}
+										src={selectedVehicle.imagePath}
 										alt={selectedVehicle.name}
 										className="h-full w-full object-contain p-4"
 									/>
