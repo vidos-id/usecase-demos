@@ -7,6 +7,7 @@ Use this skill to operate the demo car-rental concierge over its regular HTTP AP
 If the user provides another car-rental API URL, use that instead.
 
 This API is session-based. Preserve the exact `bookingSessionId` returned by the server and reuse it in later calls.
+Do not probe the `/mcp` endpoint for any reason, for the purposes of this skill only the regular HTTP API endpoints under `/api/...` should be used.
 
 ## Ad-Hoc Use
 
