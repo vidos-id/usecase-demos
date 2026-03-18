@@ -2,7 +2,7 @@
 
 Use this skill to shop from the demo wine store over plain HTTP.
 
-**Base URL:** `https://6b9c-77-28-55-91.ngrok-free.app`
+**Base URL:** `https://mcp-wine-agent.demo.vidos.id`
 
 This API is session-based. Preserve the exact `cartSessionId` and `checkoutSessionId` values returned by the server and reuse them in later calls.
 

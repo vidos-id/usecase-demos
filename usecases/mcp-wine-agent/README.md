@@ -9,6 +9,13 @@ It is built to demonstrate two integration surfaces over the same domain logic:
 
 The core story is simple: discover wine in chat, build a cart, trigger checkout, verify age with a wallet, then complete the order.
 
+## Hosted Demo URLs
+
+- HTTP API base URL: `https://mcp-wine-agent.demo.vidos.id`
+- MCP server URL: `https://mcp-wine-agent.demo.vidos.id/mcp`
+
+The hosted deployment is the default target for the setup guide and the OpenClaw skill.
+
 ## What The Demo Proves
 
 - Conversational commerce can stay mostly in chat

@@ -9,8 +9,7 @@ import {
 } from "../components/mcp-wine-agent-guide";
 import { GuideLayout } from "./guide-layout";
 
-const mcpServerUrl =
-	import.meta.env.VITE_MCP_WINE_AGENT_URL ?? "http://localhost:30123/mcp";
+const mcpServerUrl = "https://mcp-wine-agent.demo.vidos.id/mcp";
 
 export function McpWineAgentPage() {
 	const [activeMode, setActiveMode] = useState<UsageModeId>("chatgpt");

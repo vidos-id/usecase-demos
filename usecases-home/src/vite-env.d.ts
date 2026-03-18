@@ -4,7 +4,6 @@ interface ImportMetaEnv {
 	readonly VITE_CAR_RENTAL_URL: string;
 	readonly VITE_DEMO_BANK_URL: string;
 	readonly VITE_WINE_SHOP_URL: string;
-	readonly VITE_MCP_WINE_AGENT_URL: string;
 }
 
 interface ImportMeta {
