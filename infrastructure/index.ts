@@ -8,7 +8,6 @@ const databasePath = "/app/data/vidos-demo.db";
 const mcpPublicBaseUrl = vidosConfig.get("mcpPublicBaseUrl") ?? "";
 const mcpPort = Number(vidosConfig.get("mcpPort") ?? "30123");
 const mcpPath = vidosConfig.get("mcpPath") ?? "/mcp";
-const mcpWidgetDomain = vidosConfig.get("mcpWidgetDomain") ?? "";
 
 const lightsailConfig = new pulumi.Config("lightsail");
 const serviceTier = lightsailConfig.get("serviceTier") ?? "micro";
@@ -195,13 +194,7 @@ if (deployEnabled) {
 						VIDOS_API_KEY: vidosApiKey,
 						PORT: mcpPort.toString(),
 						MCP_PATH: mcpPath,
-						WIDGET_DOMAIN: mcpWidgetDomain,
-						PUBLIC_BASE_URL:
-							mcpPublicBaseUrl.length > 0
-								? mcpPublicBaseUrl
-								: mcpPublicDomainName
-									? pulumi.interpolate`https://${mcpPublicDomainName}${mcpPath}`
-									: "",
+						PUBLIC_BASE_URL: mcpPublicBaseUrl,
 					},
 				},
 			],

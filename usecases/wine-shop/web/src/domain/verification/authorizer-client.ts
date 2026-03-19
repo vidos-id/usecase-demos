@@ -1,0 +1,145 @@
+import { buildWinePurchaseAuthorizationBody } from "demo-wine-shop-shared/lib/wine-verification";
+import createClient from "openapi-fetch";
+import type { paths } from "vidos-api/authorizer-api";
+import type { AgeVerificationMethod } from "@/domain/verification/verification-types";
+
+type CreateAuthorizationResponse =
+	paths["/openid4/vp/v1_0/authorizations"]["post"]["responses"][201]["content"]["application/json"];
+
+type AuthorizationStatusResponse =
+	paths["/openid4/vp/v1_0/authorizations/{authorizationId}/status"]["get"]["responses"][200]["content"]["application/json"];
+
+type PolicyResponse =
+	paths["/openid4/vp/v1_0/authorizations/{authorizationId}/policy-response"]["get"]["responses"][200]["content"]["application/json"];
+
+type CredentialsResponse =
+	paths["/openid4/vp/v1_0/authorizations/{authorizationId}/credentials"]["get"]["responses"][200]["content"]["application/json"];
+
+export type AuthorizerStatus = AuthorizationStatusResponse["status"];
+export type AuthorizerCredential = CredentialsResponse["credentials"][number];
+
+export type AuthorizerAuthorizationSession = {
+	authorizationId: string;
+	authorizeUrl: string | null;
+	expiresAt: string;
+	nonce: string;
+};
+
+export function getAuthorizerBaseUrl(): string | null {
+	const raw = import.meta.env.VITE_WINE_SHOP_AUTHORIZER_URL;
+	if (typeof raw !== "string") return null;
+	const value = raw.trim();
+	return value.length > 0 ? value : null;
+}
+
+export function getAuthorizerClientConfigError(): string {
+	return "Missing Vidos Authorizer configuration. Set VITE_WINE_SHOP_AUTHORIZER_URL.";
+}
+
+function getErrorMessage(error: unknown): string {
+	if (error && typeof error === "object" && "message" in error) {
+		const message = (error as { message?: unknown }).message;
+		if (typeof message === "string" && message.length > 0) return message;
+	}
+	return "Authorizer API request failed";
+}
+
+function createAuthorizerClient(baseUrl: string, apiKey?: string) {
+	const headers: Record<string, string> = {};
+	if (apiKey) {
+		headers.Authorization = `Bearer ${apiKey}`;
+	}
+	headers["ngrok-skip-browser-warning"] = "true";
+	return createClient<paths>({ baseUrl, headers });
+}
+
+function toAuthorizeUrl(response: CreateAuthorizationResponse): string | null {
+	if ("authorizeUrl" in response && typeof response.authorizeUrl === "string") {
+		return response.authorizeUrl;
+	}
+	return null;
+}
+
+export async function createAuthorizerAuthorization(input: {
+	baseUrl: string;
+	apiKey?: string;
+	nonce: string;
+	requiredAge: number;
+	ageVerificationMethod: AgeVerificationMethod;
+}): Promise<AuthorizerAuthorizationSession> {
+	const client = createAuthorizerClient(input.baseUrl, input.apiKey);
+	const { data, error } = await client.POST("/openid4/vp/v1_0/authorizations", {
+		body: buildWinePurchaseAuthorizationBody({
+			nonce: input.nonce,
+			requiredAge: input.requiredAge,
+			ageVerificationMethod: input.ageVerificationMethod,
+			purpose: "Verify age eligibility for wine purchase",
+			queryId: `wine-shop-${input.nonce.slice(0, 12)}`,
+		}),
+	});
+
+	if (error || !data) {
+		throw new Error(getErrorMessage(error));
+	}
+
+	return {
+		authorizationId: data.authorizationId,
+		authorizeUrl: toAuthorizeUrl(data),
+		expiresAt: data.expiresAt,
+		nonce: data.nonce,
+	};
+}
+
+export async function getAuthorizerAuthorizationStatus(input: {
+	baseUrl: string;
+	apiKey?: string;
+	authorizationId: string;
+}): Promise<AuthorizerStatus> {
+	const client = createAuthorizerClient(input.baseUrl, input.apiKey);
+	const { data, error } = await client.GET(
+		"/openid4/vp/v1_0/authorizations/{authorizationId}/status",
+		{ params: { path: { authorizationId: input.authorizationId } } },
+	);
+
+	if (error || !data) {
+		throw new Error(getErrorMessage(error));
+	}
+
+	return data.status;
+}
+
+export async function getAuthorizerPolicyResponse(input: {
+	baseUrl: string;
+	apiKey?: string;
+	authorizationId: string;
+}): Promise<PolicyResponse["data"]> {
+	const client = createAuthorizerClient(input.baseUrl, input.apiKey);
+	const { data, error } = await client.GET(
+		"/openid4/vp/v1_0/authorizations/{authorizationId}/policy-response",
+		{ params: { path: { authorizationId: input.authorizationId } } },
+	);
+
+	if (error || !data) {
+		throw new Error(getErrorMessage(error));
+	}
+
+	return data.data;
+}
+
+export async function getAuthorizerCredentials(input: {
+	baseUrl: string;
+	apiKey?: string;
+	authorizationId: string;
+}): Promise<CredentialsResponse["credentials"]> {
+	const client = createAuthorizerClient(input.baseUrl, input.apiKey);
+	const { data, error } = await client.GET(
+		"/openid4/vp/v1_0/authorizations/{authorizationId}/credentials",
+		{ params: { path: { authorizationId: input.authorizationId } } },
+	);
+
+	if (error || !data) {
+		throw new Error(getErrorMessage(error));
+	}
+
+	return data.credentials;
+}

@@ -22,7 +22,7 @@ const chatgptUrls = {
 } as const;
 
 const openClawSkillUrl =
-	"https://raw.githubusercontent.com/vidos-id/usecase-demos/main/usecases/mcp-wine-agent/skill.md";
+	"https://raw.githubusercontent.com/vidos-id/usecase-demos/main/usecases/wine-shop/mcp/skill.md";
 
 const openClawBootstrapPrompt = `Read ${openClawSkillUrl} and follow the instructions for this session.`;
 

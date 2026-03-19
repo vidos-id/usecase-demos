@@ -175,16 +175,16 @@ jobs:
       - name: Build Wine Shop
         run: |
           bun run build --filter=demo-wine-shop
-          cp "usecases/wine-shop/dist/index.html" "usecases/wine-shop/dist/404.html"
+          cp "usecases/wine-shop/web/dist/index.html" "usecases/wine-shop/web/dist/404.html"
 
       - name: Prepare Pages artifact
         run: |
           rm -rf site
-          mkdir -p site/bank site/car-rental
+          mkdir -p site/bank site/car-rental site/wine-shop
           cp -R "usecases-home/dist/." site
           cp -R "usecases/demo-bank/client/dist/." site/bank
           cp -R "usecases/car-rental/web/dist/." site/car-rental
-          cp -R "usecases/wine-shop/dist/." site/wine-shop
+          cp -R "usecases/wine-shop/web/dist/." site/wine-shop
 
       - name: Create SPA fallback redirect
         run: |

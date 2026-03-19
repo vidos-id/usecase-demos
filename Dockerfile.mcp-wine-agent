@@ -10,7 +10,7 @@ COPY . .
 RUN bun install --frozen-lockfile --filter "mcp-wine-agent"
 
 # Build widget assets at image build time
-WORKDIR /app/usecases/mcp-wine-agent
+WORKDIR /app/usecases/wine-shop/mcp
 RUN bun run build:widget
 WORKDIR /app
 
@@ -22,4 +22,4 @@ ENV SKIP_WIDGET_BUILD=1
 
 EXPOSE 30123
 
-CMD ["bun", "run", "usecases/mcp-wine-agent/src/main.ts"]
+CMD ["bun", "run", "usecases/wine-shop/mcp/src/main.ts"]

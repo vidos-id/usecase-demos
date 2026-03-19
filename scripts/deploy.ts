@@ -142,7 +142,6 @@ const main = () => {
 	};
 	const mcpPort = Number(process.env.MCP_PORT ?? "30123");
 	const mcpPath = process.env.MCP_PATH ?? "/mcp";
-	const mcpWidgetDomain = process.env.WIDGET_DOMAIN ?? "";
 	const mcpDeploymentConfig = {
 		containers: {
 			mcp: {
@@ -153,7 +152,7 @@ const main = () => {
 					VIDOS_API_KEY: process.env.VIDOS_API_KEY ?? "",
 					PORT: String(mcpPort),
 					MCP_PATH: mcpPath,
-					WIDGET_DOMAIN: mcpWidgetDomain,
+					PUBLIC_BASE_URL: process.env.PUBLIC_BASE_URL ?? "",
 				},
 			},
 		},
