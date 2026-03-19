@@ -4,12 +4,17 @@ import {
 	createRoute,
 	createRouter,
 } from "@tanstack/react-router";
+import { z } from "zod";
 import { App } from "./app";
 import { CredentialPrepPage } from "./pages/credential-prep";
 import { HowDemosWorkPage } from "./pages/how-demos-work";
 import { McpCarRentalAgentPage } from "./pages/mcp-car-rental-agent";
 import { McpWineAgentPage } from "./pages/mcp-wine-agent";
 import { WalletSetupPage } from "./pages/wallet-setup";
+
+const guideSearchSchema = z.object({
+	agent: z.enum(["chatgpt", "openclaw"]).optional(),
+});
 
 const rootRoute = createRootRoute();
 
@@ -41,12 +46,14 @@ const mcpWineAgentRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: "/mcp-wine-agent",
 	component: McpWineAgentPage,
+	validateSearch: guideSearchSchema,
 });
 
 const mcpCarRentalAgentRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: "/mcp-car-rental-agent",
 	component: McpCarRentalAgentPage,
+	validateSearch: guideSearchSchema,
 });
 
 const routeTree = rootRoute.addChildren([

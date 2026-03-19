@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import {
 	ArrowRight,
 	Bot,
@@ -14,7 +14,7 @@ import {
 	QrCode,
 	ShieldCheck,
 } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { ChatGptCarRentalMockup } from "../components/chatgpt-car-rental-mockup";
 import { cn } from "../lib/utils";
 import { GuideLayout } from "./guide-layout";
@@ -522,7 +522,15 @@ function CarRentalRelatedGuides() {
 }
 
 export function McpCarRentalAgentPage() {
-	const [activeMode, setActiveMode] = useState<UsageModeId>("chatgpt");
+	const { agent } = useSearch({ from: "/mcp-car-rental-agent" });
+	const navigate = useNavigate({ from: "/mcp-car-rental-agent" });
+	const activeMode: UsageModeId = agent ?? "chatgpt";
+	const setActiveMode = useCallback(
+		(mode: UsageModeId) => {
+			navigate({ search: { agent: mode }, replace: true });
+		},
+		[navigate],
+	);
 
 	return (
 		<GuideLayout>

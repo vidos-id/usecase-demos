@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useCallback } from "react";
 import { ChatGptWineMockup } from "../components/chatgpt-wine-mockup";
 import {
 	McpWineDemoOverview,
@@ -14,7 +15,15 @@ const mcpServerUrl =
 	"https://mcp-wine-agent.demo.vidos.id/mcp";
 
 export function McpWineAgentPage() {
-	const [activeMode, setActiveMode] = useState<UsageModeId>("chatgpt");
+	const { agent } = useSearch({ from: "/mcp-wine-agent" });
+	const navigate = useNavigate({ from: "/mcp-wine-agent" });
+	const activeMode: UsageModeId = agent ?? "chatgpt";
+	const setActiveMode = useCallback(
+		(mode: UsageModeId) => {
+			navigate({ search: { agent: mode }, replace: true });
+		},
+		[navigate],
+	);
 
 	return (
 		<GuideLayout>
