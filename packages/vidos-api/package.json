@@ -1,0 +1,17 @@
+{
+	"name": "vidos-api",
+	"version": "0.0.1",
+	"private": true,
+	"type": "module",
+	"exports": {
+		"./authorizer-api": "./src/authorizer-api.ts"
+	},
+	"scripts": {
+		"generate-api": "openapi-typescript authorizer.service.yaml --output src/authorizer-api.ts",
+		"check-types": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"openapi-typescript": "^7.10.1",
+		"typescript": "^5.9.3"
+	}
+}

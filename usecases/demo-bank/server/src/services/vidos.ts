@@ -15,9 +15,9 @@ import {
 	parseVidosError,
 } from "demo-bank-shared/types/vidos-errors";
 import createClient from "openapi-fetch";
+import type { paths } from "vidos-api/authorizer-api";
 import type { z } from "zod";
 import { env } from "../env";
-import type { paths } from "../generated/authorizer-api";
 
 export type PresentationMode = "direct_post" | "dc_api";
 

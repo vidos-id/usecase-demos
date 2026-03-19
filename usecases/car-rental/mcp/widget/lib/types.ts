@@ -1,5 +1,5 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { BookingView } from "../../src/schemas/booking";
+import type { BookingView } from "../../src/types";
 
 export type RentalWidgetData = {
 	booking?: BookingView;

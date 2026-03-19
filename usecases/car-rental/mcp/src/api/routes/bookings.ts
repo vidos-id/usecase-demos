@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { failure, parseJsonBody, success } from "@/api/responses";
-import { toBookingView } from "@/presenters/booking-view";
 import { startAuthorizationMonitor } from "@/services/authorization-monitor";
 import {
 	createNonce,
@@ -58,7 +57,7 @@ async function handleSelectBooking(request: Request) {
 		return success(
 			`${booking.selectedVehicle?.name ?? "Vehicle"} selected. Continue with POST /api/bookings/start using the same bookingSessionId.`,
 			{
-				booking: toBookingView(booking),
+				booking,
 				nextStep:
 					"Start booking to create the wallet verification request. Do not ask for licence details in chat.",
 			},
@@ -104,7 +103,7 @@ async function handleStartBooking(request: Request) {
 		return success(
 			`Booking started for ${booking.selectedVehicle.name}. Wallet verification is now required.`,
 			{
-				booking: toBookingView(updated),
+				booking: updated,
 				authorizeUrl: authorization.authorizeUrl ?? null,
 				polling: {
 					intervalSeconds: POLL_INTERVAL_SECONDS,
@@ -141,7 +140,7 @@ function handleGetBooking(bookingSessionId: string) {
 							? `Verification failed. ${booking.verification?.lastError ?? booking.eligibility?.reasonText ?? "Unknown authorizer error."}`
 							: `Booking ${booking.bookingSessionId} is waiting for wallet verification.`;
 
-		return success(message, { booking: toBookingView(booking) });
+		return success(message, { booking });
 	} catch (error) {
 		return failure(
 			`Failed to get booking status: ${error instanceof Error ? error.message : String(error)}`,

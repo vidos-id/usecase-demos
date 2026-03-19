@@ -7,11 +7,10 @@ import { getBuiltWidgetHtml } from "@/ui/widget-build";
 import {
 	getWidgetCsp,
 	getWidgetDomain,
-	RENTAL_WIDGET_MIME_TYPE,
 	RENTAL_WIDGET_URI,
 } from "@/ui/widget-config";
 
-export { RENTAL_WIDGET_MIME_TYPE, RENTAL_WIDGET_URI } from "@/ui/widget-config";
+export { RENTAL_WIDGET_URI } from "@/ui/widget-config";
 
 export function registerRentalWidgetResource(server: McpServer) {
 	registerAppResource(

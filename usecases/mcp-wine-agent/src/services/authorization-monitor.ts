@@ -2,6 +2,8 @@ import type {
 	AgeCheckResult,
 	CheckoutSession,
 	NormalizedPidClaims,
+	VerificationLifecycleState,
+	VerificationPolicy,
 } from "@/schemas/verification";
 import { getCheckoutSession, updateCheckoutSession } from "@/services/checkout";
 import {
@@ -80,7 +82,7 @@ async function monitorTick(checkoutSessionId: string): Promise<void> {
 			updateCheckoutSession(checkoutSessionId, {
 				verification: {
 					...session.verification,
-					lifecycle: status,
+					lifecycle: status as VerificationLifecycleState,
 					updatedAt: new Date().toISOString(),
 				},
 				updatedAt: new Date().toISOString(),
@@ -137,13 +139,17 @@ async function processSuccess(session: CheckoutSession): Promise<void> {
 	const authId = session.verification.authorizationId;
 
 	try {
-		const [policy, credentials] = await Promise.all([
+		const [policyResponse, credentials] = await Promise.all([
 			getPolicyResponse(authId),
 			getCredentials(authId),
 		]);
 
 		const normalizedClaims = extractPidClaims(credentials);
 		const ageCheck = evaluateAgeEligibility(normalizedClaims);
+		const transformedPolicy = transformPolicyResponse({
+			data: policyResponse,
+			authorizationId: authId,
+		});
 
 		const newStatus = ageCheck.eligible ? "verified" : "rejected";
 		const lastError = ageCheck.eligible
@@ -155,7 +161,7 @@ async function processSuccess(session: CheckoutSession): Promise<void> {
 			verification: {
 				...session.verification,
 				lifecycle: "success",
-				policy,
+				policy: transformedPolicy,
 				disclosedClaims: normalizedClaims,
 				ageCheck,
 				lastError,
@@ -210,10 +216,58 @@ function processFailure(
 	});
 }
 
+function transformPolicyResponse(apiResponse: {
+	data: unknown[];
+	authorizationId: string;
+}): VerificationPolicy {
+	const data = apiResponse.data as Array<{
+		path: (string | number)[];
+		policy: string;
+		service: string;
+		error?: {
+			type: string;
+			title?: string;
+			detail?: string;
+		};
+		data?: Record<string, unknown>;
+	}>;
+
+	const checks = data.map((item) => {
+		let status: "pass" | "fail" | "unknown" = "unknown";
+		let message: string | undefined;
+
+		if (item.error) {
+			status = "fail";
+			message = item.error.detail || item.error.title;
+		} else if (item.data) {
+			status = "pass";
+		}
+
+		return {
+			id: item.policy,
+			status,
+			path: item.path,
+			message,
+		};
+	});
+
+	let overallStatus: "pass" | "fail" | "unknown" = "unknown";
+	if (checks.length > 0) {
+		if (checks.every((c) => c.status === "pass")) {
+			overallStatus = "pass";
+		} else if (checks.some((c) => c.status === "fail")) {
+			overallStatus = "fail";
+		}
+	}
+
+	return { overallStatus, checks };
+}
+
 function extractPidClaims(
 	credentials: Array<{
-		id: string;
+		path: (string | number)[];
 		format: string;
+		credentialType: string;
 		claims: Record<string, unknown>;
 	}>,
 ): NormalizedPidClaims {

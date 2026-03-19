@@ -1,8 +1,9 @@
 import createClient from "openapi-fetch";
-import type { paths } from "./authorizer-api";
+import type { paths } from "vidos-api/authorizer-api";
 
 export type AuthorizerStatus =
 	| "created"
+	| "pending"
 	| "pending_wallet"
 	| "processing"
 	| "authorized"
@@ -35,6 +36,11 @@ type PolicyResponse =
 type CredentialsResponse =
 	paths["/openid4/vp/v1_0/authorizations/{authorizationId}/credentials"]["get"]["responses"][200]["content"]["application/json"];
 
+type DcqlCredentialQuery = Extract<
+	CreateAuthorizationBody,
+	{ query: { type: "DCQL" } }
+>["query"]["dcql"]["credentials"][number];
+
 function getBaseUrl(): string {
 	const url = process.env.VIDOS_AUTHORIZER_URL;
 	if (!url) {
@@ -65,7 +71,9 @@ function getErrorMessage(error: unknown): string {
 }
 
 export function buildDcqlPidQuery(): CreateAuthorizationBody {
-	const credentialRequest = {
+	const credentialRequest: DcqlCredentialQuery & {
+		require_cryptographic_holder_binding: boolean;
+	} = {
 		id: "age-18-pid-cred",
 		format: "dc+sd-jwt",
 		meta: {
@@ -73,8 +81,6 @@ export function buildDcqlPidQuery(): CreateAuthorizationBody {
 		},
 		require_cryptographic_holder_binding: true,
 		claims: [{ path: ["birthdate"] }],
-	} as CreateAuthorizationBody["query"]["dcql"]["credentials"][number] & {
-		require_cryptographic_holder_binding: boolean;
 	};
 
 	return {
@@ -87,7 +93,7 @@ export function buildDcqlPidQuery(): CreateAuthorizationBody {
 				credentials: [credentialRequest],
 			},
 		},
-	};
+	} as CreateAuthorizationBody;
 }
 
 export async function createAuthorization(): Promise<AuthorizationSession> {
@@ -100,11 +106,18 @@ export async function createAuthorization(): Promise<AuthorizationSession> {
 		throw new Error(getErrorMessage(error));
 	}
 
+	const result = data as {
+		authorizationId: string;
+		authorizeUrl?: string;
+		expiresAt: string;
+		nonce: string;
+	};
+
 	return {
-		authorizationId: data.authorizationId,
-		authorizeUrl: data.authorizeUrl ?? null,
-		expiresAt: data.expiresAt,
-		nonce: data.nonce,
+		authorizationId: result.authorizationId,
+		authorizeUrl: result.authorizeUrl ?? null,
+		expiresAt: result.expiresAt,
+		nonce: result.nonce,
 	};
 }
 
@@ -121,7 +134,11 @@ export async function getAuthorizationStatus(
 		throw new Error(getErrorMessage(error));
 	}
 
-	return data.status;
+	const status = data.status;
+	if (status === "pending") {
+		return "pending_wallet";
+	}
+	return status as AuthorizerStatus;
 }
 
 export async function getPolicyResponse(

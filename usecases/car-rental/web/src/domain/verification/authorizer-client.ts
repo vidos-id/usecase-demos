@@ -1,6 +1,6 @@
 import { buildCarRentalMdlAuthorizationQuery } from "demo-car-rental-shared/lib/car-rental-verification";
 import createClient from "openapi-fetch";
-import type { paths } from "@/generated/authorizer-api";
+import type { paths } from "vidos-api/authorizer-api";
 
 type CreateAuthorizationBody = NonNullable<
 	paths["/openid4/vp/v1_0/authorizations"]["post"]["requestBody"]

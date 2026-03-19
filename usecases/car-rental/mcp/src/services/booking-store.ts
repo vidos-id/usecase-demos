@@ -6,7 +6,6 @@ import {
 	toBookingVehicle,
 } from "demo-car-rental-shared/lib/cars";
 import {
-	type BookingLocation,
 	type BookingVehicle,
 	bookingLocationSchema,
 	type RentalTripContext,
@@ -15,13 +14,11 @@ import {
 import type {
 	BookingSnapshot,
 	BookingStatus,
-	VerificationSnapshot,
-} from "@/schemas/booking";
-import type {
 	PickupConfirmation,
 	RentalEligibility,
 	RentalSearchResponse,
-} from "@/schemas/mcp";
+	VerificationSnapshot,
+} from "@/types";
 
 type BookingRecord = BookingSnapshot & {
 	search?: RentalSearchResponse;

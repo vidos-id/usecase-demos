@@ -1,6 +1,6 @@
 import createClient from "openapi-fetch";
+import type { paths } from "vidos-api/authorizer-api";
 import type { AgeVerificationMethod } from "@/domain/verification/verification-types";
-import type { paths } from "@/generated/authorizer-api";
 
 type CreateAuthorizationBody = NonNullable<
 	paths["/openid4/vp/v1_0/authorizations"]["post"]["requestBody"]

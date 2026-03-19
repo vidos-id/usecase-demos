@@ -3,7 +3,6 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { rentalTripContextSchema } from "demo-car-rental-shared/types/rental";
 import { z } from "zod";
-import { toBookingView, toSearchCarsResult } from "@/presenters/booking-view";
 import { startAuthorizationMonitor } from "@/services/authorization-monitor";
 import {
 	createNonce,
@@ -92,10 +91,7 @@ async function searchCarsTool(args: unknown): Promise<CallToolResult> {
 		),
 		{
 			bookingSessionId: result.booking.bookingSessionId,
-			results: toSearchCarsResult(
-				result.booking.bookingSessionId,
-				result.search,
-			).results,
+			results: result.search.results,
 		},
 	);
 }
@@ -115,7 +111,7 @@ async function selectCarTool(args: unknown): Promise<CallToolResult> {
 		}
 		return toToolResult(
 			`${booking.selectedVehicle.name} is selected in booking session ${booking.bookingSessionId}. Do not collect age, name, email, phone, insurance, or extras in chat. To continue, call start_booking with this bookingSessionId so the user can share their mDL in the UI widget.`,
-			{ booking: toBookingView(booking) },
+			{ booking },
 		);
 	} catch (error) {
 		return toToolResult(
@@ -170,7 +166,7 @@ async function startBookingTool(args: unknown): Promise<CallToolResult> {
 		return toToolResult(
 			text,
 			{
-				booking: toBookingView(updated),
+				booking: updated,
 				widgetUri: RENTAL_WIDGET_URI,
 				authorizationUrl: authorization.authorizeUrl,
 			},
@@ -207,7 +203,7 @@ async function getBookingStatusTool(args: unknown): Promise<CallToolResult> {
 		return toToolResult(
 			plainText,
 			{
-				booking: toBookingView(booking),
+				booking,
 			},
 			false,
 			Boolean(booking.verification),

@@ -5,6 +5,7 @@
 	"license": "MIT",
 	"packageManager": "bun@1.2.4",
 	"workspaces": [
+		"./packages/*",
 		"./usecases/**/*",
 		"./usecases-home",
 		"./infrastructure"

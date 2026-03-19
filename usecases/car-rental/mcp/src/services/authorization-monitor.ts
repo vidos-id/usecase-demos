@@ -1,4 +1,3 @@
-import type { RentalEligibility } from "@/schemas/mcp";
 import {
 	createPickupConfirmation,
 	finalizeEligibility,
@@ -11,6 +10,7 @@ import {
 	getAuthorizationStatus,
 	getCredentials,
 } from "@/services/vidos-client";
+import type { RentalEligibility } from "@/types";
 
 const MONITOR_INTERVAL_MS = 2000;
 

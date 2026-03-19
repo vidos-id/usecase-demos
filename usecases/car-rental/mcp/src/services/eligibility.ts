@@ -1,6 +1,6 @@
 import type { BookingVehicle } from "demo-car-rental-shared/types/rental";
-import type { RentalEligibility } from "@/schemas/mcp";
 import type { AuthorizerCredential } from "@/services/vidos-client";
+import type { RentalEligibility } from "@/types";
 
 type NormalizedClaims = {
 	mdlExpiryDate: string | null;

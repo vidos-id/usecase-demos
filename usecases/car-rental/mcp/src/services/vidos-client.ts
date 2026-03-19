@@ -1,6 +1,6 @@
 import { buildCarRentalMdlAuthorizationQuery } from "demo-car-rental-shared/lib/car-rental-verification";
 import createClient from "openapi-fetch";
-import type { paths } from "@/generated/authorizer-api";
+import type { paths } from "vidos-api/authorizer-api";
 
 type CreateAuthorizationBody = NonNullable<
 	paths["/openid4/vp/v1_0/authorizations"]["post"]["requestBody"]
@@ -34,13 +34,9 @@ export type AuthorizationSession = {
 };
 
 function getBaseUrl(): string {
-	const url =
-		process.env.VIDOS_AUTHORIZER_URL ??
-		process.env.VIDOS_CAR_RENTAL_AUTHORIZER_URL;
+	const url = process.env.VITE_CAR_RENTAL_AUTHORIZER_URL;
 	if (!url) {
-		throw new Error(
-			"Missing VIDOS_AUTHORIZER_URL or VIDOS_CAR_RENTAL_AUTHORIZER_URL",
-		);
+		throw new Error("Missing VITE_CAR_RENTAL_AUTHORIZER_URL");
 	}
 	return url;
 }

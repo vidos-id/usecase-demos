@@ -1,4 +1,4 @@
-import type { BookingView } from "../../src/schemas/booking";
+import type { BookingView } from "../../src/types";
 import type { RentalWidgetData } from "./types";
 
 export const POLL_INTERVAL_MS = 2000;
