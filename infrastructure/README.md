@@ -28,8 +28,10 @@ Secrets are stored via Pulumi config:
 
 - `vidos:authorizerUrl` (required)
 - `vidos:apiKey` (optional)
-- `vidos:mcpPublicBaseUrl` (set this explicitly for the hosted MCP base URL, for example `https://mcp-wine-agent.demo.vidos.id/mcp`)
-- `vidos:mcpPort` (optional, default 30123)
+- `vidos:mcpWinePublicBaseUrl` (set this explicitly for the hosted wine MCP base URL, for example `https://mcp-wine-agent.demo.vidos.id/mcp`)
+- `vidos:mcpCarRentalPublicBaseUrl` (set this explicitly for the hosted car-rental MCP base URL, for example `https://mcp-car-rent.demo.vidos.id/mcp`)
+- `vidos:mcpWinePort` (optional, default 30123)
+- `vidos:mcpCarRentalPort` (optional, default 30124)
 - `vidos:mcpPath` (optional, default /mcp)
 
 Update configuration:
@@ -37,8 +39,10 @@ Update configuration:
 ```bash
 pulumi config set vidos:authorizerUrl <url> --secret
 pulumi config set vidos:apiKey <key> --secret
-pulumi config set vidos:mcpPublicBaseUrl https://mcp-wine-agent.demo.vidos.id/mcp
-pulumi config set vidos:mcpPort 30123
+pulumi config set vidos:mcpWinePublicBaseUrl https://mcp-wine-agent.demo.vidos.id/mcp
+pulumi config set vidos:mcpCarRentalPublicBaseUrl https://mcp-car-rent.demo.vidos.id/mcp
+pulumi config set vidos:mcpWinePort 30123
+pulumi config set vidos:mcpCarRentalPort 30124
 pulumi config set vidos:mcpPath /mcp
 ```
 

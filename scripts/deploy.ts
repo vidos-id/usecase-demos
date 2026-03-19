@@ -11,6 +11,10 @@ const rootDir = process.cwd();
 const infrastructureDir = path.join(rootDir, "infrastructure");
 const dockerfilePath = path.join(rootDir, "Dockerfile.server");
 const mcpDockerfilePath = path.join(rootDir, "Dockerfile.mcp-wine-agent");
+const mcpCarRentalDockerfilePath = path.join(
+	rootDir,
+	"Dockerfile.mcp-car-rental-agent",
+);
 
 const run = (command: string, options: ExecOptions = {}) => {
 	try {
@@ -75,6 +79,9 @@ const ensurePaths = () => {
 	if (!existsSync(mcpDockerfilePath)) {
 		throw new Error("Missing Dockerfile.mcp-wine-agent in repo root.");
 	}
+	if (!existsSync(mcpCarRentalDockerfilePath)) {
+		throw new Error("Missing Dockerfile.mcp-car-rental-agent in repo root.");
+	}
 };
 
 const log = (message: string) => {
@@ -97,17 +104,23 @@ const main = () => {
 
 	const repositoryUrl = getStackOutput("ecrRepositoryUrl");
 	const serviceName = getStackOutput("lightsailServiceName");
-	const mcpServiceName = getStackOutput("mcpLightsailServiceName");
+	const mcpWineServiceName = getStackOutput("mcpWineLightsailServiceName");
+	const mcpCarRentalServiceName = getStackOutput(
+		"mcpCarRentalLightsailServiceName",
+	);
 	const region = getStackOutput("region") || "eu-west-1";
 	const endpoint = getStackOutput("endpoint");
-	const mcpEndpoint = getStackOutput("mcpEndpoint");
+	const mcpWineEndpoint = getStackOutput("mcpWineEndpoint");
+	const mcpCarRentalEndpoint = getStackOutput("mcpCarRentalEndpoint");
 
 	const tag = getGitSha() ?? getTimestamp();
 	const imageTag = `${repositoryUrl}:${tag}`;
-	const mcpImageTag = `${repositoryUrl}:mcp-${tag}`;
+	const mcpWineImageTag = `${repositoryUrl}:mcp-${tag}`;
+	const mcpCarRentalImageTag = `${repositoryUrl}:mcp-car-rental-${tag}`;
 
 	log(`Using image tag: ${imageTag}`);
-	log(`Using MCP image tag: ${mcpImageTag}`);
+	log(`Using wine MCP image tag: ${mcpWineImageTag}`);
+	log(`Using car-rental MCP image tag: ${mcpCarRentalImageTag}`);
 	log("Authenticating to ECR...");
 	run(
 		`aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${repositoryUrl}`,
@@ -116,12 +129,18 @@ const main = () => {
 	log("Building Docker image...");
 	run(`docker build -f Dockerfile.server -t ${imageTag} .`);
 	log("Building MCP Wine Agent image...");
-	run(`docker build -f Dockerfile.mcp-wine-agent -t ${mcpImageTag} .`);
+	run(`docker build -f Dockerfile.mcp-wine-agent -t ${mcpWineImageTag} .`);
+	log("Building MCP Car Rental Agent image...");
+	run(
+		`docker build -f Dockerfile.mcp-car-rental-agent -t ${mcpCarRentalImageTag} .`,
+	);
 
 	log("Pushing image to ECR...");
 	run(`docker push ${imageTag}`);
 	log("Pushing MCP image to ECR...");
-	run(`docker push ${mcpImageTag}`);
+	run(`docker push ${mcpWineImageTag}`);
+	log("Pushing car-rental MCP image to ECR...");
+	run(`docker push ${mcpCarRentalImageTag}`);
 
 	log("Updating Lightsail service...");
 	const deploymentConfig = {
@@ -140,32 +159,60 @@ const main = () => {
 			containerPort: 53913,
 		},
 	};
-	const mcpPort = Number(process.env.MCP_PORT ?? "30123");
+	const mcpWinePort = Number(process.env.MCP_WINE_PORT ?? "30123");
+	const mcpCarRentalPort = Number(process.env.MCP_CAR_RENTAL_PORT ?? "30124");
 	const mcpPath = process.env.MCP_PATH ?? "/mcp";
-	const mcpDeploymentConfig = {
+	const mcpWinePublicBaseUrl = process.env.MCP_WINE_PUBLIC_BASE_URL ?? "";
+	const mcpCarRentalPublicBaseUrl =
+		process.env.MCP_CAR_RENTAL_PUBLIC_BASE_URL ?? "";
+	const mcpWineDeploymentConfig = {
 		containers: {
 			mcp: {
-				image: mcpImageTag,
-				ports: { [mcpPort]: "HTTP" },
+				image: mcpWineImageTag,
+				ports: { [mcpWinePort]: "HTTP" },
 				environment: {
 					VIDOS_AUTHORIZER_URL: process.env.VIDOS_AUTHORIZER_URL ?? "",
 					VIDOS_API_KEY: process.env.VIDOS_API_KEY ?? "",
-					PORT: String(mcpPort),
+					PORT: String(mcpWinePort),
 					MCP_PATH: mcpPath,
-					PUBLIC_BASE_URL: process.env.PUBLIC_BASE_URL ?? "",
+					PUBLIC_BASE_URL: mcpWinePublicBaseUrl,
 				},
 			},
 		},
 		publicEndpoint: {
 			containerName: "mcp",
-			containerPort: mcpPort,
+			containerPort: mcpWinePort,
+		},
+	};
+	const mcpCarRentalDeploymentConfig = {
+		containers: {
+			mcp: {
+				image: mcpCarRentalImageTag,
+				ports: { [mcpCarRentalPort]: "HTTP" },
+				environment: {
+					VIDOS_AUTHORIZER_URL: process.env.VIDOS_AUTHORIZER_URL ?? "",
+					VIDOS_API_KEY: process.env.VIDOS_API_KEY ?? "",
+					PORT: String(mcpCarRentalPort),
+					MCP_PATH: mcpPath,
+					PUBLIC_BASE_URL: mcpCarRentalPublicBaseUrl,
+				},
+			},
+		},
+		publicEndpoint: {
+			containerName: "mcp",
+			containerPort: mcpCarRentalPort,
 		},
 	};
 
 	const deploymentPayload = JSON.stringify(deploymentConfig)
 		.replace(/\\/g, "\\\\")
 		.replace(/'/g, "\\'");
-	const mcpDeploymentPayload = JSON.stringify(mcpDeploymentConfig)
+	const mcpWineDeploymentPayload = JSON.stringify(mcpWineDeploymentConfig)
+		.replace(/\\/g, "\\\\")
+		.replace(/'/g, "\\'");
+	const mcpCarRentalDeploymentPayload = JSON.stringify(
+		mcpCarRentalDeploymentConfig,
+	)
 		.replace(/\\/g, "\\\\")
 		.replace(/'/g, "\\'");
 
@@ -174,7 +221,11 @@ const main = () => {
 	);
 	log("Updating MCP Wine Agent service...");
 	run(
-		`aws lightsail create-container-service-deployment --service-name ${mcpServiceName} --region ${region} --cli-input-json '${mcpDeploymentPayload}'`,
+		`aws lightsail create-container-service-deployment --service-name ${mcpWineServiceName} --region ${region} --cli-input-json '${mcpWineDeploymentPayload}'`,
+	);
+	log("Updating MCP Car Rental Agent service...");
+	run(
+		`aws lightsail create-container-service-deployment --service-name ${mcpCarRentalServiceName} --region ${region} --cli-input-json '${mcpCarRentalDeploymentPayload}'`,
 	);
 
 	log("Waiting for deployment to complete...");
@@ -191,7 +242,8 @@ const main = () => {
 
 	log("Deployment triggered.");
 	log(`Endpoint: ${endpoint}`);
-	log(`MCP Endpoint: ${mcpEndpoint}`);
+	log(`Wine MCP Endpoint: ${mcpWineEndpoint}`);
+	log(`Car Rental MCP Endpoint: ${mcpCarRentalEndpoint}`);
 };
 
 try {

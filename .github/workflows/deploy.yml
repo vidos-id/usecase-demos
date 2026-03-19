@@ -26,6 +26,7 @@ env:
 
   VITE_CAR_RENTAL_URL: https://eudi-usecase.demo.vidos.id/car-rental
   VITE_CAR_RENTAL_AUTHORIZER_URL: ${{ vars.VITE_CAR_RENTAL_AUTHORIZER_URL }}
+  VITE_MCP_CAR_RENTAL_AGENT_URL: https://mcp-car-rent.demo.vidos.id/mcp
 
   VITE_WINE_SHOP_URL: https://eudi-usecase.demo.vidos.id/wine-shop
   VITE_WINE_SHOP_AUTHORIZER_URL: ${{ vars.VITE_WINE_SHOP_AUTHORIZER_URL }}
@@ -42,15 +43,18 @@ jobs:
     runs-on: ubuntu-24.04-arm
     outputs:
       server_url: ${{ steps.stack-outputs.outputs.server_url }}
-      mcp_url: ${{ steps.stack-outputs.outputs.mcp_url }}
+      mcp_wine_url: ${{ steps.stack-outputs.outputs.mcp_wine_url }}
+      mcp_car_rental_url: ${{ steps.stack-outputs.outputs.mcp_car_rental_url }}
     env:
       AWS_REGION: ${{ secrets.AWS_REGION }}
       PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
       PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
       VIDOS_AUTHORIZER_URL: ${{ secrets.VIDOS_AUTHORIZER_URL }}
       VIDOS_API_KEY: ${{ secrets.VIDOS_API_KEY }}
-      MCP_PUBLIC_DOMAIN_NAME: ${{ vars.MCP_PUBLIC_DOMAIN_NAME }}
-      MCP_CERTIFICATE_NAME: ${{ vars.MCP_CERTIFICATE_NAME }}
+      MCP_WINE_PUBLIC_DOMAIN_NAME: ${{ vars.MCP_WINE_PUBLIC_DOMAIN_NAME }}
+      MCP_WINE_CERTIFICATE_NAME: ${{ vars.MCP_WINE_CERTIFICATE_NAME }}
+      MCP_CAR_RENTAL_PUBLIC_DOMAIN_NAME: ${{ vars.MCP_CAR_RENTAL_PUBLIC_DOMAIN_NAME }}
+      MCP_CAR_RENTAL_CERTIFICATE_NAME: ${{ vars.MCP_CAR_RENTAL_CERTIFICATE_NAME }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -76,8 +80,10 @@ jobs:
         env:
           VIDOS_AUTHORIZER_URL: ${{ secrets.VIDOS_AUTHORIZER_URL }}
           VIDOS_API_KEY: ${{ secrets.VIDOS_API_KEY }}
-          MCP_PUBLIC_DOMAIN_NAME: ${{ vars.MCP_PUBLIC_DOMAIN_NAME }}
-          MCP_CERTIFICATE_NAME: ${{ vars.MCP_CERTIFICATE_NAME }}
+          MCP_WINE_PUBLIC_DOMAIN_NAME: ${{ vars.MCP_WINE_PUBLIC_DOMAIN_NAME }}
+          MCP_WINE_CERTIFICATE_NAME: ${{ vars.MCP_WINE_CERTIFICATE_NAME }}
+          MCP_CAR_RENTAL_PUBLIC_DOMAIN_NAME: ${{ vars.MCP_CAR_RENTAL_PUBLIC_DOMAIN_NAME }}
+          MCP_CAR_RENTAL_CERTIFICATE_NAME: ${{ vars.MCP_CAR_RENTAL_CERTIFICATE_NAME }}
         run: |
           repo_uri=$(pulumi stack output ecrRepositoryUrl --cwd infrastructure)
           image_tag=${GITHUB_SHA}
@@ -85,28 +91,42 @@ jobs:
           docker buildx create --use
           docker buildx build --platform linux/amd64 -f Dockerfile.server -t "$repo_uri:$image_tag" --push .
           docker buildx build --platform linux/amd64 -f Dockerfile.mcp-wine-agent -t "$repo_uri:mcp-$image_tag" --push .
+          docker buildx build --platform linux/amd64 -f Dockerfile.mcp-car-rental-agent -t "$repo_uri:mcp-car-rental-$image_tag" --push .
       - name: Pulumi up (deploy image)
         env:
           VIDOS_AUTHORIZER_URL: ${{ secrets.VIDOS_AUTHORIZER_URL }}
           VIDOS_API_KEY: ${{ secrets.VIDOS_API_KEY }}
-          PUBLIC_BASE_URL: ${{ vars.PUBLIC_BASE_URL }}
-          MCP_PUBLIC_DOMAIN_NAME: ${{ vars.MCP_PUBLIC_DOMAIN_NAME }}
-          MCP_CERTIFICATE_NAME: ${{ vars.MCP_CERTIFICATE_NAME }}
+          VITE_MCP_WINE_AGENT_URL: ${{ env.VITE_MCP_WINE_AGENT_URL }}
+          VITE_MCP_CAR_RENTAL_AGENT_URL: ${{ env.VITE_MCP_CAR_RENTAL_AGENT_URL }}
+          MCP_WINE_PUBLIC_DOMAIN_NAME: ${{ vars.MCP_WINE_PUBLIC_DOMAIN_NAME }}
+          MCP_WINE_CERTIFICATE_NAME: ${{ vars.MCP_WINE_CERTIFICATE_NAME }}
+          MCP_CAR_RENTAL_PUBLIC_DOMAIN_NAME: ${{ vars.MCP_CAR_RENTAL_PUBLIC_DOMAIN_NAME }}
+          MCP_CAR_RENTAL_CERTIFICATE_NAME: ${{ vars.MCP_CAR_RENTAL_CERTIFICATE_NAME }}
         run: |
           pulumi login "$PULUMI_BACKEND_URL"
           pulumi stack select "$PULUMI_STACK"
           pulumi config set vidos:authorizerUrl "$VIDOS_AUTHORIZER_URL" --secret
           pulumi config set vidos:apiKey "$VIDOS_API_KEY" --secret
-          if [ -n "$PUBLIC_BASE_URL" ]; then
-            pulumi config set vidos:mcpPublicBaseUrl "$PUBLIC_BASE_URL"
+          if [ -n "$VITE_MCP_WINE_AGENT_URL" ]; then
+            pulumi config set vidos:mcpWinePublicBaseUrl "$VITE_MCP_WINE_AGENT_URL"
+          fi
+          if [ -n "$VITE_MCP_CAR_RENTAL_AGENT_URL" ]; then
+            pulumi config set vidos:mcpCarRentalPublicBaseUrl "$VITE_MCP_CAR_RENTAL_AGENT_URL"
           fi
           pulumi config set lightsail:backendImageTag "$GITHUB_SHA"
-          pulumi config set lightsail:mcpImageTag "mcp-$GITHUB_SHA"
-          if [ -n "$MCP_PUBLIC_DOMAIN_NAME" ]; then
-            pulumi config set lightsail:mcpPublicDomainName "$MCP_PUBLIC_DOMAIN_NAME"
+          pulumi config set lightsail:mcpWineImageTag "mcp-$GITHUB_SHA"
+          pulumi config set lightsail:mcpCarRentalImageTag "mcp-car-rental-$GITHUB_SHA"
+          if [ -n "$MCP_WINE_PUBLIC_DOMAIN_NAME" ]; then
+            pulumi config set lightsail:mcpWinePublicDomainName "$MCP_WINE_PUBLIC_DOMAIN_NAME"
           fi
-          if [ -n "$MCP_CERTIFICATE_NAME" ]; then
-            pulumi config set lightsail:mcpCertificateName "$MCP_CERTIFICATE_NAME"
+          if [ -n "$MCP_WINE_CERTIFICATE_NAME" ]; then
+            pulumi config set lightsail:mcpWineCertificateName "$MCP_WINE_CERTIFICATE_NAME"
+          fi
+          if [ -n "$MCP_CAR_RENTAL_PUBLIC_DOMAIN_NAME" ]; then
+            pulumi config set lightsail:mcpCarRentalPublicDomainName "$MCP_CAR_RENTAL_PUBLIC_DOMAIN_NAME"
+          fi
+          if [ -n "$MCP_CAR_RENTAL_CERTIFICATE_NAME" ]; then
+            pulumi config set lightsail:mcpCarRentalCertificateName "$MCP_CAR_RENTAL_CERTIFICATE_NAME"
           fi
           pulumi config set lightsail:deploy true
           pulumi cancel --yes || true
@@ -116,7 +136,8 @@ jobs:
         id: stack-outputs
         run: |
           echo "server_url=$(pulumi stack output endpoint)" >> "$GITHUB_OUTPUT"
-          echo "mcp_url=$(pulumi stack output mcpEndpoint)" >> "$GITHUB_OUTPUT"
+          echo "mcp_wine_url=$(pulumi stack output mcpWineEndpoint)" >> "$GITHUB_OUTPUT"
+          echo "mcp_car_rental_url=$(pulumi stack output mcpCarRentalEndpoint)" >> "$GITHUB_OUTPUT"
         working-directory: infrastructure
   deploy:
     needs: deploy-infra
@@ -155,7 +176,8 @@ jobs:
 
       - name: Build Usecases Home
         env:
-          VITE_MCP_WINE_AGENT_URL: ${{ needs.deploy-infra.outputs.mcp_url }}
+          VITE_MCP_WINE_AGENT_URL: ${{ needs.deploy-infra.outputs.mcp_wine_url }}
+          VITE_MCP_CAR_RENTAL_AGENT_URL: ${{ needs.deploy-infra.outputs.mcp_car_rental_url }}
         run: |
           bun run build --filter=usecases-home
           cp "usecases-home/dist/index.html" "usecases-home/dist/404.html"

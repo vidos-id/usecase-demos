@@ -1,0 +1,25 @@
+# Bun MCP Car Rental Agent server (JIT - no build step)
+FROM oven/bun:1-alpine
+
+WORKDIR /app
+
+# Copy everything (client excluded via .dockerignore)
+COPY . .
+
+# Install workspace deps for MCP agent only (include dev deps for widget build)
+RUN bun install --frozen-lockfile --filter "mcp-car-rental-agent"
+
+# Build widget assets at image build time
+WORKDIR /app/usecases/car-rental/mcp
+RUN bun run build:widget
+WORKDIR /app
+
+USER bun
+ENV NODE_ENV=production
+ENV PORT=30124
+ENV MCP_PATH=/mcp
+ENV SKIP_WIDGET_BUILD=1
+
+EXPOSE 30124
+
+CMD ["bun", "run", "usecases/car-rental/mcp/src/main.ts"]
