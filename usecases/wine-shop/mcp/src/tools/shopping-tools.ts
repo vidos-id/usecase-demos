@@ -1,5 +1,6 @@
 import { registerAppTool } from "@modelcontextprotocol/ext-apps/server";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import {
 	addToCart,
@@ -10,8 +11,8 @@ import {
 	getWineById,
 	removeFromCart,
 } from "@/services/shopping";
-import type { ToolResponse } from "@/types/tool-response";
 import { logDebug } from "@/utils/debug";
+import { normalizeWineSearchInput } from "@/utils/search-normalization";
 
 export const SearchWinesInputSchema = z.object({
 	type: z.string().optional(),
@@ -22,43 +23,6 @@ export const SearchWinesInputSchema = z.object({
 	occasion: z.string().optional(),
 	qualityTier: z.string().optional(),
 });
-
-function normalizeSearchInput(input: z.infer<typeof SearchWinesInputSchema>) {
-	return {
-		type: normalizeType(input.type),
-		region: normalizeText(input.region),
-		country: normalizeText(input.country),
-		maxPrice: input.maxPrice,
-		minPrice: input.minPrice,
-		occasion: normalizeText(input.occasion),
-		qualityTier: normalizeQualityTier(input.qualityTier),
-	};
-}
-
-function normalizeText(value: string | undefined): string | undefined {
-	const normalized = value?.trim().toLowerCase();
-	return normalized ? normalized : undefined;
-}
-
-function normalizeType(value: string | undefined): string | undefined {
-	const normalized = normalizeText(value);
-	if (!normalized) return undefined;
-	if (normalized === "rosé") return "rose";
-	return normalized;
-}
-
-function normalizeQualityTier(value: string | undefined): string | undefined {
-	const normalized = normalizeText(value);
-	if (!normalized) return undefined;
-
-	if (["budget", "basic"].includes(normalized)) return "entry";
-	if (["medium", "middle"].includes(normalized)) return "mid";
-	if (["high", "high-end", "high end"].includes(normalized)) {
-		return "premium";
-	}
-
-	return normalized;
-}
 
 export const AddToCartInputSchema = z.object({
 	cartSessionId: z.string().optional(),
@@ -75,15 +39,27 @@ export const GetCartInputSchema = z.object({
 	cartSessionId: z.string(),
 });
 
-function toToolResult(result: ToolResponse) {
+function errorResult(message: string): CallToolResult {
 	return {
-		content: [{ type: "text" as const, text: result.message }],
-		data: result.data,
-		isError: !result.success,
+		content: [{ type: "text", text: message }],
+		structuredContent: {},
+		isError: true,
 	};
 }
 
-export function searchWinesTool(args: unknown): ToolResponse {
+function successResult(
+	message: string,
+	data?: Record<string, unknown>,
+): CallToolResult {
+	return {
+		content: [{ type: "text", text: message }],
+		structuredContent: data ?? {},
+		data,
+		isError: false,
+	};
+}
+
+export function searchWinesTool(args: unknown): CallToolResult {
 	logDebug("tool:search_wines", "called", args);
 	const parsed = SearchWinesInputSchema.safeParse(args);
 	if (!parsed.success) {
@@ -92,13 +68,10 @@ export function searchWinesTool(args: unknown): ToolResponse {
 			"input validation failed",
 			parsed.error.format(),
 		);
-		return {
-			success: false,
-			message: `Invalid input: ${parsed.error.message}`,
-		};
+		return errorResult(`Invalid input: ${parsed.error.message}`);
 	}
 
-	const criteria = normalizeSearchInput(parsed.data);
+	const criteria = normalizeWineSearchInput(parsed.data);
 	logDebug("tool:search_wines", "normalized criteria", criteria);
 	const wines =
 		Object.keys(criteria).filter(
@@ -123,29 +96,27 @@ export function searchWinesTool(args: unknown): ToolResponse {
 		return `- **${wine.name}** (${wine.year}) - ${wine.region}, ${wine.country} - €${wine.price}\n  Wine ID: \`${wine.id}\`\n  ${wine.description}${occasionText}${foodText}`;
 	});
 
-	return {
-		success: true,
-		message:
-			topWines.length > 0
-				? `Found ${topWines.length} ranked wine result(s):\n\n${wineTexts.join("\n\n")}\n\nResults are ranked by the closest match, so they do not need to match every filter exactly. If the user likes one, call \`add_to_cart\` with its exact \`wineId\`. If no cart exists yet, \`add_to_cart\` will create one and return \`cartSessionId\`. Reuse that exact \`cartSessionId\` for \`get_cart\`, \`remove_from_cart\`, and \`initiate_checkout\`.`
-				: "No wines match your criteria.",
-		data: {
-			count: topWines.length,
-			wines: topWines.map((wine) => ({
-				id: wine.id,
-				name: wine.name,
-				type: wine.type,
-				region: wine.region,
-				country: wine.country,
-				year: wine.year,
-				price: wine.price,
-				qualityTier: wine.qualityTier,
-			})),
-		},
-	};
+	const message =
+		topWines.length > 0
+			? `Found ${topWines.length} ranked wine result(s):\n\n${wineTexts.join("\n\n")}\n\nResults are ranked by the closest match, so they do not need to match every filter exactly. If the user likes one, call \`add_to_cart\` with its exact \`wineId\`. If no cart exists yet, \`add_to_cart\` will create one and return \`cartSessionId\`. Reuse that exact \`cartSessionId\` for \`get_cart\`, \`remove_from_cart\`, and \`initiate_checkout\`.`
+			: "No wines match your criteria.";
+
+	return successResult(message, {
+		count: topWines.length,
+		wines: topWines.map((wine) => ({
+			id: wine.id,
+			name: wine.name,
+			type: wine.type,
+			region: wine.region,
+			country: wine.country,
+			year: wine.year,
+			price: wine.price,
+			qualityTier: wine.qualityTier,
+		})),
+	});
 }
 
-export function addToCartTool(args: unknown): ToolResponse {
+export function addToCartTool(args: unknown): CallToolResult {
 	logDebug("tool:add_to_cart", "called", args);
 	const parsed = AddToCartInputSchema.safeParse(args);
 	if (!parsed.success) {
@@ -154,10 +125,7 @@ export function addToCartTool(args: unknown): ToolResponse {
 			"input validation failed",
 			parsed.error.format(),
 		);
-		return {
-			success: false,
-			message: `Invalid input: ${parsed.error.message}`,
-		};
+		return errorResult(`Invalid input: ${parsed.error.message}`);
 	}
 
 	const { cartSessionId, wineId, quantity } = parsed.data;
@@ -165,12 +133,10 @@ export function addToCartTool(args: unknown): ToolResponse {
 	const wine = getWineById(wineId);
 	if (!wine) {
 		logDebug("tool:add_to_cart", "wine not found", { wineId });
-		return {
-			success: false,
-			message:
-				`Wine not found: ${wineId}. ` +
+		return errorResult(
+			`Wine not found: ${wineId}. ` +
 				"Use the exact `wineId` returned by `search_wines`.",
-		};
+		);
 	}
 
 	let sessionId = cartSessionId;
@@ -190,12 +156,10 @@ export function addToCartTool(args: unknown): ToolResponse {
 			wineId,
 			error: error instanceof Error ? error.message : String(error),
 		});
-		return {
-			success: false,
-			message:
-				`Failed to add to cart: ${error instanceof Error ? error.message : String(error)}. ` +
+		return errorResult(
+			`Failed to add to cart: ${error instanceof Error ? error.message : String(error)}. ` +
 				"Use the exact `cartSessionId` returned earlier.",
-		};
+		);
 	}
 
 	const summary = getCartSummary(sessionId);
@@ -207,18 +171,16 @@ export function addToCartTool(args: unknown): ToolResponse {
 		subtotal: summary?.subtotal,
 	});
 
-	return {
-		success: true,
-		message:
-			`Added ${quantity} x ${wine.name} to cart. ` +
-			`Cart now has ${summary?.totalItems} item(s) totaling €${summary?.subtotal}. ` +
-			`Use this cartSessionId for all next cart steps: \`${sessionId}\`. ` +
-			"If the user wants to review the cart, call `get_cart` with this `cartSessionId`. If the user is ready to buy, call `initiate_checkout` with this `cartSessionId`.",
-		data: { cartSessionId: sessionId, summary },
-	};
+	const message =
+		`Added ${quantity} x ${wine.name} to cart. ` +
+		`Cart now has ${summary?.totalItems} item(s) totaling €${summary?.subtotal}. ` +
+		`Use this cartSessionId for all next cart steps: \`${sessionId}\`. ` +
+		"If the user wants to review the cart, call `get_cart` with this `cartSessionId`. If the user is ready to buy, call `initiate_checkout` with this `cartSessionId`.";
+
+	return successResult(message, { cartSessionId: sessionId, summary });
 }
 
-export function removeFromCartTool(args: unknown): ToolResponse {
+export function removeFromCartTool(args: unknown): CallToolResult {
 	logDebug("tool:remove_from_cart", "called", args);
 	const parsed = RemoveFromCartInputSchema.safeParse(args);
 	if (!parsed.success) {
@@ -227,10 +189,7 @@ export function removeFromCartTool(args: unknown): ToolResponse {
 			"input validation failed",
 			parsed.error.format(),
 		);
-		return {
-			success: false,
-			message: `Invalid input: ${parsed.error.message}`,
-		};
+		return errorResult(`Invalid input: ${parsed.error.message}`);
 	}
 
 	const { cartSessionId, wineId } = parsed.data;
@@ -242,10 +201,9 @@ export function removeFromCartTool(args: unknown): ToolResponse {
 			cartSessionId,
 			wineId,
 		});
-		return {
-			success: false,
-			message: `Cart not found: ${cartSessionId}. Use the exact cartSessionId returned by add_to_cart.`,
-		};
+		return errorResult(
+			`Cart not found: ${cartSessionId}. Use the exact cartSessionId returned by add_to_cart.`,
+		);
 	}
 
 	const summary = getCartSummary(cartSessionId);
@@ -256,24 +214,19 @@ export function removeFromCartTool(args: unknown): ToolResponse {
 		subtotal: summary?.subtotal,
 	});
 
-	return {
-		success: true,
-		message: wine
-			? `Removed ${wine.name} from cart. Reuse cartSessionId \`${cartSessionId}\` for any further cart or checkout actions.`
-			: `Removed item from cart. Cart now has ${summary?.totalItems} item(s) totaling €${summary?.subtotal}. Reuse cartSessionId \`${cartSessionId}\` for any further cart or checkout actions.`,
-		data: { cartSessionId, summary },
-	};
+	const message = wine
+		? `Removed ${wine.name} from cart. Reuse cartSessionId \`${cartSessionId}\` for any further cart or checkout actions.`
+		: `Removed item from cart. Cart now has ${summary?.totalItems} item(s) totaling €${summary?.subtotal}. Reuse cartSessionId \`${cartSessionId}\` for any further cart or checkout actions.`;
+
+	return successResult(message, { cartSessionId, summary });
 }
 
-export function getCartTool(args: unknown): ToolResponse {
+export function getCartTool(args: unknown): CallToolResult {
 	logDebug("tool:get_cart", "called", args);
 	const parsed = GetCartInputSchema.safeParse(args);
 	if (!parsed.success) {
 		logDebug("tool:get_cart", "input validation failed", parsed.error.format());
-		return {
-			success: false,
-			message: `Invalid input: ${parsed.error.message}`,
-		};
+		return errorResult(`Invalid input: ${parsed.error.message}`);
 	}
 
 	const summary = getCartSummary(parsed.data.cartSessionId);
@@ -281,10 +234,9 @@ export function getCartTool(args: unknown): ToolResponse {
 		logDebug("tool:get_cart", "cart not found", {
 			cartSessionId: parsed.data.cartSessionId,
 		});
-		return {
-			success: false,
-			message: `Cart not found: ${parsed.data.cartSessionId}. Use the exact cartSessionId returned by add_to_cart.`,
-		};
+		return errorResult(
+			`Cart not found: ${parsed.data.cartSessionId}. Use the exact cartSessionId returned by add_to_cart.`,
+		);
 	}
 
 	const itemTexts = summary.items.map((item) => {
@@ -302,14 +254,15 @@ export function getCartTool(args: unknown): ToolResponse {
 		requiresVerification: summary.requiresVerification,
 	});
 
-	return {
-		success: true,
-		message:
-			`Cart (${summary.totalItems} items, €${summary.subtotal}):\n\n${itemTexts.join("\n")}${verificationText}\n\n` +
-			`Reuse cartSessionId \`${parsed.data.cartSessionId}\`. ` +
-			"If the user wants to buy, call `initiate_checkout` with this `cartSessionId` next.",
-		data: { cartSessionId: parsed.data.cartSessionId, summary },
-	};
+	const message =
+		`Cart (${summary.totalItems} items, €${summary.subtotal}):\n\n${itemTexts.join("\n")}${verificationText}\n\n` +
+		`Reuse cartSessionId \`${parsed.data.cartSessionId}\`. ` +
+		"If the user wants to buy, call `initiate_checkout` with this `cartSessionId` next.";
+
+	return successResult(message, {
+		cartSessionId: parsed.data.cartSessionId,
+		summary,
+	});
 }
 
 export function registerSearchWinesTool(server: McpServer) {
@@ -326,7 +279,7 @@ export function registerSearchWinesTool(server: McpServer) {
 				},
 			},
 		},
-		async (args: unknown) => toToolResult(searchWinesTool(args)),
+		async (args: unknown) => searchWinesTool(args),
 	);
 }
 
@@ -344,7 +297,7 @@ export function registerAddToCartTool(server: McpServer) {
 				},
 			},
 		},
-		async (args: unknown) => toToolResult(addToCartTool(args)),
+		async (args: unknown) => addToCartTool(args),
 	);
 }
 
@@ -362,7 +315,7 @@ export function registerRemoveFromCartTool(server: McpServer) {
 				},
 			},
 		},
-		async (args: unknown) => toToolResult(removeFromCartTool(args)),
+		async (args: unknown) => removeFromCartTool(args),
 	);
 }
 
@@ -380,7 +333,7 @@ export function registerGetCartTool(server: McpServer) {
 				},
 			},
 		},
-		async (args: unknown) => toToolResult(getCartTool(args)),
+		async (args: unknown) => getCartTool(args),
 	);
 }
 

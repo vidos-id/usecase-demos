@@ -1,89 +1,68 @@
-import { z } from "zod";
+export type VerificationLifecycleState =
+	| "created"
+	| "pending_wallet"
+	| "processing"
+	| "authorized"
+	| "completed"
+	| "success"
+	| "rejected"
+	| "expired"
+	| "error";
 
-export const VerificationLifecycleStateSchema = z.enum([
-	"created",
-	"pending_wallet",
-	"processing",
-	"authorized",
-	"completed",
-	"success",
-	"rejected",
-	"expired",
-	"error",
-]);
+export type VerificationPolicyCheckStatus = "pass" | "fail" | "unknown";
 
-export const VerificationPolicyCheckStatusSchema = z.enum([
-	"pass",
-	"fail",
-	"unknown",
-]);
+export interface VerificationPolicyCheck {
+	id: string;
+	status: VerificationPolicyCheckStatus;
+	message?: string;
+	path: Array<string | number>;
+}
 
-export const VerificationPolicyCheckSchema = z.object({
-	id: z.string(),
-	status: VerificationPolicyCheckStatusSchema,
-	message: z.string().optional(),
-	path: z.array(z.union([z.string(), z.number()])),
-});
+export interface VerificationPolicy {
+	overallStatus: "pass" | "fail" | "unknown";
+	checks: VerificationPolicyCheck[];
+}
 
-export const VerificationPolicySchema = z.object({
-	overallStatus: z.enum(["pass", "fail", "unknown"]),
-	checks: z.array(VerificationPolicyCheckSchema),
-});
+export interface NormalizedPidClaims {
+	givenName: string | null;
+	familyName: string | null;
+	birthDate: string | null;
+	portrait: string | null;
+}
 
-export const NormalizedPidClaimsSchema = z.object({
-	givenName: z.string().nullable(),
-	familyName: z.string().nullable(),
-	birthDate: z.string().nullable(),
-	portrait: z.string().nullable(),
-});
+export interface AgeCheckResult {
+	eligible: boolean;
+	requiredAge: number;
+	actualAge: number | null;
+	birthDate: string | null;
+}
 
-export const AgeCheckResultSchema = z.object({
-	eligible: z.boolean(),
-	requiredAge: z.number(),
-	actualAge: z.number().nullable(),
-	birthDate: z.string().nullable(),
-});
+export interface VerificationState {
+	lifecycle: VerificationLifecycleState;
+	authorizationId: string | null;
+	authorizationUrl: string | null;
+	policy: VerificationPolicy | null;
+	disclosedClaims: NormalizedPidClaims | null;
+	ageCheck: AgeCheckResult | null;
+	lastError: string | null;
+	updatedAt: string;
+}
 
-export const VerificationStateSchema = z.object({
-	lifecycle: VerificationLifecycleStateSchema,
-	authorizationId: z.string().nullable(),
-	authorizationUrl: z.string().nullable(),
-	policy: VerificationPolicySchema.nullable(),
-	disclosedClaims: NormalizedPidClaimsSchema.nullable(),
-	ageCheck: AgeCheckResultSchema.nullable(),
-	lastError: z.string().nullable(),
-	updatedAt: z.string().datetime(),
-});
+export type CheckoutSessionStatus =
+	| "pending"
+	| "verification_required"
+	| "verifying"
+	| "verified"
+	| "rejected"
+	| "expired"
+	| "error"
+	| "completed";
 
-export const CheckoutSessionSchema = z.object({
-	sessionId: z.string(),
-	cartSessionId: z.string(),
-	status: z.enum([
-		"pending",
-		"verification_required",
-		"verifying",
-		"verified",
-		"rejected",
-		"expired",
-		"error",
-		"completed",
-	]),
-	verification: VerificationStateSchema.nullable(),
-	createdAt: z.string().datetime(),
-	updatedAt: z.string().datetime(),
-});
-
-export type VerificationLifecycleState = z.infer<
-	typeof VerificationLifecycleStateSchema
->;
-export type VerificationPolicyCheckStatus = z.infer<
-	typeof VerificationPolicyCheckStatusSchema
->;
-export type VerificationPolicyCheck = z.infer<
-	typeof VerificationPolicyCheckSchema
->;
-export type VerificationPolicy = z.infer<typeof VerificationPolicySchema>;
-export type NormalizedPidClaims = z.infer<typeof NormalizedPidClaimsSchema>;
-export type AgeCheckResult = z.infer<typeof AgeCheckResultSchema>;
-export type VerificationState = z.infer<typeof VerificationStateSchema>;
-export type CheckoutSession = z.infer<typeof CheckoutSessionSchema>;
+export interface CheckoutSession {
+	sessionId: string;
+	cartSessionId: string;
+	status: CheckoutSessionStatus;
+	verification: VerificationState | null;
+	createdAt: string;
+	updatedAt: string;
+}

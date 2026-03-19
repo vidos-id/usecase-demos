@@ -7,11 +7,7 @@ import {
 	useHostStyleVariables,
 } from "@modelcontextprotocol/ext-apps/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-	buildInstructionText,
-	buildStatusText,
-	isTerminalStatus,
-} from "../lib/state";
+import { buildInstructionText, buildStatusText } from "../lib/state";
 import type { WidgetToolPayload } from "../lib/types";
 import { Instructions } from "./components/Instructions";
 import { PaymentPanel } from "./components/PaymentPanel";
@@ -46,7 +42,6 @@ function CheckoutVerificationScreen({
 		[hostContext],
 	);
 
-	const isTerminal = isTerminalStatus(data.status);
 	const isVerified = data.status === "verified" || data.status === "completed";
 	const isPaid = paymentCompleted || data.status === "completed";
 	const showResult =

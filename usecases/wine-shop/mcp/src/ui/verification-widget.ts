@@ -8,7 +8,6 @@ import { getBuiltWidgetHtml } from "@/ui/widget-build";
 import {
 	getWidgetCsp,
 	getWidgetDomain,
-	VERIFICATION_WIDGET_MIME_TYPE,
 	VERIFICATION_WIDGET_URI,
 } from "@/ui/widget-config";
 

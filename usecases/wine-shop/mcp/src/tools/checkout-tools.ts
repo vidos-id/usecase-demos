@@ -8,7 +8,6 @@ import {
 	formatCheckoutStatusMessage,
 	initiateCheckout,
 } from "@/services/checkout";
-import type { ToolResponse } from "@/types/tool-response";
 import {
 	generateQrSvg,
 	VERIFICATION_WIDGET_MIME_TYPE,
@@ -24,17 +23,24 @@ export const GetCheckoutStatusInputSchema = z.object({
 	checkoutSessionId: z.string(),
 });
 
-function toToolResult(result: ToolResponse) {
+function errorResult(message: string): CallToolResult {
 	return {
-		content: (result.content as CallToolResult["content"] | undefined) ?? [
-			{ type: "text" as const, text: result.message },
-		],
-		structuredContent:
-			typeof result.data === "object" && result.data !== null
-				? (result.data as Record<string, unknown>)
-				: {},
-		data: result.data,
-		isError: !result.success,
+		content: [{ type: "text", text: message }],
+		structuredContent: {},
+		isError: true,
+	};
+}
+
+function successResult(
+	message: string,
+	data?: Record<string, unknown>,
+	content?: CallToolResult["content"],
+): CallToolResult {
+	return {
+		content: content ?? [{ type: "text", text: message }],
+		structuredContent: data ?? {},
+		data,
+		isError: false,
 	};
 }
 
@@ -61,7 +67,7 @@ function buildVerificationContent(
 
 export async function initiateCheckoutTool(
 	args: unknown,
-): Promise<ToolResponse> {
+): Promise<CallToolResult> {
 	logDebug("tool:initiate_checkout", "called", args);
 	const parsed = InitiateCheckoutInputSchema.safeParse(args);
 	if (!parsed.success) {
@@ -70,10 +76,7 @@ export async function initiateCheckoutTool(
 			"input validation failed",
 			parsed.error.format(),
 		);
-		return {
-			success: false,
-			message: `Invalid input: ${parsed.error.message}`,
-		};
+		return errorResult(`Invalid input: ${parsed.error.message}`);
 	}
 
 	try {
@@ -119,10 +122,11 @@ export async function initiateCheckoutTool(
 				"After verification succeeds, continue the order in chat and describe payment as a mock card confirmation.",
 			);
 
-			return {
-				success: true,
-				message: messageParts.join("\n"),
-				data: {
+			const message = messageParts.join("\n");
+
+			return successResult(
+				message,
+				{
 					checkoutSessionId: session.sessionId,
 					status: session.status,
 					requiresVerification: true,
@@ -137,38 +141,34 @@ export async function initiateCheckoutTool(
 							}
 						: null,
 				},
-				content: buildVerificationContent(messageParts.join("\n"), qrSvg),
-			};
+				buildVerificationContent(message, qrSvg),
+			);
 		}
 
-		return {
-			success: true,
-			message:
-				`Checkout initiated (session: ${session.sessionId}, cart: ${parsed.data.cartSessionId}). ` +
+		return successResult(
+			`Checkout initiated (session: ${session.sessionId}, cart: ${parsed.data.cartSessionId}). ` +
 				"No verification required. Ready to complete.",
-			data: {
+			{
 				cartSessionId: parsed.data.cartSessionId,
 				checkoutSessionId: session.sessionId,
 				status: session.status,
 				requiresVerification: false,
 			},
-		};
+		);
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
 		logDebug("tool:initiate_checkout", "checkout failed", {
 			cartSessionId: parsed.data.cartSessionId,
 			error: message,
 		});
-		return {
-			success: false,
-			message:
-				`Failed to initiate checkout: ${message}. ` +
+		return errorResult(
+			`Failed to initiate checkout: ${message}. ` +
 				"Use the exact `cartSessionId` returned by `add_to_cart` or `get_cart`.",
-		};
+		);
 	}
 }
 
-export function getCheckoutStatusTool(args: unknown): ToolResponse {
+export function getCheckoutStatusTool(args: unknown): CallToolResult {
 	logDebug("tool:get_checkout_status", "called", args);
 	const parsed = GetCheckoutStatusInputSchema.safeParse(args);
 	if (!parsed.success) {
@@ -177,10 +177,7 @@ export function getCheckoutStatusTool(args: unknown): ToolResponse {
 			"input validation failed",
 			parsed.error.format(),
 		);
-		return {
-			success: false,
-			message: `Invalid input: ${parsed.error.message}`,
-		};
+		return errorResult(`Invalid input: ${parsed.error.message}`);
 	}
 
 	try {
@@ -192,20 +189,15 @@ export function getCheckoutStatusTool(args: unknown): ToolResponse {
 			verificationLifecycle: session.verification?.lifecycle,
 		});
 
-		return {
-			success: true,
-			message,
-			data: buildCheckoutStatusData(session),
-		};
+		return successResult(message, buildCheckoutStatusData(session));
 	} catch (error) {
 		logDebug("tool:get_checkout_status", "status lookup failed", {
 			checkoutSessionId: parsed.data.checkoutSessionId,
 			error: error instanceof Error ? error.message : String(error),
 		});
-		return {
-			success: false,
-			message: `Failed to get checkout status: ${error instanceof Error ? error.message : String(error)}`,
-		};
+		return errorResult(
+			`Failed to get checkout status: ${error instanceof Error ? error.message : String(error)}`,
+		);
 	}
 }
 
@@ -251,7 +243,7 @@ export function registerInitiateCheckoutTool(server: McpServer) {
 				},
 			},
 		},
-		async (args: unknown) => toToolResult(await initiateCheckoutTool(args)),
+		async (args: unknown) => initiateCheckoutTool(args),
 	);
 }
 
@@ -269,7 +261,7 @@ export function registerGetCheckoutStatusTool(server: McpServer) {
 				},
 			},
 		},
-		async (args: unknown) => toToolResult(getCheckoutStatusTool(args)),
+		async (args: unknown) => getCheckoutStatusTool(args),
 	);
 }
 
