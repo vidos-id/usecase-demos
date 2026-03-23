@@ -66,7 +66,24 @@ async function getRequestBody(request: Request): Promise<unknown> {
 	}
 }
 
+/**
+ * The MCP Streamable HTTP spec requires clients to send Accept: application/json, text/event-stream.
+ * Claude Desktop sends only Accept: text/event-stream, causing the SDK to return 406.
+ * Normalize the Accept header to include both values before passing to the transport.
+ */
+function withRequiredAccept(request: Request): Request {
+	const accept = request.headers.get("accept") ?? "";
+	if (accept.includes("application/json") && accept.includes("text/event-stream")) {
+		return request;
+	}
+	const parts = [accept, "application/json", "text/event-stream"].filter(Boolean);
+	const headers = new Headers(request.headers);
+	headers.set("accept", [...new Set(parts)].join(", "));
+	return new Request(request, { headers });
+}
+
 async function handleMcpRequest(request: Request): Promise<Response> {
+	request = withRequiredAccept(request);
 	const sessionId = request.headers.get("mcp-session-id");
 	logDebug("http", "incoming MCP request", {
 		method: request.method,
