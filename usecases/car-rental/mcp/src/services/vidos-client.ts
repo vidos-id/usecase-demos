@@ -34,9 +34,9 @@ export type AuthorizationSession = {
 };
 
 function getBaseUrl(): string {
-	const url = process.env.VITE_CAR_RENTAL_AUTHORIZER_URL;
+	const url = process.env.VIDOS_AUTHORIZER_URL;
 	if (!url) {
-		throw new Error("Missing VITE_CAR_RENTAL_AUTHORIZER_URL");
+		throw new Error("Missing VIDOS_AUTHORIZER_URL");
 	}
 	return url;
 }
