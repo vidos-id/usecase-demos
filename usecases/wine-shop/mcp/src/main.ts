@@ -250,19 +250,23 @@ async function startServer() {
 				}
 			}
 
-			logDebug("http", "non-MCP request", {
+			if (url.pathname === "/") {
+				return Response.json(
+					{
+						name: "mcp-wine-agent",
+						status: "ok",
+						apiPath: "/api",
+						mcpPath,
+					},
+					{ status: 200 },
+				);
+			}
+
+			logDebug("http", "not found", {
 				path: url.pathname,
 				method: request.method,
 			});
-			return Response.json(
-				{
-					name: "mcp-wine-agent",
-					status: "ok",
-					apiPath: "/api",
-					mcpPath,
-				},
-				{ status: 200 },
-			);
+			return new Response(null, { status: 404 });
 		},
 	});
 
