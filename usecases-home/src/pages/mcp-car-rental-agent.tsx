@@ -37,7 +37,7 @@ const openClawFirstMessage =
 	"I need a rental car in Tenerife for five days with room for luggage.";
 
 const mcpServerUrl =
-	import.meta.env.VITE_MCP_CAR_RENTAL_AGENT_URL ?? "http://localhost:30124/mcp";
+	import.meta.env.VITE_MCP_CAR_RENTAL_AGENT_URL ?? "https://mcp-car-rent.demo.vidos.id/mcp";
 
 function CarRentalUsageTabs({
 	activeMode,
