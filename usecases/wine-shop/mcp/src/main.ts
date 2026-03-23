@@ -195,6 +195,16 @@ async function startServer() {
 		async fetch(request) {
 			const url = new URL(request.url);
 
+			// Log all incoming requests (except health checks) for debugging
+			if (url.pathname !== "/health") {
+				logDebug("http", "request", {
+					method: request.method,
+					path: url.pathname,
+					accept: request.headers.get("accept"),
+					userAgent: request.headers.get("user-agent"),
+				});
+			}
+
 			if (url.pathname === mcpPath && request.method === "OPTIONS") {
 				return new Response(null, {
 					status: 204,
@@ -205,6 +215,24 @@ async function startServer() {
 			if (url.pathname === "/health") {
 				logDebug("http", "health check", { method: request.method });
 				return new Response(null, { status: 204 });
+			}
+
+			// RFC 9728: OAuth 2.0 Protected Resource Metadata
+			// Required by MCP spec for client discovery. No authorization_servers = authless.
+			if (
+				url.pathname === "/.well-known/oauth-protected-resource" ||
+				url.pathname === `/.well-known/oauth-protected-resource${mcpPath}`
+			) {
+				const baseUrl = process.env.PUBLIC_BASE_URL ?? `http://localhost:${port}`;
+				return Response.json(
+					{ resource: `${baseUrl}${mcpPath}` },
+					{
+						headers: {
+							"Access-Control-Allow-Origin": "*",
+							"Cache-Control": "public, max-age=3600",
+						},
+					},
+				);
 			}
 
 			if (url.pathname.startsWith("/api/")) {
