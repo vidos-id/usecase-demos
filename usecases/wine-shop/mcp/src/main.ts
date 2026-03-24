@@ -46,7 +46,10 @@ async function createSessionTransport(): Promise<WebStandardStreamableHTTPServer
 			error: error.message,
 		});
 	};
+	let closed = false;
 	transport.onclose = () => {
+		if (closed) return;
+		closed = true;
 		logDebug("transport", "session closed", { sessionId: transport.sessionId });
 		if (transport.sessionId) {
 			sessions.delete(transport.sessionId);
