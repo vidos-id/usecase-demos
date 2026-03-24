@@ -3,7 +3,13 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { handleApiRequest } from "@/api/router";
 import { createServer } from "@/server";
-import { ensureWidgetBuilt } from "@/ui/widget-build";
+import { ensureWidgetBuilt, getBuiltWidgetHtml } from "@/ui/widget-build";
+import {
+	VERIFICATION_WIDGET_MIME_TYPE,
+	VERIFICATION_WIDGET_URI,
+	getWidgetCsp,
+	getWidgetDomain,
+} from "@/ui/widget-config";
 import { logDebug } from "@/utils/debug";
 
 const port = Number(process.env.PORT ?? 44182);
@@ -129,6 +135,50 @@ async function handleMcpRequest(request: Request): Promise<Response> {
 				logDebug("http", "accepted notification without session", body);
 				return new Response(null, { status: 202 });
 			}
+
+			// Handle sessionless resources/read for static resources (e.g. the verification widget).
+			// Claude's backend agent fetches embedded resources without a session ID — serve them directly.
+			if (
+				body !== null &&
+				typeof body === "object" &&
+				(body as Record<string, unknown>).method === "resources/read"
+			) {
+				const params = (body as Record<string, unknown>).params as
+					| Record<string, unknown>
+					| undefined;
+				const uri = params?.uri as string | undefined;
+				const requestId = (body as Record<string, unknown>).id ?? null;
+				if (uri === VERIFICATION_WIDGET_URI) {
+					logDebug("http", "serving static resource without session", {
+						uri,
+						requestId,
+					});
+					const widgetHtml = await getBuiltWidgetHtml();
+					const widgetDomain = getWidgetDomain();
+					const widgetCsp = getWidgetCsp();
+					return Response.json({
+						jsonrpc: "2.0",
+						id: requestId,
+						result: {
+							contents: [
+								{
+									uri,
+									mimeType: VERIFICATION_WIDGET_MIME_TYPE,
+									text: widgetHtml,
+									_meta: {
+										ui: {
+											prefersBorder: true,
+											...(widgetDomain ? { domain: widgetDomain } : {}),
+											csp: widgetCsp,
+										},
+									},
+								},
+							],
+						},
+					});
+				}
+			}
+
 			logDebug("http", "rejected POST without initialize", body);
 			return Response.json(
 				{
