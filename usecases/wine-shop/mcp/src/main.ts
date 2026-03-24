@@ -53,9 +53,14 @@ async function createSessionTransport(): Promise<WebStandardStreamableHTTPServer
 		});
 	};
 	let closed = false;
+	let heartbeatInterval: ReturnType<typeof setInterval> | undefined;
 	transport.onclose = () => {
 		if (closed) return;
 		closed = true;
+		if (heartbeatInterval) {
+			clearInterval(heartbeatInterval);
+			heartbeatInterval = undefined;
+		}
 		logDebug("transport", "session closed", { sessionId: transport.sessionId });
 		if (transport.sessionId) {
 			sessions.delete(transport.sessionId);
@@ -63,6 +68,26 @@ async function createSessionTransport(): Promise<WebStandardStreamableHTTPServer
 		void server.close();
 	};
 	await server.connect(transport);
+
+	// Send periodic pings to keep the SSE GET connection alive through the ALB.
+	// Without this, the ALB idle timeout (~60s) drops the GET stream, triggering
+	// onclose which wipes the session and causes all subsequent tool calls to 400.
+	const HEARTBEAT_MS = 30_000;
+	heartbeatInterval = setInterval(async () => {
+		if (!transport.sessionId || !sessions.has(transport.sessionId)) {
+			if (heartbeatInterval) clearInterval(heartbeatInterval);
+			return;
+		}
+		try {
+			await server.server.ping();
+			logDebug("transport", "keepalive ping sent", {
+				sessionId: transport.sessionId,
+			});
+		} catch {
+			// Connection is gone; onclose will handle cleanup
+			if (heartbeatInterval) clearInterval(heartbeatInterval);
+		}
+	}, HEARTBEAT_MS);
 
 	return transport;
 }

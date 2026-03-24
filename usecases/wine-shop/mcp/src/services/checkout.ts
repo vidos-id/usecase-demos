@@ -150,37 +150,41 @@ export function formatCheckoutStatusMessage(session: CheckoutSession): string {
 		case "verified": {
 			const age = session.verification?.ageCheck;
 			if (age) {
-				return age.actualAge !== null
-					? `Verification successful. Age confirmed: ${age.actualAge}.`
-					: `Verification successful. ${age.requiredAge}+ eligibility confirmed.`;
+				const detail =
+					age.actualAge !== null
+						? `Age confirmed: ${age.actualAge}.`
+						: `${age.requiredAge}+ eligibility confirmed.`;
+				return `TERMINAL STATUS: verified. Verification successful. ${detail} Stop polling and inform the user their order is confirmed.`;
 			}
-			return "Verification successful. Checkout can proceed.";
+			return "TERMINAL STATUS: verified. Verification successful. Stop polling and inform the user their order is confirmed.";
 		}
 
 		case "rejected": {
 			const age = session.verification?.ageCheck;
 			const error = session.verification?.lastError;
 			if (age && !age.eligible) {
-				return age.actualAge !== null
-					? `Age verification failed. Buyer is ${age.actualAge}; minimum is ${age.requiredAge}.`
-					: `Age verification failed. ${age.requiredAge}+ proof was not satisfied.`;
+				const detail =
+					age.actualAge !== null
+						? `Buyer is ${age.actualAge}; minimum is ${age.requiredAge}.`
+						: `${age.requiredAge}+ proof was not satisfied.`;
+				return `TERMINAL STATUS: rejected. Age verification failed. ${detail} Stop polling and inform the user the purchase cannot proceed.`;
 			}
 			if (error) {
-				return `Verification failed. ${error}`;
+				return `TERMINAL STATUS: rejected. Verification failed. ${error} Stop polling.`;
 			}
-			return "Verification was rejected. Purchase cannot proceed.";
+			return "TERMINAL STATUS: rejected. Verification was rejected. Stop polling and inform the user the purchase cannot proceed.";
 		}
 
 		case "expired":
-			return "Verification expired. Restart checkout to generate a new QR code.";
+			return "TERMINAL STATUS: expired. Verification QR code has expired without being scanned. Stop polling and offer the user the option to restart checkout for a fresh QR code.";
 
 		case "error": {
 			const errorMsg = session.verification?.lastError ?? "Unknown error";
-			return `Verification error. ${errorMsg}`;
+			return `TERMINAL STATUS: error. Verification error: ${errorMsg} Stop polling.`;
 		}
 
 		case "completed":
-			return "Checkout completed successfully.";
+			return "TERMINAL STATUS: completed. Checkout completed successfully. Stop polling.";
 
 		default:
 			return `Checkout status: ${session.status}`;
