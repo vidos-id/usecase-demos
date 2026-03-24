@@ -132,19 +132,19 @@ export function formatCheckoutStatusMessage(session: CheckoutSession): string {
 			return "Checkout ready. No age verification needed.";
 
 		case "verification_required":
-			return "Age verification required. Scan the QR code to continue.";
+			return "Age verification required. Scan the QR code to continue — call get_checkout_status again in 5 seconds.";
 
 		case "verifying": {
 			const lifecycle = session.verification?.lifecycle ?? "unknown";
 			if (lifecycle === "authorized" || lifecycle === "completed") {
-				return "Wallet proof received. Final verification checks are finishing now.";
+				return "Wallet proof received. Final verification checks are finishing — call get_checkout_status again in 3 seconds.";
 			}
 
 			if (lifecycle === "processing") {
-				return "Verification in progress. Processing wallet proof now.";
+				return "Verification in progress. Processing wallet proof — call get_checkout_status again in 3 seconds.";
 			}
 
-			return "Verification in progress. Scan the QR code in your wallet to continue.";
+			return "Verification in progress. Waiting for QR scan — call get_checkout_status again in 5 seconds.";
 		}
 
 		case "verified": {

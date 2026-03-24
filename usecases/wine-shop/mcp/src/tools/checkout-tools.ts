@@ -118,8 +118,7 @@ export async function initiateCheckoutTool(
 
 			messageParts.push(
 				"",
-				"Use 'get_checkout_status' to check verification progress.",
-				"After verification succeeds, continue the order in chat and describe payment as a mock card confirmation.",
+				`REQUIRED ACTION: Call get_checkout_status NOW with checkoutSessionId="${session.sessionId}". Then keep calling it every 5 seconds until the status is 'verified', 'rejected', 'expired', or 'error'. Do not wait for user input — start polling immediately and report the final outcome once a terminal status is reached.`,
 			);
 
 			const message = messageParts.join("\n");
