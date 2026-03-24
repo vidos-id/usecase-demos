@@ -225,7 +225,7 @@ async function startServer() {
 			) {
 				const baseUrl = process.env.PUBLIC_BASE_URL ?? `http://localhost:${port}`;
 				return Response.json(
-					{ resource: `${baseUrl}${mcpPath}` },
+					{ resource: baseUrl },
 					{
 						headers: {
 							"Access-Control-Allow-Origin": "*",
