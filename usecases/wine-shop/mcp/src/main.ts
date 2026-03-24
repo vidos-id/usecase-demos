@@ -1,6 +1,4 @@
-import { randomUUID } from "node:crypto";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
-import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { handleApiRequest } from "@/api/router";
 import { createServer } from "@/server";
 import { ensureWidgetBuilt, getBuiltWidgetHtml } from "@/ui/widget-build";
@@ -23,58 +21,6 @@ const MCP_CORS_HEADERS = {
 	"Access-Control-Expose-Headers": "mcp-session-id",
 };
 
-type SessionContext = {
-	server: ReturnType<typeof createServer>;
-	transport: WebStandardStreamableHTTPServerTransport;
-};
-
-const sessions = new Map<string, SessionContext>();
-
-async function createSessionTransport(): Promise<WebStandardStreamableHTTPServerTransport> {
-	let transport: WebStandardStreamableHTTPServerTransport;
-	const server = createServer();
-
-	transport = new WebStandardStreamableHTTPServerTransport({
-		sessionIdGenerator: () => randomUUID(),
-		enableJsonResponse: true,
-		onsessioninitialized: (sessionId: string) => {
-			logDebug("transport", "session initialized", { sessionId });
-			sessions.set(sessionId, {
-				server,
-				transport,
-			});
-		},
-	});
-
-	transport.onerror = (error: Error) => {
-		logDebug("transport", "transport error", {
-			sessionId: transport.sessionId,
-			error: error.message,
-		});
-	};
-	let closed = false;
-	transport.onclose = () => {
-		if (closed) return;
-		closed = true;
-		logDebug("transport", "session closed", { sessionId: transport.sessionId });
-		if (transport.sessionId) {
-			sessions.delete(transport.sessionId);
-		}
-		void server.close();
-	};
-	await server.connect(transport);
-
-	return transport;
-}
-
-async function getRequestBody(request: Request): Promise<unknown> {
-	try {
-		return await request.clone().json();
-	} catch {
-		return undefined;
-	}
-}
-
 /**
  * The MCP Streamable HTTP spec requires clients to send Accept: application/json, text/event-stream.
  * Claude Desktop sends only Accept: text/event-stream, causing the SDK to return 406.
@@ -93,147 +39,71 @@ function withRequiredAccept(request: Request): Request {
 
 async function handleMcpRequest(request: Request): Promise<Response> {
 	request = withRequiredAccept(request);
-	const sessionId = request.headers.get("mcp-session-id");
 	logDebug("http", "incoming MCP request", {
 		method: request.method,
 		path: new URL(request.url).pathname,
-		sessionId,
 		protocolVersion: request.headers.get("mcp-protocol-version"),
 	});
 
+	// Stateless: serve the verification widget resource without creating a server instance.
+	// Claude's backend fetches embedded resources as bare POST requests without a session.
 	if (request.method === "POST") {
-		if (sessionId) {
-			const existing = sessions.get(sessionId);
-			if (!existing) {
-				logDebug("http", "request used invalid session", { sessionId });
-				return Response.json(
-					{
-						jsonrpc: "2.0",
-						error: {
-							code: -32000,
-							message: "Bad Request: No valid session ID provided",
-						},
-						id: null,
-					},
-					{ status: 400 },
-				);
-			}
-
-			logDebug("http", "routing POST to existing session", { sessionId });
-			return existing.transport.handleRequest(request);
+		let body: unknown;
+		try {
+			body = await request.clone().json();
+		} catch {
+			body = undefined;
 		}
 
-		const body = await getRequestBody(request);
-		logDebug("http", "received POST body", body);
-		if (!isInitializeRequest(body)) {
-			// Notifications have no `id` field — treat as fire-and-forget, return 202
-			const isNotification =
-				body !== null &&
-				typeof body === "object" &&
-				!("id" in (body as object));
-			if (isNotification) {
-				logDebug("http", "accepted notification without session", body);
-				return new Response(null, { status: 202 });
-			}
-
-			// Handle sessionless resources/read for static resources (e.g. the verification widget).
-			// Claude's backend agent fetches embedded resources without a session ID — serve them directly.
-			if (
-				body !== null &&
-				typeof body === "object" &&
-				(body as Record<string, unknown>).method === "resources/read"
-			) {
-				const params = (body as Record<string, unknown>).params as
-					| Record<string, unknown>
-					| undefined;
-				const uri = params?.uri as string | undefined;
-				const requestId = (body as Record<string, unknown>).id ?? null;
-				if (uri === VERIFICATION_WIDGET_URI) {
-					logDebug("http", "serving static resource without session", {
-						uri,
-						requestId,
-					});
-					const widgetHtml = await getBuiltWidgetHtml();
-					const widgetDomain = getWidgetDomain();
-					const widgetCsp = getWidgetCsp();
-					return Response.json({
-						jsonrpc: "2.0",
-						id: requestId,
-						result: {
-							contents: [
-								{
-									uri,
-									mimeType: VERIFICATION_WIDGET_MIME_TYPE,
-									text: widgetHtml,
-									_meta: {
-										ui: {
-											prefersBorder: true,
-											...(widgetDomain ? { domain: widgetDomain } : {}),
-											csp: widgetCsp,
-										},
+		if (
+			body !== null &&
+			typeof body === "object" &&
+			(body as Record<string, unknown>).method === "resources/read"
+		) {
+			const params = (body as Record<string, unknown>).params as
+				| Record<string, unknown>
+				| undefined;
+			const uri = params?.uri as string | undefined;
+			const requestId = (body as Record<string, unknown>).id ?? null;
+			if (uri === VERIFICATION_WIDGET_URI) {
+				logDebug("http", "serving widget resource", { uri, requestId });
+				const widgetHtml = await getBuiltWidgetHtml();
+				const widgetDomain = getWidgetDomain();
+				const widgetCsp = getWidgetCsp();
+				return Response.json({
+					jsonrpc: "2.0",
+					id: requestId,
+					result: {
+						contents: [
+							{
+								uri,
+								mimeType: VERIFICATION_WIDGET_MIME_TYPE,
+								text: widgetHtml,
+								_meta: {
+									ui: {
+										prefersBorder: true,
+										...(widgetDomain ? { domain: widgetDomain } : {}),
+										csp: widgetCsp,
 									},
 								},
-							],
-						},
-					});
-				}
-			}
-
-			logDebug("http", "rejected POST without initialize", body);
-			return Response.json(
-				{
-					jsonrpc: "2.0",
-					error: {
-						code: -32000,
-						message: "Bad Request: Initialization required",
+							},
+						],
 					},
-					id: null,
-				},
-				{ status: 400 },
-			);
+				});
+			}
 		}
-
-		logDebug("http", "creating new MCP session transport");
-		const transport = await createSessionTransport();
-		return transport.handleRequest(request);
 	}
 
-	if (request.method === "GET" || request.method === "DELETE") {
-		if (!sessionId) {
-			logDebug("http", "missing session for non-POST request", {
-				method: request.method,
-			});
-			return new Response("Missing session ID", { status: 400 });
-		}
-
-		const existing = sessions.get(sessionId);
-		if (!existing) {
-			logDebug("http", "invalid session for non-POST request", {
-				sessionId,
-				method: request.method,
-			});
-			return new Response("Invalid session ID", { status: 404 });
-		}
-
-		logDebug("http", "routing non-POST to existing session", {
-			sessionId,
-			method: request.method,
-		});
-		return existing.transport.handleRequest(request);
-	}
-
-	logDebug("http", "rejected unsupported method", { method: request.method });
-	return Response.json(
-		{
-			jsonrpc: "2.0",
-			error: {
-				code: -32000,
-				message: "Method not allowed.",
-			},
-			id: null,
-		},
-		{ status: 405 },
-	);
+	// Stateless mode: each request gets a fresh server+transport, no session tracking.
+	const server = createServer();
+	const transport = new WebStandardStreamableHTTPServerTransport({
+		sessionIdGenerator: undefined,
+		enableJsonResponse: true,
+	});
+	await server.connect(transport);
+	const response = await transport.handleRequest(request);
+	await server.close();
+	return response;
 }
 
 function withMcpCors(response: Response): Response {
@@ -241,7 +111,6 @@ function withMcpCors(response: Response): Response {
 	for (const [key, value] of Object.entries(MCP_CORS_HEADERS)) {
 		headers.set(key, value);
 	}
-
 	return new Response(response.body, {
 		status: response.status,
 		statusText: response.statusText,
@@ -257,7 +126,6 @@ async function startServer() {
 		async fetch(request) {
 			const url = new URL(request.url);
 
-			// Log all incoming requests (except health checks) for debugging
 			if (url.pathname !== "/health") {
 				logDebug("http", "request", {
 					method: request.method,
@@ -275,12 +143,10 @@ async function startServer() {
 			}
 
 			if (url.pathname === "/health") {
-				logDebug("http", "health check", { method: request.method });
 				return new Response(null, { status: 204 });
 			}
 
 			// RFC 9728: OAuth 2.0 Protected Resource Metadata
-			// Required by MCP spec for client discovery. No authorization_servers = authless.
 			if (
 				url.pathname === "/.well-known/oauth-protected-resource" ||
 				url.pathname === `/.well-known/oauth-protected-resource${mcpPath}`
@@ -302,15 +168,8 @@ async function startServer() {
 					return await handleApiRequest(request);
 				} catch (error) {
 					console.error("Failed to handle API request:", error);
-					logDebug("http", "unhandled API request error", {
-						path: url.pathname,
-						error: error instanceof Error ? error.message : String(error),
-					});
 					return Response.json(
-						{
-							success: false,
-							message: "Internal server error",
-						},
+						{ success: false, message: "Internal server error" },
 						{ status: 500 },
 					);
 				}
@@ -321,17 +180,11 @@ async function startServer() {
 					return withMcpCors(await handleMcpRequest(request));
 				} catch (error) {
 					console.error("Failed to handle MCP request:", error);
-					logDebug("http", "unhandled MCP request error", {
-						error: error instanceof Error ? error.message : String(error),
-					});
 					return withMcpCors(
 						Response.json(
 							{
 								jsonrpc: "2.0",
-								error: {
-									code: -32603,
-									message: "Internal server error",
-								},
+								error: { code: -32603, message: "Internal server error" },
 								id: null,
 							},
 							{ status: 500 },
@@ -342,20 +195,11 @@ async function startServer() {
 
 			if (url.pathname === "/") {
 				return Response.json(
-					{
-						name: "mcp-wine-agent",
-						status: "ok",
-						apiPath: "/api",
-						mcpPath,
-					},
+					{ name: "mcp-wine-agent", status: "ok", apiPath: "/api", mcpPath },
 					{ status: 200 },
 				);
 			}
 
-			logDebug("http", "not found", {
-				path: url.pathname,
-				method: request.method,
-			});
 			return new Response(null, { status: 404 });
 		},
 	});
