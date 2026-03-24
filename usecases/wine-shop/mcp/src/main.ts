@@ -120,6 +120,15 @@ async function handleMcpRequest(request: Request): Promise<Response> {
 		const body = await getRequestBody(request);
 		logDebug("http", "received POST body", body);
 		if (!isInitializeRequest(body)) {
+			// Notifications have no `id` field — treat as fire-and-forget, return 202
+			const isNotification =
+				body !== null &&
+				typeof body === "object" &&
+				!("id" in (body as object));
+			if (isNotification) {
+				logDebug("http", "accepted notification without session", body);
+				return new Response(null, { status: 202 });
+			}
 			logDebug("http", "rejected POST without initialize", body);
 			return Response.json(
 				{
