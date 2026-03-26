@@ -32,6 +32,8 @@ env:
   VITE_WINE_SHOP_AUTHORIZER_URL: ${{ vars.VITE_WINE_SHOP_AUTHORIZER_URL }}
   VITE_MCP_WINE_AGENT_URL: https://mcp-wine-agent.demo.vidos.id/mcp
 
+  VITE_TICKET_AGENT_URL: https://eudi-usecase.demo.vidos.id/ticket-agent
+
 
 # Allow one concurrent deployment
 concurrency:
@@ -45,6 +47,7 @@ jobs:
       server_url: ${{ steps.stack-outputs.outputs.server_url }}
       mcp_wine_url: ${{ steps.stack-outputs.outputs.mcp_wine_url }}
       mcp_car_rental_url: ${{ steps.stack-outputs.outputs.mcp_car_rental_url }}
+      ticket_agent_url: ${{ steps.stack-outputs.outputs.ticket_agent_url }}
     env:
       AWS_REGION: ${{ secrets.AWS_REGION }}
       PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
@@ -92,6 +95,7 @@ jobs:
           docker buildx build --platform linux/amd64 -f Dockerfile.server -t "$repo_uri:$image_tag" --push .
           docker buildx build --platform linux/amd64 -f Dockerfile.mcp-wine-agent -t "$repo_uri:mcp-$image_tag" --push .
           docker buildx build --platform linux/amd64 -f Dockerfile.mcp-car-rental-agent -t "$repo_uri:mcp-car-rental-$image_tag" --push .
+          docker buildx build --platform linux/amd64 -f Dockerfile.ticket-agent -t "$repo_uri:ticket-agent-$image_tag" --push .
       - name: Pulumi up (deploy image)
         env:
           VIDOS_AUTHORIZER_URL: ${{ secrets.VIDOS_AUTHORIZER_URL }}
@@ -116,6 +120,7 @@ jobs:
           pulumi config set lightsail:backendImageTag "$GITHUB_SHA"
           pulumi config set lightsail:mcpWineImageTag "mcp-$GITHUB_SHA"
           pulumi config set lightsail:mcpCarRentalImageTag "mcp-car-rental-$GITHUB_SHA"
+          pulumi config set lightsail:ticketAgentImageTag "ticket-agent-$GITHUB_SHA"
           if [ -n "$MCP_WINE_PUBLIC_DOMAIN_NAME" ]; then
             pulumi config set lightsail:mcpWinePublicDomainName "$MCP_WINE_PUBLIC_DOMAIN_NAME"
           fi
@@ -138,6 +143,7 @@ jobs:
           echo "server_url=$(pulumi stack output endpoint)" >> "$GITHUB_OUTPUT"
           echo "mcp_wine_url=$(pulumi stack output mcpWineEndpoint)" >> "$GITHUB_OUTPUT"
           echo "mcp_car_rental_url=$(pulumi stack output mcpCarRentalEndpoint)" >> "$GITHUB_OUTPUT"
+          echo "ticket_agent_url=$(pulumi stack output ticketAgentEndpoint)" >> "$GITHUB_OUTPUT"
         working-directory: infrastructure
   deploy:
     needs: deploy-infra
@@ -199,14 +205,22 @@ jobs:
           bun run build --filter=demo-wine-shop
           cp "usecases/wine-shop/web/dist/index.html" "usecases/wine-shop/web/dist/404.html"
 
+      - name: Build Ticket Agent Web
+        env:
+          VITE_TICKET_AGENT_SERVER_URL: ${{ needs.deploy-infra.outputs.ticket_agent_url }}
+        run: |
+          bun run build --filter=ticket-agent-web
+          cp "usecases/ticket-agent/web/dist/index.html" "usecases/ticket-agent/web/dist/404.html"
+
       - name: Prepare Pages artifact
         run: |
           rm -rf site
-          mkdir -p site/bank site/car-rental site/wine-shop
+          mkdir -p site/bank site/car-rental site/wine-shop site/ticket-agent
           cp -R "usecases-home/dist/." site
           cp -R "usecases/demo-bank/client/dist/." site/bank
           cp -R "usecases/car-rental/web/dist/." site/car-rental
           cp -R "usecases/wine-shop/web/dist/." site/wine-shop
+          cp -R "usecases/ticket-agent/web/dist/." site/ticket-agent
 
       - name: Create SPA fallback redirect
         run: |

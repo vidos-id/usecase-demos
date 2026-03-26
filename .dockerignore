@@ -2,9 +2,11 @@
 node_modules
 */node_modules
 
-# Demo bank client: exclude all, keep only package.json for workspace resolution
+# Web clients: exclude all, keep only package.json for workspace resolution
 usecases/demo-bank/client/*
 !usecases/demo-bank/client/package.json
+usecases/ticket-agent/web/*
+!usecases/ticket-agent/web/package.json
 # Infrastructure: exclude all, keep only package.json for workspace resolution
 infrastructure/*
 !infrastructure/package.json

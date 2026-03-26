@@ -1,0 +1,2 @@
+[install.scopes]
+"@vidos-id" = { url = "https://npm.pkg.github.com", token = "$GH_PACKAGES_TOKEN" }

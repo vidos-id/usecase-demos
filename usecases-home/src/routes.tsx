@@ -10,6 +10,7 @@ import { CredentialPrepPage } from "./pages/credential-prep";
 import { HowDemosWorkPage } from "./pages/how-demos-work";
 import { McpCarRentalAgentPage } from "./pages/mcp-car-rental-agent";
 import { McpWineAgentPage } from "./pages/mcp-wine-agent";
+import { TicketAgentGuidePage } from "./pages/ticket-agent-guide";
 import { WalletSetupPage } from "./pages/wallet-setup";
 
 const guideSearchSchema = z.object({
@@ -56,6 +57,13 @@ const mcpCarRentalAgentRoute = createRoute({
 	validateSearch: guideSearchSchema,
 });
 
+const ticketAgentGuideRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "/ticket-agent-guide",
+	component: TicketAgentGuidePage,
+	validateSearch: guideSearchSchema,
+});
+
 const routeTree = rootRoute.addChildren([
 	homeRoute,
 	walletSetupRoute,
@@ -63,6 +71,7 @@ const routeTree = rootRoute.addChildren([
 	howDemosWorkRoute,
 	mcpCarRentalAgentRoute,
 	mcpWineAgentRoute,
+	ticketAgentGuideRoute,
 ]);
 
 export const router = createRouter({

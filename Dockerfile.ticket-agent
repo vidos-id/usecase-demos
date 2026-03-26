@@ -1,0 +1,17 @@
+# Bun monorepo ticket-agent server (JIT - no build step)
+FROM oven/bun:1-alpine
+WORKDIR /app
+
+# Copy everything (web clients excluded via .dockerignore)
+COPY . .
+
+# Install all workspace deps (simpler than filtering)
+RUN bun install --frozen-lockfile --production --filter '!demo-bank-client' --filter '!infrastructure'
+
+RUN mkdir -p /app/data && chown bun:bun /app/data
+
+USER bun
+ENV NODE_ENV=production
+EXPOSE 53914
+
+CMD ["bun", "run", "usecases/ticket-agent/server/src/index.ts"]

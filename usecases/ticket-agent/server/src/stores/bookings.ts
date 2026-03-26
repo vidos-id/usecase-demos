@@ -1,0 +1,65 @@
+import { eq } from "drizzle-orm";
+import { db } from "../db";
+import { bookings } from "../db/schema";
+
+export function createBooking(data: {
+	id: string;
+	eventId: string;
+	quantity: number;
+	userId?: string;
+	status?: string;
+	delegatorName?: string;
+	authorizationId?: string;
+}) {
+	const now = new Date().toISOString();
+	return db
+		.insert(bookings)
+		.values({
+			id: data.id,
+			eventId: data.eventId,
+			quantity: data.quantity,
+			userId: data.userId ?? null,
+			status: data.status ?? "pending_verification",
+			delegatorName: data.delegatorName ?? null,
+			authorizationId: data.authorizationId ?? null,
+			createdAt: now,
+		})
+		.returning()
+		.get();
+}
+
+export function getBookingById(id: string) {
+	return db.select().from(bookings).where(eq(bookings.id, id)).get();
+}
+
+export function getBookingByAuthorizationId(authorizationId: string) {
+	return db
+		.select()
+		.from(bookings)
+		.where(eq(bookings.authorizationId, authorizationId))
+		.get();
+}
+
+export function updateBookingStatus(
+	id: string,
+	update: {
+		status: string;
+		delegatorName?: string;
+		errorMessage?: string;
+	},
+) {
+	return db
+		.update(bookings)
+		.set({
+			status: update.status,
+			delegatorName: update.delegatorName,
+			errorMessage: update.errorMessage,
+		})
+		.where(eq(bookings.id, id))
+		.returning()
+		.get();
+}
+
+export function getBookingsByUserId(userId: string) {
+	return db.select().from(bookings).where(eq(bookings.userId, userId)).all();
+}

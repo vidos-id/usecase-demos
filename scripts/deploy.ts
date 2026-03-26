@@ -15,6 +15,7 @@ const mcpCarRentalDockerfilePath = path.join(
 	rootDir,
 	"Dockerfile.mcp-car-rental-agent",
 );
+const ticketAgentDockerfilePath = path.join(rootDir, "Dockerfile.ticket-agent");
 
 const run = (command: string, options: ExecOptions = {}) => {
 	try {
@@ -82,6 +83,9 @@ const ensurePaths = () => {
 	if (!existsSync(mcpCarRentalDockerfilePath)) {
 		throw new Error("Missing Dockerfile.mcp-car-rental-agent in repo root.");
 	}
+	if (!existsSync(ticketAgentDockerfilePath)) {
+		throw new Error("Missing Dockerfile.ticket-agent in repo root.");
+	}
 };
 
 const log = (message: string) => {
@@ -108,19 +112,25 @@ const main = () => {
 	const mcpCarRentalServiceName = getStackOutput(
 		"mcpCarRentalLightsailServiceName",
 	);
+	const ticketAgentServiceName = getStackOutput(
+		"ticketAgentLightsailServiceName",
+	);
 	const region = getStackOutput("region") || "eu-west-1";
 	const endpoint = getStackOutput("endpoint");
 	const mcpWineEndpoint = getStackOutput("mcpWineEndpoint");
 	const mcpCarRentalEndpoint = getStackOutput("mcpCarRentalEndpoint");
+	const ticketAgentEndpoint = getStackOutput("ticketAgentEndpoint");
 
 	const tag = getGitSha() ?? getTimestamp();
 	const imageTag = `${repositoryUrl}:${tag}`;
 	const mcpWineImageTag = `${repositoryUrl}:mcp-${tag}`;
 	const mcpCarRentalImageTag = `${repositoryUrl}:mcp-car-rental-${tag}`;
+	const ticketAgentImageTag = `${repositoryUrl}:ticket-agent-${tag}`;
 
 	log(`Using image tag: ${imageTag}`);
 	log(`Using wine MCP image tag: ${mcpWineImageTag}`);
 	log(`Using car-rental MCP image tag: ${mcpCarRentalImageTag}`);
+	log(`Using ticket-agent image tag: ${ticketAgentImageTag}`);
 	log("Authenticating to ECR...");
 	run(
 		`aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${repositoryUrl}`,
@@ -134,6 +144,8 @@ const main = () => {
 	run(
 		`docker build -f Dockerfile.mcp-car-rental-agent -t ${mcpCarRentalImageTag} .`,
 	);
+	log("Building Ticket Agent image...");
+	run(`docker build -f Dockerfile.ticket-agent -t ${ticketAgentImageTag} .`);
 
 	log("Pushing image to ECR...");
 	run(`docker push ${imageTag}`);
@@ -141,6 +153,8 @@ const main = () => {
 	run(`docker push ${mcpWineImageTag}`);
 	log("Pushing car-rental MCP image to ECR...");
 	run(`docker push ${mcpCarRentalImageTag}`);
+	log("Pushing ticket-agent image to ECR...");
+	run(`docker push ${ticketAgentImageTag}`);
 
 	log("Updating Lightsail service...");
 	const deploymentConfig = {
@@ -203,6 +217,25 @@ const main = () => {
 			containerPort: mcpCarRentalPort,
 		},
 	};
+	const ticketAgentDeploymentConfig = {
+		containers: {
+			"ticket-agent": {
+				image: ticketAgentImageTag,
+				ports: { 53914: "HTTP" },
+				environment: {
+					VIDOS_AUTHORIZER_URL: process.env.VIDOS_AUTHORIZER_URL ?? "",
+					VIDOS_API_KEY: process.env.VIDOS_API_KEY ?? "",
+					DATABASE_PATH: "/app/data/ticket-agent.db",
+					ISSUER_PUBLIC_URL:
+						process.env.TICKET_AGENT_ISSUER_PUBLIC_URL ?? ticketAgentEndpoint,
+				},
+			},
+		},
+		publicEndpoint: {
+			containerName: "ticket-agent",
+			containerPort: 53914,
+		},
+	};
 
 	const deploymentPayload = JSON.stringify(deploymentConfig)
 		.replace(/\\/g, "\\\\")
@@ -212,6 +245,11 @@ const main = () => {
 		.replace(/'/g, "\\'");
 	const mcpCarRentalDeploymentPayload = JSON.stringify(
 		mcpCarRentalDeploymentConfig,
+	)
+		.replace(/\\/g, "\\\\")
+		.replace(/'/g, "\\'");
+	const ticketAgentDeploymentPayload = JSON.stringify(
+		ticketAgentDeploymentConfig,
 	)
 		.replace(/\\/g, "\\\\")
 		.replace(/'/g, "\\'");
@@ -226,6 +264,10 @@ const main = () => {
 	log("Updating MCP Car Rental Agent service...");
 	run(
 		`aws lightsail create-container-service-deployment --service-name ${mcpCarRentalServiceName} --region ${region} --cli-input-json '${mcpCarRentalDeploymentPayload}'`,
+	);
+	log("Updating Ticket Agent service...");
+	run(
+		`aws lightsail create-container-service-deployment --service-name ${ticketAgentServiceName} --region ${region} --cli-input-json '${ticketAgentDeploymentPayload}'`,
 	);
 
 	log("Waiting for deployment to complete...");
@@ -244,6 +286,7 @@ const main = () => {
 	log(`Endpoint: ${endpoint}`);
 	log(`Wine MCP Endpoint: ${mcpWineEndpoint}`);
 	log(`Car Rental MCP Endpoint: ${mcpCarRentalEndpoint}`);
+	log(`Ticket Agent Endpoint: ${ticketAgentEndpoint}`);
 };
 
 try {

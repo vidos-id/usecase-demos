@@ -18,6 +18,7 @@
 		"dev:demo-car-rental-mcp": "turbo dev --filter=mcp-car-rental-agent",
 		"dev:demo-bank-client": "turbo dev --filter=demo-bank-client",
 		"dev:demo-bank-server": "turbo dev --filter=demo-bank-server",
+		"dev:ticket-agent": "turbo dev --filter=ticket-agent-web --filter=ticket-agent-server",
 		"build:demo-bank-client": "turbo build --filter=demo-bank-client",
 		"build:infrastructure": "turbo build --filter=infrastructure",
 		"lint": "biome lint .",

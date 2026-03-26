@@ -5,6 +5,7 @@ const vidosConfig = new pulumi.Config("vidos");
 const vidosAuthorizerUrl = vidosConfig.requireSecret("authorizerUrl");
 const vidosApiKey = vidosConfig.getSecret("apiKey") ?? pulumi.secret("");
 const databasePath = "/app/data/vidos-demo.db";
+const ticketAgentDatabasePath = "/app/data/ticket-agent.db";
 const mcpWinePublicBaseUrl = vidosConfig.get("mcpWinePublicBaseUrl") ?? "";
 const mcpCarRentalPublicBaseUrl =
 	vidosConfig.get("mcpCarRentalPublicBaseUrl") ?? "";
@@ -21,6 +22,12 @@ const mcpWineImageTag =
 	lightsailConfig.get("mcpWineImageTag") ?? "mcp-wine-latest";
 const mcpCarRentalImageTag =
 	lightsailConfig.get("mcpCarRentalImageTag") ?? "mcp-car-rental-latest";
+const ticketAgentImageTag =
+	lightsailConfig.get("ticketAgentImageTag") ?? "ticket-agent-latest";
+const ticketAgentPublicDomainName =
+	lightsailConfig.get("ticketAgentPublicDomainName") ?? "";
+const ticketAgentCertificateName =
+	lightsailConfig.get("ticketAgentCertificateName") ?? "";
 const mcpWinePublicDomainName =
 	lightsailConfig.get("mcpWinePublicDomainName") ?? "";
 const mcpWineCertificateName =
@@ -102,6 +109,11 @@ const mcpCarRentalPublicDomainNames = createPublicDomainNames(
 	mcpCarRentalCertificateName,
 );
 
+const ticketAgentPublicDomainNames = createPublicDomainNames(
+	ticketAgentPublicDomainName,
+	ticketAgentCertificateName,
+);
+
 const mcpService = new aws.lightsail.ContainerService("mcpWineAgent", {
 	name: pulumi.interpolate`mcp-wine-agent-${pulumi.getStack()}`,
 	power: serviceTier,
@@ -130,6 +142,19 @@ const mcpCarRentalService = new aws.lightsail.ContainerService(
 		tags,
 	},
 );
+
+const ticketAgentService = new aws.lightsail.ContainerService("ticketAgent", {
+	name: pulumi.interpolate`ticket-agent-${pulumi.getStack()}`,
+	power: serviceTier,
+	scale,
+	privateRegistryAccess: {
+		ecrImagePullerRole: {
+			isActive: true,
+		},
+	},
+	publicDomainNames: ticketAgentPublicDomainNames,
+	tags,
+});
 
 const ecrPullerPrincipalArn = service.privateRegistryAccess.apply(
 	(registryAccess) => {
@@ -160,13 +185,23 @@ const mcpCarRentalEcrPullerPrincipalArn =
 		return principalArn;
 	});
 
+const ticketAgentEcrPullerPrincipalArn =
+	ticketAgentService.privateRegistryAccess.apply((registryAccess) => {
+		const principalArn = registryAccess?.ecrImagePullerRole?.principalArn;
+		if (!principalArn || principalArn.trim().length === 0) {
+			throw new Error("Ticket agent Lightsail ECR puller role not ready");
+		}
+		return principalArn;
+	});
+
 const repositoryPolicyDocument = pulumi
 	.all([
 		ecrPullerPrincipalArn,
 		mcpEcrPullerPrincipalArn,
 		mcpCarRentalEcrPullerPrincipalArn,
+		ticketAgentEcrPullerPrincipalArn,
 	])
-	.apply(([usecaseArn, mcpArn, mcpCarRentalArn]) =>
+	.apply(([usecaseArn, mcpArn, mcpCarRentalArn, ticketAgentArn]) =>
 		JSON.stringify({
 			Version: "2012-10-17",
 			Statement: [
@@ -174,7 +209,7 @@ const repositoryPolicyDocument = pulumi
 					Sid: "AllowLightsailPull",
 					Effect: "Allow",
 					Principal: {
-						AWS: [usecaseArn, mcpArn, mcpCarRentalArn],
+						AWS: [usecaseArn, mcpArn, mcpCarRentalArn, ticketAgentArn],
 					},
 					Action: [
 						"ecr:BatchCheckLayerAvailability",
@@ -193,7 +228,7 @@ new aws.ecr.RepositoryPolicy(
 		policy: repositoryPolicyDocument,
 	},
 	{
-		dependsOn: [service, mcpService, mcpCarRentalService],
+		dependsOn: [service, mcpService, mcpCarRentalService, ticketAgentService],
 	},
 );
 
@@ -306,6 +341,42 @@ if (deployEnabled) {
 			replaceOnChanges: ["*"],
 		},
 	);
+
+	new aws.lightsail.ContainerServiceDeploymentVersion(
+		"ticketAgent",
+		{
+			serviceName: ticketAgentService.name,
+			containers: [
+				{
+					containerName: "ticket-agent",
+					image: repository.repositoryUrl.apply(
+						(url) => `${url}:${ticketAgentImageTag}`,
+					),
+					ports: {
+						"53914": "HTTP",
+					},
+					environment: {
+						VIDOS_AUTHORIZER_URL: vidosAuthorizerUrl,
+						VIDOS_API_KEY: vidosApiKey,
+						DATABASE_PATH: ticketAgentDatabasePath,
+						ISSUER_PUBLIC_URL: ticketAgentService.url,
+					},
+				},
+			],
+			publicEndpoint: {
+				containerName: "ticket-agent",
+				containerPort: 53914,
+				healthCheck: {
+					path: "/api/health",
+					successCodes: "200-499",
+				},
+			},
+		},
+		{
+			deleteBeforeReplace: true,
+			replaceOnChanges: ["*"],
+		},
+	);
 }
 
 export const ecrRepositoryUrl = repository.repositoryUrl;
@@ -316,4 +387,6 @@ export const mcpWineLightsailServiceName = mcpService.name;
 export const mcpWineEndpoint = mcpService.url;
 export const mcpCarRentalLightsailServiceName = mcpCarRentalService.name;
 export const mcpCarRentalEndpoint = mcpCarRentalService.url;
+export const ticketAgentLightsailServiceName = ticketAgentService.name;
+export const ticketAgentEndpoint = ticketAgentService.url;
 export const region = aws.config.region ?? "eu-west-1";

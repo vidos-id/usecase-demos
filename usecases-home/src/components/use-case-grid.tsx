@@ -14,6 +14,7 @@ import { useState } from "react";
 import ageIllustration from "../assets/age-verification-illustration.svg";
 import bankIllustration from "../assets/bank-illustration.svg";
 import mdlIllustration from "../assets/mdl-illustration.svg";
+import vidoShowIllustration from "../assets/vido-show-illustration.svg";
 
 /* ------------------------------------------------------------------ */
 /*  Data model                                                         */
@@ -22,6 +23,7 @@ import mdlIllustration from "../assets/mdl-illustration.svg";
 interface AIGuide {
 	/** Internal route base for the guide page */
 	route: string;
+	agents?: Array<"chatgpt" | "openclaw">;
 }
 
 interface ShowcaseDemo {
@@ -62,6 +64,9 @@ const demoBankUrl =
 	import.meta.env.VITE_DEMO_BANK_URL ?? "http://localhost:55930/bank/";
 const wineShopUrl =
 	import.meta.env.VITE_WINE_SHOP_URL ?? "http://localhost:29751/wine-shop/";
+const ticketAgentUrl =
+	import.meta.env.VITE_TICKET_AGENT_URL ??
+	"http://localhost:29752/ticket-agent/";
 
 /* ------------------------------------------------------------------ */
 /*  Showcase demos                                                     */
@@ -102,6 +107,18 @@ const showcaseDemos: ShowcaseDemo[] = [
 		status: "live",
 		appUrl: demoBankUrl,
 		credentials: ["PID"],
+	},
+	{
+		title: "VidoShow",
+		tagline: "AI ticket booking with delegated credentials",
+		description:
+			"Use VidoShow to delegate your AI agent to purchase event tickets on your behalf. Issue a delegation credential from your verified identity, then let the agent autonomously book tickets by presenting the credential.",
+		category: "Consumer",
+		illustration: vidoShowIllustration,
+		status: "live",
+		appUrl: ticketAgentUrl,
+		credentials: ["PID", "Delegation Credential"],
+		aiGuide: { route: "/ticket-agent-guide", agents: ["openclaw"] },
 	},
 ];
 
@@ -217,7 +234,12 @@ function ShowcaseCard({ demo }: { demo: ShowcaseDemo }) {
 					</a>
 
 					{/* AI guide buttons */}
-					{demo.aiGuide && <AIGuideButtonGroup route={demo.aiGuide.route} />}
+					{demo.aiGuide && (
+						<AIGuideButtonGroup
+							route={demo.aiGuide.route}
+							agents={demo.aiGuide.agents}
+						/>
+					)}
 				</div>
 			</div>
 		</div>
@@ -225,10 +247,16 @@ function ShowcaseCard({ demo }: { demo: ShowcaseDemo }) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  AI guide button group — ChatGPT + OpenClaw side by side            */
+/*  AI guide button group                                               */
 /* ------------------------------------------------------------------ */
 
-function AIGuideButtonGroup({ route }: { route: string }) {
+function AIGuideButtonGroup({
+	route,
+	agents = ["chatgpt", "openclaw"],
+}: {
+	route: string;
+	agents?: Array<"chatgpt" | "openclaw">;
+}) {
 	return (
 		<div className="flex flex-col gap-1.5 md:flex-1">
 			<span className="mono-label flex items-center gap-1.5 text-eu-blue opacity-65">
@@ -236,24 +264,28 @@ function AIGuideButtonGroup({ route }: { route: string }) {
 				AI agent guide
 			</span>
 			<div className="flex gap-2">
-				<Link
-					to={route}
-					search={{ agent: "chatgpt" }}
-					className="flex flex-1 items-center gap-2 rounded-lg border border-eu-blue/15 bg-eu-blue-light/50 px-3 py-2 text-sm font-medium text-foreground no-underline transition-all duration-200 ease-out hover:border-eu-blue hover:bg-eu-blue-light hover:translate-x-px"
-				>
-					<Bot className="size-3.5 shrink-0" />
-					<span>ChatGPT</span>
-					<ChevronRight className="size-3 ml-auto opacity-50" />
-				</Link>
-				<Link
-					to={route}
-					search={{ agent: "openclaw" }}
-					className="flex flex-1 items-center gap-2 rounded-lg border border-amber-600/15 bg-amber-50/50 px-3 py-2 text-sm font-medium text-foreground no-underline transition-all duration-200 ease-out hover:border-amber-600/40 hover:bg-amber-50 hover:translate-x-px"
-				>
-					<span className="text-sm leading-none shrink-0">🦞</span>
-					<span>OpenClaw</span>
-					<ChevronRight className="size-3 ml-auto opacity-50" />
-				</Link>
+				{agents.includes("chatgpt") && (
+					<Link
+						to={route}
+						search={{ agent: "chatgpt" }}
+						className="flex flex-1 items-center gap-2 rounded-lg border border-eu-blue/15 bg-eu-blue-light/50 px-3 py-2 text-sm font-medium text-foreground no-underline transition-all duration-200 ease-out hover:border-eu-blue hover:bg-eu-blue-light hover:translate-x-px"
+					>
+						<Bot className="size-3.5 shrink-0" />
+						<span>ChatGPT</span>
+						<ChevronRight className="size-3 ml-auto opacity-50" />
+					</Link>
+				)}
+				{agents.includes("openclaw") && (
+					<Link
+						to={route}
+						search={{ agent: "openclaw" }}
+						className="flex flex-1 items-center gap-2 rounded-lg border border-amber-600/15 bg-amber-50/50 px-3 py-2 text-sm font-medium text-foreground no-underline transition-all duration-200 ease-out hover:border-amber-600/40 hover:bg-amber-50 hover:translate-x-px"
+					>
+						<span className="text-sm leading-none shrink-0">🦞</span>
+						<span>OpenClaw</span>
+						<ChevronRight className="size-3 ml-auto opacity-50" />
+					</Link>
+				)}
 			</div>
 		</div>
 	);
@@ -328,7 +360,7 @@ export function UseCaseGrid() {
 				</h2>
 				<p className="mt-4 text-muted-foreground max-w-2xl text-lg leading-relaxed">
 					Each demo features an interactive web app you can try end-to-end. Some
-					demos also include AI agent guides for ChatGPT and OpenClaw.
+					demos also include AI agent guides for ChatGPT or OpenClaw.
 				</p>
 
 				{/* Filter chips */}

@@ -13,7 +13,7 @@ cat <<'EOF' > "$output_path"
     <title>Redirecting...</title>
     <script>
       (function () {
-        var appBases = ["/bank", "/car-rental", "/wine-shop"];
+        var appBases = ["/bank", "/car-rental", "/wine-shop", "/ticket-agent"];
         var pathname = window.location.pathname;
         var search = window.location.search;
         var hash = window.location.hash;
