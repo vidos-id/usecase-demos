@@ -25,10 +25,10 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { apiClient } from "@/lib/api-client";
+import type { AuthenticatedUser } from "../_auth";
 
 export const Route = createFileRoute("/_app/_auth/agent")({
 	component: AgentPage,
@@ -38,7 +38,7 @@ export const Route = createFileRoute("/_app/_auth/agent")({
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
 
-type DelegationScope = "browse_events" | "purchase_tickets" | "manage_bookings";
+type DelegationScope = "book_tickets";
 
 interface DelegationResult {
 	credential: string;
@@ -47,28 +47,16 @@ interface DelegationResult {
 	validUntil: string;
 }
 
-const SCOPES: {
+const BOOKING_SCOPE: {
 	id: DelegationScope;
 	label: string;
 	description: string;
-}[] = [
-	{
-		id: "browse_events",
-		label: "Browse Events",
-		description: "Allow the agent to search and view the event catalog",
-	},
-	{
-		id: "purchase_tickets",
-		label: "Purchase Tickets",
-		description:
-			"Allow the agent to book tickets on your behalf (requires identity verification during purchase)",
-	},
-	{
-		id: "manage_bookings",
-		label: "Manage Bookings",
-		description: "Allow the agent to view and manage your bookings",
-	},
-];
+} = {
+	id: "book_tickets",
+	label: "Book Tickets",
+	description:
+		"Allow the agent to start ticket bookings on your behalf and complete them via Vidos credential presentation.",
+};
 
 const JWK_PLACEHOLDER = `{
   "kty": "EC",
@@ -93,7 +81,7 @@ function AgentPage() {
 		},
 	});
 
-	const currentUser = freshUser ?? user;
+	const currentUser = (freshUser ?? user) as AuthenticatedUser;
 
 	if (!currentUser.identityVerified) {
 		return <IdentityGate />;
@@ -185,7 +173,6 @@ function AgentOnboardingForm() {
 	const [parsedJwk, setParsedJwk] = useState<Record<string, unknown> | null>(
 		null,
 	);
-	const [selectedScopes, setSelectedScopes] = useState<DelegationScope[]>([]);
 	const [result, setResult] = useState<DelegationResult | null>(null);
 	const [copied, setCopied] = useState(false);
 
@@ -228,13 +215,6 @@ function AgentOnboardingForm() {
 		}
 	}, []);
 
-	/* Scope toggle */
-	const toggleScope = useCallback((scope: DelegationScope) => {
-		setSelectedScopes((prev) =>
-			prev.includes(scope) ? prev.filter((s) => s !== scope) : [...prev, scope],
-		);
-	}, []);
-
 	/* Issue mutation */
 	const issueMutation = useMutation({
 		mutationFn: async () => {
@@ -242,7 +222,7 @@ function AgentOnboardingForm() {
 			const res = await apiClient.api.delegation.issue.$post({
 				json: {
 					agentPublicKey: parsedJwk,
-					scopes: selectedScopes,
+					scopes: [BOOKING_SCOPE.id],
 				},
 			});
 			if (!res.ok) {
@@ -282,12 +262,11 @@ function AgentOnboardingForm() {
 		setJwkValid(null);
 		setJwkError(null);
 		setParsedJwk(null);
-		setSelectedScopes([]);
 		setResult(null);
 		setCopied(false);
 	}, []);
 
-	const canSubmit = jwkValid === true && selectedScopes.length > 0;
+	const canSubmit = jwkValid === true;
 
 	/* ---- Result view ---- */
 	if (result) {
@@ -316,8 +295,8 @@ function AgentOnboardingForm() {
 					Onboard Your AI Agent
 				</h1>
 				<p className="text-muted-foreground text-sm max-w-lg">
-					Provide your agent&apos;s public key and choose what it&apos;s allowed
-					to do.
+					Provide your agent&apos;s public key to issue a booking-only
+					delegation credential.
 				</p>
 			</div>
 
@@ -372,53 +351,33 @@ function AgentOnboardingForm() {
 					</CardContent>
 				</Card>
 
-				{/* Step 2: Scope Selection */}
+				{/* Step 2: Delegated capability */}
 				<Card className="border-border/50 bg-white/80 backdrop-blur-sm shadow-lg shadow-violet-900/[0.03]">
 					<CardHeader className="pb-4">
 						<CardTitle className="text-base flex items-center gap-2">
 							<div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
 								<Shield className="h-3.5 w-3.5 text-primary" />
 							</div>
-							Delegation Scopes
+							Delegated Capability
 						</CardTitle>
 						<CardDescription className="leading-relaxed">
-							Choose what your agent is allowed to do on your behalf. Select at
-							least one permission.
+							This credential is intentionally limited to one capability.
 						</CardDescription>
 					</CardHeader>
-					<CardContent className="space-y-1">
-						{SCOPES.map((scope) => {
-							const isChecked = selectedScopes.includes(scope.id);
-							return (
-								<label
-									key={scope.id}
-									htmlFor={scope.id}
-									className={`flex items-start gap-4 p-4 rounded-xl cursor-pointer transition-all duration-200 border ${
-										isChecked
-											? "bg-primary/[0.04] border-primary/20 shadow-sm"
-											: "bg-transparent border-transparent hover:bg-muted/40"
-									}`}
-								>
-									<Checkbox
-										id={scope.id}
-										checked={isChecked}
-										onCheckedChange={() => toggleScope(scope.id)}
-										className="mt-0.5"
-									/>
-									<div className="space-y-1 flex-1">
-										<Label
-											htmlFor={scope.id}
-											className="text-sm font-semibold cursor-pointer"
-										>
-											{scope.label}
-										</Label>
-										<p className="text-xs text-muted-foreground leading-relaxed">
-											{scope.description}
-										</p>
-									</div>
-								</label>
-							);
-						})}
+					<CardContent>
+						<div className="flex items-start gap-4 rounded-xl border border-primary/20 bg-primary/[0.04] p-4">
+							<div className="mt-0.5 flex h-4 w-4 items-center justify-center rounded-[4px] border border-primary/30 bg-primary text-primary-foreground">
+								<CheckCircle2 className="h-3 w-3" />
+							</div>
+							<div className="space-y-1 flex-1">
+								<Label className="text-sm font-semibold">
+									{BOOKING_SCOPE.label}
+								</Label>
+								<p className="text-xs text-muted-foreground leading-relaxed">
+									{BOOKING_SCOPE.description}
+								</p>
+							</div>
+						</div>
 					</CardContent>
 				</Card>
 
@@ -483,9 +442,7 @@ function CredentialResult({
 	);
 
 	const scopeLabels: Record<string, string> = {
-		browse_events: "Browse Events",
-		purchase_tickets: "Purchase Tickets",
-		manage_bookings: "Manage Bookings",
+		book_tickets: "Book Tickets",
 	};
 
 	return (
@@ -625,7 +582,8 @@ function CredentialResult({
 						<code className="font-mono text-xs bg-primary/[0.06] px-1.5 py-0.5 rounded-md border border-primary/10">
 							wallet-cli import
 						</code>
-						.
+						. Agent bookings should then start unauthenticated, receive a Vidos
+						authorization URL, and complete by presenting this credential.
 					</p>
 				</div>
 

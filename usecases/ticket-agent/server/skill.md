@@ -1,6 +1,6 @@
 # Delegated Booking Skill
 
-Use this skill for delegated event browsing and booking.
+Use this skill for delegated ticket booking.
 
 **Base URL:** `https://api-ticket-agent.demo.vidos.id`
 
@@ -48,11 +48,11 @@ wallet-cli present --wallet-dir ./wallet --request "<openid4vp://... authorizati
 7. Wait for the user to paste the `dc+sd-jwt` credential string.
 8. Import it with `wallet-cli import --wallet-dir ./wallet --credential "<credential_string>"`.
 9. Browse events with `GET /api/events` and event details with `GET /api/events/:id`.
-10. Create a booking with `POST /api/bookings` and body `{ "eventId": "evt-001", "quantity": 2 }`.
-11. Read `authorizeUrl` from the booking response.
+10. Start a delegated booking with `POST /api/bookings` and body `{ "eventId": "evt-001", "quantity": 2 }` without app session auth.
+11. Read `authorizeUrl` and `statusToken` from the booking response.
 12. Present the credential with `wallet-cli present --wallet-dir ./wallet --request "<authorizeUrl>"`.
 13. After presenting, wait a few seconds for authorization and booking processing.
-14. Then poll `GET /api/bookings/:id` every 3 seconds for up to 180 seconds and report the result.
+14. Then poll `GET /api/bookings/status/<statusToken>` every 3 seconds for up to 180 seconds and report the result.
 
 ## Booking Status
 

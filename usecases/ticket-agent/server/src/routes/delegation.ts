@@ -48,8 +48,10 @@ export const delegationRouter = new Hono().post(
 		const validUntil = new Date(
 			Date.now() + 30 * 24 * 60 * 60 * 1000,
 		).toISOString();
+		const delegationSessionId = crypto.randomUUID();
 
 		const credential = await issueDelegationCredential({
+			delegationId: delegationSessionId,
 			givenName: user.givenName,
 			familyName: user.familyName,
 			birthDate: user.birthDate,
@@ -57,8 +59,6 @@ export const delegationRouter = new Hono().post(
 			scopes,
 			validUntil,
 		});
-
-		const delegationSessionId = crypto.randomUUID();
 
 		revokePreviousDelegationSessions(session.userId, delegationSessionId);
 

@@ -21,7 +21,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { apiClient } from "@/lib/api-client";
-import { addBookingId } from "@/lib/bookings";
 
 /* ------------------------------------------------------------------ */
 /*  Route                                                              */
@@ -89,6 +88,8 @@ interface BookingSuccess {
 	id: string;
 	quantity: number;
 	status: string;
+	bookedBy: "user" | "agent";
+	authorizeUrl?: string;
 	delegatorName?: string;
 }
 
@@ -129,15 +130,17 @@ function EventDetailPage() {
 			return res.json();
 		},
 		onSuccess: (data) => {
-			addBookingId(data.id);
 			const delegatorName =
 				"delegatorName" in data ? data.delegatorName : undefined;
 			setBookingSuccess({
 				id: data.id,
 				quantity: data.quantity,
 				status: data.status,
+				bookedBy: data.bookedBy as "user" | "agent",
+				authorizeUrl: "authorizeUrl" in data ? data.authorizeUrl : undefined,
 				delegatorName,
 			});
+			queryClient.invalidateQueries({ queryKey: ["bookings"] });
 			queryClient.invalidateQueries({ queryKey: ["event", eventId] });
 		},
 	});
@@ -160,7 +163,8 @@ function EventDetailPage() {
 
 	const cat = (event as { category: string }).category as CategoryKey;
 	const style = categoryStyles[cat] ?? categoryStyles.concert;
-	const isVerified = user.identityVerified;
+	const currentUser = user as { identityVerified: boolean };
+	const isVerified = currentUser.identityVerified;
 	const maxTickets = Math.min(
 		(event as { availableTickets: number }).availableTickets,
 		10,
@@ -485,11 +489,29 @@ function BookingSuccessView({
 							label="Quantity"
 							value={`${booking.quantity} ticket${booking.quantity > 1 ? "s" : ""}`}
 						/>
+						<DetailRow
+							label="Booked By"
+							value={booking.bookedBy === "agent" ? "AI Agent" : "You"}
+						/>
 						<DetailRow label="Status" value={booking.status} />
 						{booking.delegatorName && (
 							<DetailRow label="Verified As" value={booking.delegatorName} />
 						)}
+						{booking.authorizeUrl && (
+							<DetailRow
+								label="Next Step"
+								value="Complete agent verification"
+							/>
+						)}
 					</div>
+
+					{booking.authorizeUrl && (
+						<div className="rounded-xl border border-amber-200/50 bg-amber-50/70 px-4 py-3 text-sm text-amber-900">
+							Your agent booking is pending wallet presentation. Finish the
+							verification flow with the returned authorization request, then
+							check `My Bookings` for the final status.
+						</div>
+					)}
 
 					{/* Actions */}
 					<div className="flex flex-col gap-2.5 pt-2">
@@ -539,7 +561,7 @@ function DetailRow({
 				{label}
 			</span>
 			<span
-				className={`text-sm font-semibold text-foreground ${mono ? "font-mono text-xs" : ""}`}
+				className={`text-sm font-semibold text-foreground inline-flex items-center gap-1.5 ${mono ? "font-mono text-xs" : ""}`}
 			>
 				{value}
 			</span>

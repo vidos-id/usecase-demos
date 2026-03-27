@@ -7,9 +7,12 @@ export function createBooking(data: {
 	eventId: string;
 	quantity: number;
 	userId?: string;
+	bookedBy?: "user" | "agent";
 	status?: string;
 	delegatorName?: string;
 	authorizationId?: string;
+	statusToken?: string;
+	delegationSessionId?: string;
 }) {
 	const now = new Date().toISOString();
 	return db
@@ -19,9 +22,12 @@ export function createBooking(data: {
 			eventId: data.eventId,
 			quantity: data.quantity,
 			userId: data.userId ?? null,
+			bookedBy: data.bookedBy ?? "user",
 			status: data.status ?? "pending_verification",
 			delegatorName: data.delegatorName ?? null,
 			authorizationId: data.authorizationId ?? null,
+			statusToken: data.statusToken ?? null,
+			delegationSessionId: data.delegationSessionId ?? null,
 			createdAt: now,
 		})
 		.returning()
@@ -37,6 +43,23 @@ export function getBookingByAuthorizationId(authorizationId: string) {
 		.select()
 		.from(bookings)
 		.where(eq(bookings.authorizationId, authorizationId))
+		.get();
+}
+
+export function getBookingByStatusToken(statusToken: string) {
+	return db
+		.select()
+		.from(bookings)
+		.where(eq(bookings.statusToken, statusToken))
+		.get();
+}
+
+export function assignBookingUser(id: string, userId: string) {
+	return db
+		.update(bookings)
+		.set({ userId })
+		.where(eq(bookings.id, id))
+		.returning()
 		.get();
 }
 

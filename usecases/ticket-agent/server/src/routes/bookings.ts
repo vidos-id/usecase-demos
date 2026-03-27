@@ -4,14 +4,38 @@ import { createBookingRequestSchema } from "ticket-agent-shared/api/bookings";
 import { getEventById } from "ticket-agent-shared/lib/events";
 import { startAuthorizationMonitor } from "../services/authorization-monitor";
 import { createDelegationAuthorizationRequest } from "../services/vidos";
-import { createBooking, getBookingById } from "../stores/bookings";
-import { getActiveDelegationSessionByUserId } from "../stores/delegation-sessions";
-import { getSessionById } from "../stores/sessions";
-import { getUserById } from "../stores/users";
+import {
+	createBooking,
+	getBookingById,
+	getBookingByStatusToken,
+	getBookingsByUserId,
+} from "../stores/bookings";
+import {
+	getAuthenticatedUserIfPresent,
+	requireAuthenticatedUser,
+} from "./auth";
+
+function serializeBooking(
+	booking: NonNullable<ReturnType<typeof getBookingById>>,
+) {
+	const event = getEventById(booking.eventId);
+
+	return {
+		id: booking.id,
+		eventId: booking.eventId,
+		quantity: booking.quantity,
+		status: booking.status,
+		bookedBy: booking.bookedBy,
+		delegatorName: booking.delegatorName ?? undefined,
+		createdAt: booking.createdAt,
+		event: event ?? undefined,
+		errorMessage: booking.errorMessage ?? undefined,
+	};
+}
 
 export const bookingsRouter = new Hono()
 	.post("/", zValidator("json", createBookingRequestSchema), async (c) => {
-		const { eventId, quantity } = c.req.valid("json");
+		const { eventId, quantity, delegationId } = c.req.valid("json");
 
 		const event = getEventById(eventId);
 		if (!event) {
@@ -22,58 +46,55 @@ export const bookingsRouter = new Hono()
 			return c.json({ error: "Insufficient tickets available" }, 400);
 		}
 
-		const sessionId = c.req.header("Authorization")?.replace("Bearer ", "");
-		if (sessionId) {
-			const session = getSessionById(sessionId);
-			if (session) {
-				const user = getUserById(session.userId);
-				if (user?.identityVerified && user.givenName && user.familyName) {
-					const booking = createBooking({
-						id: crypto.randomUUID(),
-						eventId,
-						quantity,
-						userId: session.userId,
-						status: "confirmed",
-						delegatorName: `${user.givenName} ${user.familyName}`,
-					});
-
-					return c.json({
-						id: booking.id,
-						eventId: booking.eventId,
-						quantity: booking.quantity,
-						status: booking.status,
-						delegatorName: booking.delegatorName ?? undefined,
-					});
-				}
+		const auth = getAuthenticatedUserIfPresent(c);
+		if (auth) {
+			const { session, user } = auth;
+			if (!user.identityVerified || !user.givenName || !user.familyName) {
+				return c.json(
+					{ error: "Identity verification is required for direct bookings" },
+					403,
+				);
 			}
+
+			const booking = createBooking({
+				id: crypto.randomUUID(),
+				eventId,
+				quantity,
+				userId: session.userId,
+				bookedBy: "user",
+				status: "confirmed",
+				delegatorName: `${user.givenName} ${user.familyName}`,
+			});
+
+			return c.json({
+				id: booking.id,
+				eventId: booking.eventId,
+				quantity: booking.quantity,
+				status: booking.status,
+				bookedBy: booking.bookedBy,
+				delegatorName: booking.delegatorName ?? undefined,
+			});
 		}
 
 		const authResult = await createDelegationAuthorizationRequest();
-
-		let delegationSessionId: string | undefined;
-		if (sessionId) {
-			const session = getSessionById(sessionId);
-			if (session) {
-				const delegationSession = getActiveDelegationSessionByUserId(
-					session.userId,
-				);
-				delegationSessionId = delegationSession?.id;
-			}
-		}
+		const statusToken = crypto.randomUUID();
 
 		const booking = createBooking({
 			id: crypto.randomUUID(),
 			eventId,
 			quantity,
+			bookedBy: "agent",
 			status: "pending_verification",
 			authorizationId: authResult.authorizationId,
+			statusToken,
+			delegationSessionId: delegationId,
 		});
 
 		startAuthorizationMonitor({
 			type: "booking_verification",
 			authorizationId: authResult.authorizationId,
 			bookingId: booking.id,
-			delegationSessionId,
+			delegationSessionId: delegationId,
 		});
 
 		return c.json({
@@ -81,10 +102,29 @@ export const bookingsRouter = new Hono()
 			eventId: booking.eventId,
 			quantity: booking.quantity,
 			status: booking.status,
+			bookedBy: booking.bookedBy,
 			authorizeUrl: authResult.authorizeUrl,
+			statusToken,
 		});
 	})
+	.get("/", (c) => {
+		const auth = requireAuthenticatedUser(c);
+		if (!auth.ok) {
+			return auth.response;
+		}
+
+		const bookings = getBookingsByUserId(auth.user.id)
+			.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+			.map((booking) => serializeBooking(booking));
+
+		return c.json(bookings);
+	})
 	.get("/:id", (c) => {
+		const auth = requireAuthenticatedUser(c);
+		if (!auth.ok) {
+			return auth.response;
+		}
+
 		const id = c.req.param("id");
 		const booking = getBookingById(id);
 
@@ -92,16 +132,19 @@ export const bookingsRouter = new Hono()
 			return c.json({ error: "Booking not found" }, 404);
 		}
 
-		const event = getEventById(booking.eventId);
+		if (booking.userId !== auth.user.id) {
+			return c.json({ error: "Booking not found" }, 404);
+		}
 
-		return c.json({
-			id: booking.id,
-			eventId: booking.eventId,
-			quantity: booking.quantity,
-			status: booking.status,
-			delegatorName: booking.delegatorName ?? undefined,
-			createdAt: booking.createdAt,
-			event: event ?? undefined,
-			errorMessage: booking.errorMessage ?? undefined,
-		});
+		return c.json(serializeBooking(booking));
+	})
+	.get("/status/:token", (c) => {
+		const token = c.req.param("token");
+		const booking = getBookingByStatusToken(token);
+
+		if (!booking) {
+			return c.json({ error: "Booking not found" }, 404);
+		}
+
+		return c.json(serializeBooking(booking));
 	});

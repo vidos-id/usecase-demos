@@ -88,6 +88,7 @@ export async function initializeIssuer(): Promise<void> {
 }
 
 export async function issueDelegationCredential(params: {
+	delegationId: string;
 	givenName: string;
 	familyName: string;
 	birthDate: string;
@@ -102,6 +103,7 @@ export async function issueDelegationCredential(params: {
 	const grant = issuer.createPreAuthorizedGrant({
 		credential_configuration_id: CREDENTIAL_CONFIGURATION_ID,
 		claims: {
+			delegation_id: params.delegationId,
 			given_name: params.givenName,
 			family_name: params.familyName,
 			birth_date: params.birthDate,

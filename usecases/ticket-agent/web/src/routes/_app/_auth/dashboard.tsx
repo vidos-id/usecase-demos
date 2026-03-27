@@ -13,13 +13,17 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import type { AuthenticatedUser } from "../_auth";
 
 export const Route = createFileRoute("/_app/_auth/dashboard")({
 	component: DashboardPage,
 });
 
 function DashboardPage() {
-	const { user } = useRouteContext({ from: "/_app/_auth" });
+	const routeContext = useRouteContext({ from: "/_app/_auth" }) as {
+		user: AuthenticatedUser;
+	};
+	const user = routeContext.user;
 
 	const displayName =
 		user.givenName && user.familyName

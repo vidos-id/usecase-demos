@@ -53,13 +53,20 @@ export const bookings = sqliteTable(
 		eventId: text("event_id").notNull(),
 		userId: text("user_id"),
 		quantity: integer("quantity").notNull(),
+		bookedBy: text("booked_by").notNull().default("user"),
 		status: text("status").notNull().default("pending_verification"),
 		delegatorName: text("delegator_name"),
 		authorizationId: text("authorization_id"),
+		statusToken: text("status_token"),
+		delegationSessionId: text("delegation_session_id"),
 		errorMessage: text("error_message"),
 		createdAt: text("created_at").notNull(),
 	},
-	(table) => [index("idx_bookings_authorization").on(table.authorizationId)],
+	(table) => [
+		index("idx_bookings_authorization").on(table.authorizationId),
+		index("idx_bookings_status_token").on(table.statusToken),
+		index("idx_bookings_delegation_session").on(table.delegationSessionId),
+	],
 );
 
 export const issuerState = sqliteTable("issuer_state", {

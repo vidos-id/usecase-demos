@@ -3,14 +3,19 @@ CREATE TABLE `bookings` (
 	`event_id` text NOT NULL,
 	`user_id` text,
 	`quantity` integer NOT NULL,
+	`booked_by` text DEFAULT 'user' NOT NULL,
 	`status` text DEFAULT 'pending_verification' NOT NULL,
 	`delegator_name` text,
 	`authorization_id` text,
+	`status_token` text,
+	`delegation_session_id` text,
 	`error_message` text,
 	`created_at` text NOT NULL
 );
 --> statement-breakpoint
 CREATE INDEX `idx_bookings_authorization` ON `bookings` (`authorization_id`);--> statement-breakpoint
+CREATE INDEX `idx_bookings_status_token` ON `bookings` (`status_token`);--> statement-breakpoint
+CREATE INDEX `idx_bookings_delegation_session` ON `bookings` (`delegation_session_id`);--> statement-breakpoint
 CREATE TABLE `delegation_sessions` (
 	`id` text PRIMARY KEY NOT NULL,
 	`user_id` text NOT NULL,
@@ -25,6 +30,13 @@ CREATE TABLE `delegation_sessions` (
 );
 --> statement-breakpoint
 CREATE INDEX `idx_delegation_sessions_user` ON `delegation_sessions` (`user_id`);--> statement-breakpoint
+CREATE TABLE `issuer_state` (
+	`id` text PRIMARY KEY NOT NULL,
+	`trust_material` text NOT NULL,
+	`created_at` text NOT NULL,
+	`updated_at` text NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE `sessions` (
 	`id` text PRIMARY KEY NOT NULL,
 	`user_id` text NOT NULL,

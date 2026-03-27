@@ -1,5 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	Link,
+	Outlet,
+	useLocation,
+	useNavigate,
+} from "@tanstack/react-router";
 import {
 	CalendarDays,
 	MapPin,
@@ -106,6 +112,16 @@ function formatDate(dateStr: string): string {
 /* ------------------------------------------------------------------ */
 
 function EventsPage() {
+	const location = useLocation();
+
+	if (location.pathname !== Route.fullPath) {
+		return <Outlet />;
+	}
+
+	return <EventsIndexPage />;
+}
+
+function EventsIndexPage() {
 	const { category, city } = Route.useSearch();
 	const navigate = useNavigate({ from: Route.fullPath });
 

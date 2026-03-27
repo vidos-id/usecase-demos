@@ -1,10 +1,14 @@
 import { delegationClaimsSchema } from "ticket-agent-shared/types/delegation";
 import { z } from "zod";
 import {
+	assignBookingUser,
 	getBookingByAuthorizationId,
 	updateBookingStatus,
 } from "../stores/bookings";
-import { isDelegationSessionRevoked } from "../stores/delegation-sessions";
+import {
+	getDelegationSessionById,
+	isDelegationSessionRevoked,
+} from "../stores/delegation-sessions";
 import { updateUserIdentity } from "../stores/users";
 import { getExtractedCredentials, pollAuthorizationStatus } from "./vidos";
 
@@ -179,11 +183,11 @@ async function handleBookingVerificationSuccess(
 			delegationClaimsSchema,
 		);
 
-		if (!claims.delegation_scopes.includes("purchase_tickets")) {
+		if (!claims.delegation_scopes.includes("book_tickets")) {
 			updateBookingStatus(bookingId, {
 				status: "rejected",
 				errorMessage:
-					"Delegation credential does not include purchase_tickets scope",
+					"Delegation credential does not include book_tickets scope",
 			});
 			return;
 		}
@@ -196,9 +200,19 @@ async function handleBookingVerificationSuccess(
 			return;
 		}
 
+		const delegationSession = getDelegationSessionById(claims.delegation_id);
+		if (!delegationSession) {
+			updateBookingStatus(bookingId, {
+				status: "rejected",
+				errorMessage: "Delegation session could not be resolved",
+			});
+			return;
+		}
+
 		if (
-			context.delegationSessionId &&
-			isDelegationSessionRevoked(context.delegationSessionId)
+			isDelegationSessionRevoked(delegationSession.id) ||
+			(context.delegationSessionId &&
+				isDelegationSessionRevoked(context.delegationSessionId))
 		) {
 			updateBookingStatus(bookingId, {
 				status: "rejected",
@@ -208,6 +222,7 @@ async function handleBookingVerificationSuccess(
 		}
 
 		const delegatorName = `${claims.given_name} ${claims.family_name}`;
+		assignBookingUser(bookingId, delegationSession.userId);
 		updateBookingStatus(bookingId, {
 			status: "confirmed",
 			delegatorName,
@@ -228,7 +243,6 @@ async function handleBookingVerificationSuccess(
 		});
 	}
 }
-
 export function getActiveMonitorCount(): number {
 	return monitors.size;
 }

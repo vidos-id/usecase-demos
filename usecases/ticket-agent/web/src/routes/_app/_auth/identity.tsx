@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { apiClient } from "@/lib/api-client";
+import type { AuthenticatedUser } from "../_auth";
 
 export const Route = createFileRoute("/_app/_auth/identity")({
 	component: IdentityPage,
@@ -47,7 +48,8 @@ type VerificationState =
 /* ------------------------------------------------------------------ */
 
 function IdentityPage() {
-	const { user } = Route.useRouteContext();
+	const routeContext = Route.useRouteContext() as { user: AuthenticatedUser };
+	const user = routeContext.user;
 
 	// Fetch fresh user data to handle post-verification staleness
 	const userQuery = useQuery({
@@ -61,7 +63,7 @@ function IdentityPage() {
 		staleTime: 5_000,
 	});
 
-	const currentUser = userQuery.data;
+	const currentUser = userQuery.data as AuthenticatedUser;
 
 	if (currentUser.identityVerified) {
 		return <VerifiedState user={currentUser} />;

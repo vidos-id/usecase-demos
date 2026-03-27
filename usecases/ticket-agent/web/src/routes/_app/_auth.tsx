@@ -18,6 +18,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { clearSession, getSessionId } from "@/lib/auth";
 
+export interface AuthenticatedUser {
+	id: string;
+	username: string;
+	identityVerified: boolean;
+	givenName: string | null;
+	familyName: string | null;
+	birthDate: string | null;
+	hasActiveAgent: boolean;
+	agentScopes: string[] | null;
+}
+
 export const Route = createFileRoute("/_app/_auth")({
 	beforeLoad: async ({ context }) => {
 		const { apiClient } = context;
@@ -33,7 +44,7 @@ export const Route = createFileRoute("/_app/_auth")({
 		}
 
 		const user = await res.json();
-		return { user };
+		return { user: user as AuthenticatedUser };
 	},
 	component: AuthLayout,
 });
@@ -75,7 +86,10 @@ const navItems = [
 /* ------------------------------------------------------------------ */
 
 function AuthLayout() {
-	const { user } = useRouteContext({ from: "/_app/_auth" });
+	const routeContext = useRouteContext({ from: "/_app/_auth" }) as {
+		user: AuthenticatedUser;
+	};
+	const user = routeContext.user;
 	const location = useLocation();
 	const navigate = useNavigate();
 
