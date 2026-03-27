@@ -8,7 +8,7 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# Sets the GITHUB_TOKEN permissions to allow deployment to GitHub Pages
+# Sets the GH_PACKAGES_TOKEN permissions to allow reading from GitHub Packages
 permissions:
   contents: read
   pages: write
@@ -72,7 +72,7 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
       - name: Install root dependencies
         env:
-          GH_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_PACKAGES_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
         run: bun install
       - name: Build infrastructure
         run: bun run build
@@ -175,7 +175,7 @@ jobs:
 
       - name: Install dependencies
         env:
-          GH_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_PACKAGES_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
         run: bun install
       - name: Resolve server URL
         id: resolve-server-url
