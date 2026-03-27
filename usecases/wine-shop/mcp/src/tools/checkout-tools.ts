@@ -236,6 +236,7 @@ export function registerInitiateCheckoutTool(server: McpServer) {
 			description:
 				"Start checkout for a cart. Requires the exact cartSessionId returned by add_to_cart or get_cart. For age-restricted products, immediately creates a Vidos authorization and returns verification-required state with authorizeUrl for QR display.",
 			inputSchema: InitiateCheckoutInputSchema,
+			_meta: {},
 		},
 		async (args: unknown) => initiateCheckoutTool(args),
 	);
