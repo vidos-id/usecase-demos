@@ -42,15 +42,17 @@ wallet-cli present --wallet-dir ./wallet --request "<openid4vp://... authorizati
 1. Use a stable wallet directory such as `./wallet`.
 2. Initialize only once with `wallet-cli init --wallet-dir ./wallet`.
 3. If the wallet is already initialized, skip init and reuse it.
-4. Read the public key from `./wallet/holder-key.json` and share it with the user as JSON JWK.
-5. Tell the user to paste that public JWK into the web app during agent onboarding so it can issue a delegation credential.
-6. Wait for the user to paste the `dc+sd-jwt` credential string.
-7. Import it with `wallet-cli import --wallet-dir ./wallet --credential "<credential_string>"`.
-8. Browse events with `GET /api/events` and event details with `GET /api/events/:id`.
-9. Create a booking with `POST /api/bookings` and body `{ "eventId": "evt-001", "quantity": 2 }`.
-10. Read `authorizeUrl` from the booking response.
-11. Present the credential with `wallet-cli present --wallet-dir ./wallet --request "<authorizeUrl>"`.
-12. Poll `GET /api/bookings/:id` every 3 seconds for up to 180 seconds.
+4. Re-initializing the wallet replaces the wallet key and destroys access to previously imported credentials. Do not re-initialize unless the user explicitly requests it.
+5. Read the public key from `./wallet/holder-key.json` and share it with the user as JSON JWK.
+6. Tell the user to paste that public JWK into the web app during agent onboarding so it can issue a delegation credential.
+7. Wait for the user to paste the `dc+sd-jwt` credential string.
+8. Import it with `wallet-cli import --wallet-dir ./wallet --credential "<credential_string>"`.
+9. Browse events with `GET /api/events` and event details with `GET /api/events/:id`.
+10. Create a booking with `POST /api/bookings` and body `{ "eventId": "evt-001", "quantity": 2 }`.
+11. Read `authorizeUrl` from the booking response.
+12. Present the credential with `wallet-cli present --wallet-dir ./wallet --request "<authorizeUrl>"`.
+13. After presenting, wait a few seconds for authorization and booking processing.
+14. Then poll `GET /api/bookings/:id` every 3 seconds for up to 180 seconds and report the result.
 
 ## Booking Status
 
@@ -63,7 +65,8 @@ wallet-cli present --wallet-dir ./wallet --request "<openid4vp://... authorizati
 
 - Never ask the user for identity details that should come from the credential.
 - Never skip verification or invent a successful booking.
+- Never re-initialize an existing wallet unless the user explicitly asks for it.
 - Always use the returned `authorizeUrl` with `wallet-cli present`.
-- Always poll booking status after presentation.
+- After presentation, wait briefly, then poll booking status and report the outcome.
 - Show events in concise prose or bullets, not raw JSON or markdown tables.
 - When proposing events, you may pair event details with the image URL `https://eudi-usecase.demo.vidos.id/ticket-agent/event-images/<event-id>`.
