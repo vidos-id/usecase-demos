@@ -41,10 +41,10 @@ wallet-cli present --wallet-dir ./wallet --request "<openid4vp://... authorizati
 
 1. Use a stable wallet directory such as `./wallet`.
 2. Initialize only once with `wallet-cli init --wallet-dir ./wallet`.
-3. If the wallet is already initialized, skip init and reuse it.
-4. Re-initializing the wallet replaces the wallet key and destroys access to previously imported credentials. Do not re-initialize unless the user explicitly requests it.
-5. Read the public key from `./wallet/holder-key.json` and share it with the user as JSON JWK.
-6. Tell the user to paste that public JWK into the web app during agent onboarding so it can issue a delegation credential.
+3. Immediately after initialization, read the public key from `./wallet/holder-key.json` and share it with the user as JSON JWK.
+4. Tell the user to paste that public JWK into the web app during agent onboarding so it can issue a delegation credential.
+5. If the wallet is already initialized, skip init, reuse it, and share the existing public JWK from `./wallet/holder-key.json` when onboarding is needed.
+6. Re-initializing the wallet replaces the wallet key and destroys access to previously imported credentials. Do not re-initialize unless the user explicitly requests it.
 7. Wait for the user to paste the `dc+sd-jwt` credential string.
 8. Import it with `wallet-cli import --wallet-dir ./wallet --credential "<credential_string>"`.
 9. Browse events with `GET /api/events` and event details with `GET /api/events/:id`.
@@ -66,6 +66,7 @@ wallet-cli present --wallet-dir ./wallet --request "<openid4vp://... authorizati
 - Never ask the user for identity details that should come from the credential.
 - Never skip verification or invent a successful booking.
 - Never re-initialize an existing wallet unless the user explicitly asks for it.
+- Always share the wallet's public JWK right after wallet initialization, and reuse/share the existing JWK when onboarding an already initialized wallet.
 - Always use the returned `authorizeUrl` with `wallet-cli present`.
 - After presentation, wait briefly, then poll booking status and report the outcome.
 - Show events in concise prose or bullets, not raw JSON or markdown tables.

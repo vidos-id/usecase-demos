@@ -18,6 +18,12 @@ export interface PollStatusResult {
 	error?: string;
 }
 
+type PolicyResponseEntry =
+	paths["/openid4/vp/v1_0/authorizations/{authorizationId}/policy-response"]["get"]["responses"][200]["content"]["application/json"]["data"][number];
+
+type ExtractedCredential =
+	paths["/openid4/vp/v1_0/authorizations/{authorizationId}/credentials"]["get"]["responses"][200]["content"]["application/json"]["credentials"][number];
+
 let authorizerClient: ReturnType<typeof createClient<paths>> | null = null;
 
 function getAuthorizerClient() {
@@ -37,6 +43,126 @@ function getAuthorizerClient() {
 
 function getNonEmptyString(value: unknown): string | undefined {
 	return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function summarizePolicyResult(result: PolicyResponseEntry) {
+	const error =
+		result.error && typeof result.error === "object"
+			? {
+					type:
+						"type" in result.error
+							? getNonEmptyString(result.error.type)
+							: undefined,
+					title:
+						"title" in result.error
+							? getNonEmptyString(result.error.title)
+							: undefined,
+					detail:
+						"detail" in result.error
+							? getNonEmptyString(result.error.detail)
+							: undefined,
+					vidosType:
+						"vidosType" in result.error
+							? getNonEmptyString(result.error.vidosType)
+							: undefined,
+				}
+			: undefined;
+
+	return {
+		path: result.path,
+		policy: result.policy,
+		service: result.service,
+		hasError: Boolean(error),
+		error,
+		dataKeys:
+			result.data && typeof result.data === "object"
+				? Object.keys(result.data as Record<string, unknown>)
+				: undefined,
+	};
+}
+
+function logPolicyResponseOverview(
+	authorizationId: string,
+	policyResults: PolicyResponseEntry[],
+): void {
+	console.log("[Vidos] policy results overview:", {
+		authorizationId,
+		count: policyResults.length,
+		results: policyResults.map(summarizePolicyResult),
+	});
+}
+
+function logCredentialsOverview(
+	authorizationId: string,
+	credentials: ExtractedCredential[],
+): void {
+	console.log("[Vidos] credentials received:", {
+		authorizationId,
+		count: credentials.length,
+		credentials: credentials.map((credential) => ({
+			path: credential.path,
+			format: credential.format,
+			credentialType: credential.credentialType,
+			claims: credential.claims,
+		})),
+	});
+}
+
+async function getPolicyResponse(
+	authorizationId: string,
+): Promise<PolicyResponseEntry[] | undefined> {
+	const client = getAuthorizerClient();
+
+	const { data, error } = await client.GET(
+		"/openid4/vp/v1_0/authorizations/{authorizationId}/policy-response",
+		{
+			params: { path: { authorizationId } },
+		},
+	);
+
+	if (error) {
+		console.error("[Vidos] getPolicyResponse error:", authorizationId, error);
+		return undefined;
+	}
+
+	if (!data?.data) {
+		console.warn(
+			"[Vidos] getPolicyResponse returned no policy data:",
+			authorizationId,
+		);
+		return undefined;
+	}
+
+	logPolicyResponseOverview(authorizationId, data.data);
+
+	return data.data;
+}
+
+async function fetchAuthorizationCredentials(
+	authorizationId: string,
+): Promise<ExtractedCredential[]> {
+	const client = getAuthorizerClient();
+
+	const { data, error } = await client.GET(
+		"/openid4/vp/v1_0/authorizations/{authorizationId}/credentials",
+		{
+			params: { path: { authorizationId } },
+		},
+	);
+
+	if (error) {
+		console.error(
+			"[Vidos] getExtractedCredentials error:",
+			authorizationId,
+			error,
+		);
+		throw new Error(`Vidos API error: ${error.message}`);
+	}
+
+	const credentials = data?.credentials ?? [];
+	logCredentialsOverview(authorizationId, credentials);
+
+	return credentials;
 }
 
 export async function createPIDAuthorizationRequest(): Promise<{
@@ -99,6 +225,7 @@ export async function createDelegationAuthorizationRequest(): Promise<{
 				format: "dc+sd-jwt",
 				meta: { vct_values: [DELEGATION_VCT] },
 				claims: [
+					{ path: ["delegation_id"] },
 					{ path: ["given_name"] },
 					{ path: ["family_name"] },
 					{ path: ["birth_date"] },
@@ -162,6 +289,34 @@ export async function pollAuthorizationStatus(
 			? "pending"
 			: (data.status as AuthorizationStatus);
 
+	console.log("[Vidos] pollAuthorizationStatus:", {
+		authorizationId,
+		status: mappedStatus,
+	});
+
+	if (mappedStatus === "rejected" || mappedStatus === "error") {
+		const [policyResults, credentialsResult] = await Promise.allSettled([
+			getPolicyResponse(authorizationId),
+			fetchAuthorizationCredentials(authorizationId),
+		]);
+
+		if (policyResults.status === "rejected") {
+			console.error(
+				"[Vidos] Failed to load policy results for rejected authorization:",
+				authorizationId,
+				policyResults.reason,
+			);
+		}
+
+		if (credentialsResult.status === "rejected") {
+			console.error(
+				"[Vidos] Failed to load credentials for rejected authorization:",
+				authorizationId,
+				credentialsResult.reason,
+			);
+		}
+	}
+
 	return {
 		status: mappedStatus,
 		error:
@@ -175,25 +330,13 @@ export async function getExtractedCredentials<T extends z.ZodTypeAny>(
 	authorizationId: string,
 	schema: T,
 ): Promise<z.infer<T>> {
-	const client = getAuthorizerClient();
+	const credentials = await fetchAuthorizationCredentials(authorizationId);
 
-	const { data, error } = await client.GET(
-		"/openid4/vp/v1_0/authorizations/{authorizationId}/credentials",
-		{
-			params: { path: { authorizationId } },
-		},
-	);
-
-	if (error) {
-		console.error("[Vidos] getExtractedCredentials error:", error);
-		throw new Error(`Vidos API error: ${error.message}`);
-	}
-
-	if (!data?.credentials || data.credentials.length === 0) {
+	if (credentials.length === 0) {
 		throw new Error("No credentials found in authorization");
 	}
 
-	const credential = data.credentials[0];
+	const credential = credentials[0];
 	if (!credential) {
 		throw new Error("No credentials found in authorization");
 	}
