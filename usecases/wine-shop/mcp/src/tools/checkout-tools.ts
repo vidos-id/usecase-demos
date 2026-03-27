@@ -117,6 +117,11 @@ export async function initiateCheckoutTool(
 
 			const message = messageParts.join("\n");
 
+			const baseUrl =
+				process.env.PUBLIC_BASE_URL ??
+				`http://localhost:${process.env.PORT ?? 44182}`;
+			const statusPollUrl = `${baseUrl}/api/checkout/${session.sessionId}`;
+
 			return successResult(
 				message,
 				{
@@ -125,6 +130,7 @@ export async function initiateCheckoutTool(
 					requiresVerification: true,
 					widgetUri: VERIFICATION_WIDGET_URI,
 					authorizeUrl: authUrl,
+					statusPollUrl,
 					authorization: session.verification
 						? {
 								authorizationId: session.verification.authorizationId,

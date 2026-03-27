@@ -49,22 +49,38 @@ export function useWidgetState(
 	const sessionId = view.sessionId;
 	const isTerminal = isTerminalStatus(view.status);
 
+	const statusPollUrl = view.data.statusPollUrl;
+
 	useQuery({
 		queryKey: ["checkout-status", sessionId],
 		queryFn: async () => {
-			if (!app || !sessionId) {
-				return null;
+			if (!sessionId) return null;
+
+			// Primary: direct HTTP poll — works in Claude.ai where callServerTool is unsupported
+			if (statusPollUrl) {
+				try {
+					const res = await fetch(statusPollUrl);
+					if (res.ok) {
+						const envelope = await res.json();
+						const data = envelope?.data ?? envelope;
+						setView((prev) => extractViewState({ ...prev.data, ...data }));
+						return null;
+					}
+				} catch {
+					// fall through to callServerTool
+				}
 			}
 
+			// Fallback: callServerTool — works in ChatGPT / hosts that support ext-apps bridge
+			if (!app) return null;
 			const raw = await app.callServerTool({
 				name: "get_checkout_status",
 				arguments: { checkoutSessionId: sessionId },
 			});
-
 			setView(extractViewState(raw));
 			return null;
 		},
-		enabled: !!app && !!sessionId && !isTerminal,
+		enabled: !!sessionId && !isTerminal,
 		refetchInterval: POLL_INTERVAL_MS,
 		refetchIntervalInBackground: true,
 	});

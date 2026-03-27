@@ -11,6 +11,7 @@ export type VerificationViewData = {
 	checkoutSessionId?: string;
 	status?: VerificationStatus;
 	authorizeUrl?: string;
+	statusPollUrl?: string;
 	authorization?: {
 		authorizationId?: string | null;
 		authorizeUrl?: string | null;

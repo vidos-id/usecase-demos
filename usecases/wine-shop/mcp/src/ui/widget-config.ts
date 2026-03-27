@@ -26,8 +26,17 @@ export function getWidgetDomain(): string | undefined {
 }
 
 export function getWidgetCsp() {
+	const baseUrl = process.env.PUBLIC_BASE_URL;
+	const connectDomains: string[] = [];
+	if (baseUrl) {
+		try {
+			connectDomains.push(new URL(baseUrl).hostname);
+		} catch {
+			// ignore invalid URL
+		}
+	}
 	return {
-		connectDomains: [],
+		connectDomains,
 		resourceDomains: [],
 		frameDomains: [],
 	};
