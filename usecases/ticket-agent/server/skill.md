@@ -18,10 +18,12 @@ Tell the user to complete their own setup in the relevant events web application
 
 Web app: `https://eudi-usecase.demo.vidos.id/ticket-agent/`
 
-- register an account
-- complete any required verification
-- confirm they can use the app themselves
-- only then onboard the agent and issue a delegation credential
+- sign up
+- verify identity with PID
+- onboard the agent by sharing the agent's public JWK
+- forward the issued delegation credential to the agent
+
+After those steps, the agent is onboarded.
 
 ## wallet-cli
 
@@ -40,8 +42,8 @@ wallet-cli present --wallet-dir ./wallet --request "<openid4vp://... authorizati
 1. Use a stable wallet directory such as `./wallet`.
 2. Initialize only once with `wallet-cli init --wallet-dir ./wallet`.
 3. If the wallet is already initialized, skip init and reuse it.
-4. Read the public key from `./wallet/holder-key.json` and share only the public JWK fields with the user.
-5. Tell the user to register that public key in the relevant web app so it can issue a delegation credential.
+4. Read the public key from `./wallet/holder-key.json` and share it with the user as JSON JWK.
+5. Tell the user to paste that public JWK into the web app during agent onboarding so it can issue a delegation credential.
 6. Wait for the user to paste the `dc+sd-jwt` credential string.
 7. Import it with `wallet-cli import --wallet-dir ./wallet --credential "<credential_string>"`.
 8. Browse events with `GET /api/events` and event details with `GET /api/events/:id`.
