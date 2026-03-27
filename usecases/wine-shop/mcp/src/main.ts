@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { handleApiRequest } from "@/api/router";
@@ -23,41 +22,14 @@ const MCP_CORS_HEADERS = {
 	"Access-Control-Expose-Headers": "mcp-session-id",
 };
 
-type SessionContext = {
-	server: ReturnType<typeof createServer>;
-	transport: WebStandardStreamableHTTPServerTransport;
-};
-
-const sessions = new Map<string, SessionContext>();
-
-async function createSessionTransport(): Promise<WebStandardStreamableHTTPServerTransport> {
-	let transport: WebStandardStreamableHTTPServerTransport;
+async function createStatelessTransport(): Promise<WebStandardStreamableHTTPServerTransport> {
 	const server = createServer();
-
-	transport = new WebStandardStreamableHTTPServerTransport({
-		sessionIdGenerator: () => randomUUID(),
+	const transport = new WebStandardStreamableHTTPServerTransport({
+		sessionIdGenerator: undefined,
 		enableJsonResponse: true,
-		onsessioninitialized: (sessionId: string) => {
-			logDebug("transport", "session initialized", { sessionId });
-			sessions.set(sessionId, { server, transport });
-		},
 	});
-
 	transport.onerror = (error: Error) => {
-		logDebug("transport", "transport error", {
-			sessionId: transport.sessionId,
-			error: error.message,
-		});
-	};
-	let closed = false;
-	transport.onclose = () => {
-		if (closed) return;
-		closed = true;
-		logDebug("transport", "session closed", { sessionId: transport.sessionId });
-		if (transport.sessionId) {
-			sessions.delete(transport.sessionId);
-		}
-		void server.close();
+		logDebug("transport", "transport error", { error: error.message });
 	};
 	await server.connect(transport);
 	return transport;
@@ -78,15 +50,10 @@ async function getRequestBody(request: Request): Promise<unknown> {
  */
 function withRequiredAccept(request: Request): Request {
 	const accept = request.headers.get("accept") ?? "";
-	if (
-		accept.includes("application/json") &&
-		accept.includes("text/event-stream")
-	) {
+	if (accept.includes("application/json") && accept.includes("text/event-stream")) {
 		return request;
 	}
-	const parts = [accept, "application/json", "text/event-stream"].filter(
-		Boolean,
-	);
+	const parts = [accept, "application/json", "text/event-stream"].filter(Boolean);
 	const headers = new Headers(request.headers);
 	headers.set("accept", [...new Set(parts)].join(", "));
 	return new Request(request, { headers });
@@ -94,120 +61,70 @@ function withRequiredAccept(request: Request): Request {
 
 async function handleMcpRequest(request: Request): Promise<Response> {
 	request = withRequiredAccept(request);
-	const sessionId = request.headers.get("mcp-session-id");
 	logDebug("http", "incoming MCP request", {
 		method: request.method,
 		path: new URL(request.url).pathname,
-		sessionId,
 		protocolVersion: request.headers.get("mcp-protocol-version"),
 	});
 
 	if (request.method === "POST") {
-		if (sessionId) {
-			const existing = sessions.get(sessionId);
-			if (!existing) {
-				logDebug("http", "request used invalid session", { sessionId });
-				return Response.json(
-					{
-						jsonrpc: "2.0",
-						error: {
-							code: -32000,
-							message: "Bad Request: No valid session ID provided",
-						},
-						id: null,
-					},
-					{ status: 400 },
-				);
-			}
-			logDebug("http", "routing POST to existing session", { sessionId });
-			return existing.transport.handleRequest(request);
-		}
-
 		const body = await getRequestBody(request);
 		logDebug("http", "received POST body", body);
 
-		if (!isInitializeRequest(body)) {
-			// Notifications have no `id` field — treat as fire-and-forget
-			const isNotification =
-				body !== null &&
-				typeof body === "object" &&
-				!("id" in (body as object));
-			if (isNotification) {
-				logDebug("http", "accepted notification without session", body);
-				return new Response(null, { status: 202 });
-			}
-
-			// Serve the verification widget resource without a session.
-			// Claude's backend fetches embedded resources without a session ID.
-			if (
-				body !== null &&
-				typeof body === "object" &&
-				(body as Record<string, unknown>).method === "resources/read"
-			) {
-				const params = (body as Record<string, unknown>).params as
-					| Record<string, unknown>
-					| undefined;
-				const uri = params?.uri as string | undefined;
-				const requestId = (body as Record<string, unknown>).id ?? null;
-				if (uri === VERIFICATION_WIDGET_URI) {
-					logDebug("http", "serving static resource without session", {
-						uri,
-						requestId,
-					});
-					const widgetHtml = await getBuiltWidgetHtml();
-					const widgetDomain = getWidgetDomain();
-					const widgetCsp = getWidgetCsp();
-					return Response.json({
-						jsonrpc: "2.0",
-						id: requestId,
-						result: {
-							contents: [
-								{
-									uri,
-									mimeType: VERIFICATION_WIDGET_MIME_TYPE,
-									text: widgetHtml,
-									_meta: {
-										ui: {
-											prefersBorder: true,
-											...(widgetDomain ? { domain: widgetDomain } : {}),
-											csp: widgetCsp,
-										},
-									},
-								},
-							],
-						},
-					});
-				}
-			}
-
-			logDebug("http", "rejected POST without initialize", body);
-			return Response.json(
-				{
-					jsonrpc: "2.0",
-					error: {
-						code: -32000,
-						message: "Bad Request: Initialization required",
-					},
-					id: null,
-				},
-				{ status: 400 },
-			);
+		// Notifications have no `id` field — treat as fire-and-forget
+		if (body !== null && typeof body === "object" && !("id" in (body as object))) {
+			logDebug("http", "accepted notification", body);
+			return new Response(null, { status: 202 });
 		}
 
-		logDebug("http", "creating new MCP session transport");
-		const transport = await createSessionTransport();
+		// Serve the verification widget resource without a full server round-trip.
+		// Claude's backend fetches embedded resources in a separate request.
+		if (
+			body !== null &&
+			typeof body === "object" &&
+			(body as Record<string, unknown>).method === "resources/read"
+		) {
+			const params = (body as Record<string, unknown>).params as
+				| Record<string, unknown>
+				| undefined;
+			const uri = params?.uri as string | undefined;
+			const requestId = (body as Record<string, unknown>).id ?? null;
+			if (uri === VERIFICATION_WIDGET_URI) {
+				logDebug("http", "serving static resource", { uri, requestId });
+				const widgetHtml = await getBuiltWidgetHtml();
+				const widgetDomain = getWidgetDomain();
+				const widgetCsp = getWidgetCsp();
+				return Response.json({
+					jsonrpc: "2.0",
+					id: requestId,
+					result: {
+						contents: [
+							{
+								uri,
+								mimeType: VERIFICATION_WIDGET_MIME_TYPE,
+								text: widgetHtml,
+								_meta: {
+									ui: {
+										prefersBorder: true,
+										...(widgetDomain ? { domain: widgetDomain } : {}),
+										csp: widgetCsp,
+									},
+								},
+							},
+						],
+					},
+				});
+			}
+		}
+
+		logDebug("http", "handling stateless POST");
+		const transport = await createStatelessTransport();
 		return transport.handleRequest(request);
 	}
 
 	if (request.method === "GET" || request.method === "DELETE") {
-		if (!sessionId) {
-			return new Response("Missing session ID", { status: 400 });
-		}
-		const existing = sessions.get(sessionId);
-		if (!existing) {
-			return new Response("Invalid session ID", { status: 404 });
-		}
-		return existing.transport.handleRequest(request);
+		// Stateless mode: no persistent sessions, so GET/DELETE are not applicable
+		return new Response("Session not found", { status: 404 });
 	}
 
 	return Response.json(
@@ -261,16 +178,10 @@ async function startServer() {
 				url.pathname === "/.well-known/oauth-protected-resource" ||
 				url.pathname === `/.well-known/oauth-protected-resource${mcpPath}`
 			) {
-				const baseUrl =
-					process.env.PUBLIC_BASE_URL ?? `http://localhost:${port}`;
+				const baseUrl = process.env.PUBLIC_BASE_URL ?? `http://localhost:${port}`;
 				return Response.json(
 					{ resource: baseUrl },
-					{
-						headers: {
-							"Access-Control-Allow-Origin": "*",
-							"Cache-Control": "public, max-age=3600",
-						},
-					},
+					{ headers: { "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=3600" } },
 				);
 			}
 
@@ -279,10 +190,7 @@ async function startServer() {
 					return await handleApiRequest(request);
 				} catch (error) {
 					console.error("Failed to handle API request:", error);
-					return Response.json(
-						{ success: false, message: "Internal server error" },
-						{ status: 500 },
-					);
+					return Response.json({ success: false, message: "Internal server error" }, { status: 500 });
 				}
 			}
 
