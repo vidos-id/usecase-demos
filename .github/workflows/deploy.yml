@@ -13,6 +13,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  packages: read
 
 env:
   USECASE: demo-bank
@@ -70,6 +71,8 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
       - name: Install root dependencies
+        env:
+          GH_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bun install
       - name: Build infrastructure
         run: bun run build
@@ -171,6 +174,8 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Install dependencies
+        env:
+          GH_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bun install
       - name: Resolve server URL
         id: resolve-server-url
