@@ -2,6 +2,12 @@
 
 Home navigator app for the Vidos EUDI use case demos.
 
+## Environment
+
+- `usecases-home/.env.local` is checked in with localhost defaults for all linked demos and MCP guide URLs.
+- Use `usecases-home/.env.example` as the template for non-local overrides, such as deployed demo URLs.
+- Typical local setup needs no extra env file unless you want the home app to point at non-local targets.
+
 ## Purpose
 
 - List and link all available use case demos.

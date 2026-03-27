@@ -21,3 +21,18 @@ bun run --filter mcp-wine-agent check-types
 bun run --filter demo-wine-shop build
 bun run --filter mcp-wine-agent build:widget
 ```
+
+## Environment
+
+### `web/`
+
+- `usecases/wine-shop/web/.env.local` is checked in with localhost links back to `usecases-home`.
+- Create `usecases/wine-shop/web/.env` from `usecases/wine-shop/web/.env.example` and set `VITE_WINE_SHOP_AUTHORIZER_URL`.
+- Set `VITE_VIDOS_API_KEY` only if your authorizer requires bearer auth.
+
+### `mcp/`
+
+- `usecases/wine-shop/mcp/.env.local` is checked in with local `PORT`, `MCP_PATH`, and `PUBLIC_BASE_URL`.
+- Create `usecases/wine-shop/mcp/.env` from `usecases/wine-shop/mcp/.env.example` and set `VIDOS_AUTHORIZER_URL`.
+- Set `VIDOS_API_KEY` only if your authorizer requires bearer auth.
+- Override `PUBLIC_BASE_URL` in `.env` when exposing the MCP server through a public tunnel or deployed host.
