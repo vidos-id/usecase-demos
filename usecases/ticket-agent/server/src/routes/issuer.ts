@@ -68,18 +68,10 @@ export const issuerRouter = new Hono()
 		const accessToken = (c.req.header("Authorization") ?? "")
 			.replace(/^Bearer\s+/i, "")
 			.trim();
-		if (!accessToken) {
-			return c.json(
-				{
-					error: "invalid_token",
-					error_description: "Missing Bearer access token",
-				},
-				401,
-			);
-		}
 
 		try {
 			const nonceResponse = createDelegationNonce(accessToken);
+			c.header("Cache-Control", "no-store");
 			return c.json({
 				c_nonce: nonceResponse.c_nonce,
 				c_nonce_expires_in: nonceResponse.c_nonce_expires_in,

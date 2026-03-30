@@ -169,6 +169,22 @@ export function isDelegationSessionRevoked(id: string): boolean {
 	return session?.status === "revoked";
 }
 
+export function getLatestDelegationSessionAwaitingCredential() {
+	const sessions = db
+		.select()
+		.from(delegationSessions)
+		.where(
+			and(
+				eq(delegationSessions.status, "offer_created"),
+				ne(delegationSessions.status, "revoked"),
+			),
+		)
+		.orderBy(delegationSessions.createdAt)
+		.all();
+
+	return sessions[sessions.length - 1];
+}
+
 export function getLatestDelegationSessionByUserId(userId: string) {
 	const sessions = db
 		.select()

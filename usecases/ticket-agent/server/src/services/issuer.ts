@@ -20,6 +20,7 @@ import {
 	getDelegationSessionByAccessToken,
 	getDelegationSessionById,
 	getDelegationSessionByPreAuthorizedCode,
+	getLatestDelegationSessionAwaitingCredential,
 	isDelegationSessionRevoked,
 	markDelegationCredentialReceived,
 	markDelegationOfferUsed,
@@ -33,6 +34,7 @@ import {
 const ISSUER_NOT_CONFIGURED_ERROR =
 	"Issuer service not configured: install and wire up @vidos-id/issuer.";
 const CREDENTIAL_CONFIGURATION_ID = "agent_delegation";
+const OID4VCI_TTL_SECONDS = 300;
 
 const storedTrustMaterialSchema = z
 	.object({
@@ -73,6 +75,9 @@ function createDemoIssuer(trust: StoredTrustMaterial): DemoIssuer {
 				vct: DELEGATION_VCT,
 			},
 		},
+		grantTtlSeconds: OID4VCI_TTL_SECONDS,
+		tokenTtlSeconds: OID4VCI_TTL_SECONDS,
+		nonceTtlSeconds: OID4VCI_TTL_SECONDS,
 		endpoints: {
 			token: new URL("/api/issuer/token", issuerPublicUrl).toString(),
 			credential: new URL("/api/issuer/credential", issuerPublicUrl).toString(),
@@ -91,6 +96,14 @@ function requireIssuer(): DemoIssuer {
 
 function toUnixTimestamp(iso8601: string): number {
 	return Math.floor(new Date(iso8601).getTime() / 1000);
+}
+
+function getRemainingSeconds(expiresAtIso8601: string): number {
+	return Math.max(
+		0,
+		toUnixTimestamp(expiresAtIso8601) -
+			toUnixTimestamp(new Date().toISOString()),
+	);
 }
 
 export async function initializeIssuer(): Promise<void> {
@@ -190,6 +203,35 @@ export function exchangeDelegationOfferToken(
 		used: delegationSession.preAuthorizedCodeUsedAt !== null,
 	};
 
+	if (
+		delegationSession.preAuthorizedCodeUsedAt &&
+		delegationSession.accessToken &&
+		delegationSession.accessTokenExpiresAt &&
+		new Date(delegationSession.accessTokenExpiresAt).getTime() > Date.now()
+	) {
+		const accessTokenRecord: AccessTokenRecord = {
+			accessToken: delegationSession.accessToken,
+			credentialConfigurationId: CREDENTIAL_CONFIGURATION_ID,
+			claims:
+				(delegationSession.verifiedClaims as Record<string, unknown> | null) ??
+				{},
+			expiresAt: toUnixTimestamp(delegationSession.accessTokenExpiresAt),
+			used: delegationSession.accessTokenUsedAt !== null,
+		};
+
+		return {
+			access_token: delegationSession.accessToken,
+			token_type: "Bearer" as const,
+			expires_in: getRemainingSeconds(delegationSession.accessTokenExpiresAt),
+			credential_configuration_id: CREDENTIAL_CONFIGURATION_ID,
+			accessTokenRecord,
+			updatedPreAuthorizedGrant: {
+				...preAuthorizedGrant,
+				used: true,
+			},
+		};
+	}
+
 	const tokenResponse = currentIssuer.exchangePreAuthorizedCode({
 		tokenRequest,
 		preAuthorizedGrant,
@@ -206,9 +248,11 @@ export function exchangeDelegationOfferToken(
 	return tokenResponse;
 }
 
-export function createDelegationNonce(accessToken: string) {
+export function createDelegationNonce(accessToken?: string) {
 	const currentIssuer = requireIssuer();
-	const delegationSession = getDelegationSessionByAccessToken(accessToken);
+	const delegationSession = accessToken
+		? getDelegationSessionByAccessToken(accessToken)
+		: getLatestDelegationSessionAwaitingCredential();
 
 	if (
 		!delegationSession?.accessToken ||
@@ -233,7 +277,15 @@ export function createDelegationNonce(accessToken: string) {
 
 export async function issueDelegationCredentialFromProof(params: {
 	accessToken: string;
-	credentialRequestInput: Record<string, unknown>;
+	credentialRequestInput: Record<string, unknown> & {
+		credential_configuration_id: string;
+		proofs?: {
+			jwt: Array<{
+				proof_type: "jwt";
+				jwt: string;
+			}>;
+		};
+	};
 }) {
 	const currentIssuer = requireIssuer();
 	const delegationSession = getDelegationSessionByAccessToken(
@@ -250,10 +302,7 @@ export async function issueDelegationCredentialFromProof(params: {
 		throw new IssuerError("invalid_token", "Invalid or expired access token");
 	}
 
-	const credentialRequest: CredentialRequest = credentialRequestSchema.parse(
-		params.credentialRequestInput,
-	);
-	const proofJwt = credentialRequest.proofs.jwt[0]?.jwt;
+	const proofJwt = params.credentialRequestInput.proofs?.jwt[0]?.jwt;
 	if (!proofJwt) {
 		throw new IssuerError("invalid_proof", "A proof JWT is required");
 	}
@@ -279,16 +328,24 @@ export async function issueDelegationCredentialFromProof(params: {
 	});
 	const issuedCredential = await currentIssuer.issueCredential({
 		accessToken: accessTokenRecord,
-		credential_configuration_id: credentialRequest.credential_configuration_id,
+		credential_configuration_id:
+			params.credentialRequestInput.credential_configuration_id,
 		proof,
 	});
 
-	markDelegationCredentialReceived(delegationSession.id, {
-		holderPublicKey: jwkSchema.parse(proof.holderPublicJwk),
-		accessTokenUsedAt: new Date().toISOString(),
-		lastNonceUsedAt: new Date().toISOString(),
-		credentialIssuedAt: new Date().toISOString(),
-	});
+	try {
+		markDelegationCredentialReceived(delegationSession.id, {
+			holderPublicKey: jwkSchema.parse(proof.holderPublicJwk),
+			accessTokenUsedAt: new Date().toISOString(),
+			lastNonceUsedAt: new Date().toISOString(),
+			credentialIssuedAt: new Date().toISOString(),
+		});
+	} catch (error) {
+		console.error(
+			"[Issuer] Credential issued but delegation session update failed:",
+			error,
+		);
+	}
 
 	return issuedCredential;
 }

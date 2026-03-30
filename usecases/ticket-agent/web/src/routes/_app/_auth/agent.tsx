@@ -247,28 +247,6 @@ function AgentOnboardingForm() {
 					</CardContent>
 				</Card>
 
-				<Card className="border-border/50 bg-white/80 backdrop-blur-sm shadow-lg shadow-violet-900/[0.03]">
-					<CardHeader className="pb-4">
-						<CardTitle className="text-base flex items-center gap-2">
-							<div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
-								<Smartphone className="h-3.5 w-3.5 text-primary" />
-							</div>
-							What Changes
-						</CardTitle>
-						<CardDescription className="leading-relaxed">
-							The user is no longer the credential courier.
-						</CardDescription>
-					</CardHeader>
-					<CardContent className="space-y-3 text-sm text-muted-foreground">
-						<p>The app creates an OID4VCI offer.</p>
-						<p>The agent receives it with `wallet-cli receive`.</p>
-						<p>
-							The issuer talks directly to the agent wallet and returns the
-							credential there.
-						</p>
-					</CardContent>
-				</Card>
-
 				<Button
 					onClick={() => issueMutation.mutate()}
 					disabled={issueMutation.isPending}
