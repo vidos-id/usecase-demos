@@ -84,8 +84,8 @@ function TicketAgentInstructions() {
 						</StepItem>
 						<StepItem number={2}>
 							The skill teaches OpenClaw how to initialize the wallet, import a
-							delegation credential, search events, create a booking, present
-							the credential, and poll booking status.
+							directly issued delegation credential, search events, create a
+							booking, present the credential, and poll booking status.
 						</StepItem>
 					</ol>
 					<div className="rounded-2xl border border-eu-blue/20 bg-eu-blue-light/40 p-4">
@@ -120,7 +120,8 @@ function TicketAgentInstructions() {
 						</StepItem>
 						<StepItem number={3}>
 							Paste the resulting dc+sd-jwt credential string back into OpenClaw
-							so it can import it.
+							so it can import it directly. This guide is not using the OID4VCI
+							`receive` flow yet.
 						</StepItem>
 					</ol>
 				</div>

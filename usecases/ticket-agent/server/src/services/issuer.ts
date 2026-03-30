@@ -112,11 +112,14 @@ export async function issueDelegationCredential(params: {
 		},
 	});
 	const tokenResponse = issuer.exchangePreAuthorizedCode({
-		grant_type: "urn:ietf:params:oauth:grant-type:pre-authorized_code",
-		"pre-authorized_code": grant.preAuthorizedCode,
+		tokenRequest: {
+			grant_type: "urn:ietf:params:oauth:grant-type:pre-authorized_code",
+			"pre-authorized_code": grant.preAuthorizedCode,
+		},
+		preAuthorizedGrant: grant.preAuthorizedGrant,
 	});
 	const issuedCredential = await issuer.issueCredential({
-		access_token: tokenResponse.access_token,
+		accessToken: tokenResponse.accessTokenRecord,
 		credential_configuration_id: CREDENTIAL_CONFIGURATION_ID,
 		holderPublicJwk: jwkSchema.parse(params.agentPublicJwk) as Jwk,
 	});

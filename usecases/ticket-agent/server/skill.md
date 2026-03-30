@@ -29,6 +29,8 @@ After those steps, the agent is onboarded.
 
 `wallet-cli` must be installed from `https://github.com/vidos-id/oid4vp-cli-utils`.
 
+Use `wallet-cli` `0.4.0` or newer. That release adds `receive` for OID4VCI offers, but this demo still uses direct credential issuance, so continue to use `wallet-cli import` here.
+
 Reference commands:
 
 ```bash
@@ -67,6 +69,7 @@ wallet-cli present --wallet-dir ./wallet --request "<openid4vp://... authorizati
 - Never skip verification or invent a successful booking.
 - Never re-initialize an existing wallet unless the user explicitly asks for it.
 - Always share the wallet's public JWK right after wallet initialization, and reuse/share the existing JWK when onboarding an already initialized wallet.
+- Use `wallet-cli import` for this demo's delegation credential. Do not switch to `wallet-cli receive` unless the user explicitly asks for the OID4VCI flow.
 - Always use the returned `authorizeUrl` with `wallet-cli present`.
 - After presentation, wait briefly, then poll booking status and report the outcome.
 - Show events in concise prose or bullets, not raw JSON or markdown tables.
