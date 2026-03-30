@@ -13,6 +13,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppSignupRouteImport } from './routes/_app/signup'
 import { Route as AppSigninRouteImport } from './routes/_app/signin'
+import { Route as AppGuideRouteImport } from './routes/_app/guide'
 import { Route as AppAuthRouteImport } from './routes/_app/_auth'
 import { Route as AppAuthIdentityRouteImport } from './routes/_app/_auth/identity'
 import { Route as AppAuthEventsRouteImport } from './routes/_app/_auth/events'
@@ -38,6 +39,11 @@ const AppSignupRoute = AppSignupRouteImport.update({
 const AppSigninRoute = AppSigninRouteImport.update({
   id: '/signin',
   path: '/signin',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGuideRoute = AppGuideRouteImport.update({
+  id: '/guide',
+  path: '/guide',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAuthRoute = AppAuthRouteImport.update({
@@ -77,6 +83,7 @@ const AppAuthEventsEventIdRoute = AppAuthEventsEventIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
+  '/guide': typeof AppGuideRoute
   '/signin': typeof AppSigninRoute
   '/signup': typeof AppSignupRoute
   '/agent': typeof AppAuthAgentRoute
@@ -88,6 +95,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
+  '/guide': typeof AppGuideRoute
   '/signin': typeof AppSigninRoute
   '/signup': typeof AppSignupRoute
   '/agent': typeof AppAuthAgentRoute
@@ -101,6 +109,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/_app/_auth': typeof AppAuthRouteWithChildren
+  '/_app/guide': typeof AppGuideRoute
   '/_app/signin': typeof AppSigninRoute
   '/_app/signup': typeof AppSignupRoute
   '/_app/': typeof AppIndexRoute
@@ -115,6 +124,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/guide'
     | '/signin'
     | '/signup'
     | '/agent'
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/guide'
     | '/signin'
     | '/signup'
     | '/agent'
@@ -138,6 +149,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_app'
     | '/_app/_auth'
+    | '/_app/guide'
     | '/_app/signin'
     | '/_app/signup'
     | '/_app/'
@@ -181,6 +193,13 @@ declare module '@tanstack/react-router' {
       path: '/signin'
       fullPath: '/signin'
       preLoaderRoute: typeof AppSigninRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/guide': {
+      id: '/_app/guide'
+      path: '/guide'
+      fullPath: '/guide'
+      preLoaderRoute: typeof AppGuideRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/_auth': {
@@ -268,6 +287,7 @@ const AppAuthRouteWithChildren =
 
 interface AppRouteChildren {
   AppAuthRoute: typeof AppAuthRouteWithChildren
+  AppGuideRoute: typeof AppGuideRoute
   AppSigninRoute: typeof AppSigninRoute
   AppSignupRoute: typeof AppSignupRoute
   AppIndexRoute: typeof AppIndexRoute
@@ -275,6 +295,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAuthRoute: AppAuthRouteWithChildren,
+  AppGuideRoute: AppGuideRoute,
   AppSigninRoute: AppSigninRoute,
   AppSignupRoute: AppSignupRoute,
   AppIndexRoute: AppIndexRoute,

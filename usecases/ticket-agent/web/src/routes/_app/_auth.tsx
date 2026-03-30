@@ -8,6 +8,7 @@ import {
 	useRouteContext,
 } from "@tanstack/react-router";
 import {
+	BookOpen,
 	Bot,
 	CalendarDays,
 	Fingerprint,
@@ -27,6 +28,30 @@ export interface AuthenticatedUser {
 	birthDate: string | null;
 	hasActiveAgent: boolean;
 	agentScopes: string[] | null;
+	delegation: {
+		delegationId: string;
+		state:
+			| "offer_ready"
+			| "offer_redeeming"
+			| "offer_expired"
+			| "credential_received"
+			| "credential_revoked";
+		scopes: string[];
+		validUntil: string | null;
+		offerExpiresAt: string | null;
+		offerRedeemedAt: string | null;
+		credentialIssuedAt: string | null;
+		credentialRevokedAt: string | null;
+		credentialOfferUri: string | null;
+		credentialOfferDeepLink: string | null;
+		credentialStatus: {
+			status_list: {
+				idx: number;
+				uri: string;
+			};
+		} | null;
+		holderPublicKey: Record<string, unknown> | null;
+	} | null;
 }
 
 export const Route = createFileRoute("/_app/_auth")({
@@ -121,14 +146,18 @@ function AuthLayout() {
 								<span className="font-brand text-[1.45rem] font-extrabold tracking-[-0.04em] text-foreground">
 									VidoShow
 								</span>
-								<span className="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-primary/70">
-									Delegated Tickets
-								</span>
 							</div>
 						</Link>
 
 						{/* User info + sign out */}
 						<div className="flex items-center gap-3">
+							<Link
+								to="/guide"
+								className="hidden sm:inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200"
+							>
+								<BookOpen className="h-4 w-4" />
+								<span>Guide</span>
+							</Link>
 							<div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/60 border border-border/40">
 								<div className="h-5 w-5 rounded-full bg-gradient-to-br from-primary/80 to-violet-600 flex items-center justify-center">
 									<span className="text-[10px] font-bold text-white uppercase">

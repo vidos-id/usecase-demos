@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
 	ArrowRight,
+	BookOpen,
 	Bot,
 	CheckCircle2,
 	FileCheck2,
@@ -98,16 +99,29 @@ function HeroSection({ isAuthenticated }: { isAuthenticated: boolean }) {
 						{/* CTAs */}
 						<div className="flex flex-col sm:flex-row gap-3 pt-2">
 							{isAuthenticated ? (
-								<Button
-									asChild
-									size="lg"
-									className="text-base px-7 h-12 group bg-gradient-to-r from-primary to-violet-700 hover:from-primary/90 hover:to-violet-700/90 shadow-lg shadow-primary/20"
-								>
-									<Link to="/dashboard">
-										Go to Dashboard
-										<ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-									</Link>
-								</Button>
+								<>
+									<Button
+										asChild
+										size="lg"
+										className="text-base px-7 h-12 group bg-gradient-to-r from-primary to-violet-700 hover:from-primary/90 hover:to-violet-700/90 shadow-lg shadow-primary/20"
+									>
+										<Link to="/dashboard">
+											Go to Dashboard
+											<ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+										</Link>
+									</Button>
+									<Button
+										asChild
+										variant="outline"
+										size="lg"
+										className="text-base px-7 h-12 border-primary/20 hover:bg-primary/5"
+									>
+										<Link to="/guide">
+											<BookOpen className="h-4 w-4" />
+											Guide
+										</Link>
+									</Button>
+								</>
 							) : (
 								<>
 									<Button
@@ -127,6 +141,17 @@ function HeroSection({ isAuthenticated }: { isAuthenticated: boolean }) {
 										className="text-base px-7 h-12 border-primary/20 hover:bg-primary/5"
 									>
 										<Link to="/signin">Sign In</Link>
+									</Button>
+									<Button
+										asChild
+										variant="outline"
+										size="lg"
+										className="text-base px-7 h-12 border-primary/20 hover:bg-primary/5"
+									>
+										<Link to="/guide">
+											<BookOpen className="h-4 w-4" />
+											Guide
+										</Link>
 									</Button>
 								</>
 							)}
