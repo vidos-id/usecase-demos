@@ -6,7 +6,7 @@ Use this skill for delegated ticket booking.
 
 If the user provides another API URL, use that instead.
 
-This API uses credential delegation. The agent must obtain a delegation credential from the user before completing protected actions.
+This API uses credential delegation. The agent must receive a delegation credential directly from the issuer over OID4VCI before completing protected actions.
 
 ## Ad-Hoc Use
 
@@ -20,8 +20,8 @@ Web app: `https://eudi-usecase.demo.vidos.id/ticket-agent/`
 
 - sign up
 - verify identity with PID
-- onboard the agent by sharing the agent's public JWK
-- forward the issued delegation credential to the agent
+- create a delegation offer for the agent
+- share the OID4VCI offer URL or offer link with the agent
 
 After those steps, the agent is onboarded.
 
@@ -29,13 +29,13 @@ After those steps, the agent is onboarded.
 
 `wallet-cli` must be installed from `https://github.com/vidos-id/oid4vp-cli-utils`.
 
-Use `wallet-cli` `0.4.0` or newer. That release adds `receive` for OID4VCI offers, but this demo still uses direct credential issuance, so continue to use `wallet-cli import` here.
+Use `wallet-cli` `0.4.0` or newer.
 
 Reference commands:
 
 ```bash
 wallet-cli init --wallet-dir ./wallet
-wallet-cli import --wallet-dir ./wallet --credential "<dc+sd-jwt credential string>"
+wallet-cli receive --wallet-dir ./wallet --offer "<credential offer>"
 wallet-cli present --wallet-dir ./wallet --request "<openid4vp://... authorization URL>"
 ```
 
@@ -43,18 +43,16 @@ wallet-cli present --wallet-dir ./wallet --request "<openid4vp://... authorizati
 
 1. Use a stable wallet directory such as `./wallet`.
 2. Initialize only once with `wallet-cli init --wallet-dir ./wallet`.
-3. Immediately after initialization, read the public key from `./wallet/holder-key.json` and share it with the user as JSON JWK.
-4. Tell the user to paste that public JWK into the web app during agent onboarding so it can issue a delegation credential.
-5. If the wallet is already initialized, skip init, reuse it, and share the existing public JWK from `./wallet/holder-key.json` when onboarding is needed.
-6. Re-initializing the wallet replaces the wallet key and destroys access to previously imported credentials. Do not re-initialize unless the user explicitly requests it.
-7. Wait for the user to paste the `dc+sd-jwt` credential string.
-8. Import it with `wallet-cli import --wallet-dir ./wallet --credential "<credential_string>"`.
-9. Browse events with `GET /api/events` and event details with `GET /api/events/:id`.
-10. Start a delegated booking with `POST /api/bookings` and body `{ "eventId": "evt-001", "quantity": 2 }` without app session auth.
-11. Read `authorizeUrl` and `statusToken` from the booking response.
-12. Present the credential with `wallet-cli present --wallet-dir ./wallet --request "<authorizeUrl>"`.
-13. After presenting, wait a few seconds for authorization and booking processing.
-14. Then poll `GET /api/bookings/status/<statusToken>` every 3 seconds for up to 180 seconds and report the result.
+3. If the wallet is already initialized, skip init and reuse it.
+4. Re-initializing the wallet replaces the wallet key and destroys access to previously received credentials. Do not re-initialize unless the user explicitly requests it.
+5. Wait for the user to share the OID4VCI offer URL or `openid-credential-offer://` link.
+6. Receive the credential with `wallet-cli receive --wallet-dir ./wallet --offer "<offer>"`.
+7. Browse events with `GET /api/events` and event details with `GET /api/events/:id`.
+8. Start a delegated booking with `POST /api/bookings` and body `{ "eventId": "evt-001", "quantity": 2 }` without app session auth.
+9. Read `authorizeUrl` and `statusToken` from the booking response.
+10. Present the credential with `wallet-cli present --wallet-dir ./wallet --request "<authorizeUrl>"`.
+11. After presentation, wait a few seconds for authorization and booking processing.
+12. Then poll `GET /api/bookings/status/<statusToken>` every 3 seconds for up to 180 seconds and report the result.
 
 ## Booking Status
 
@@ -68,8 +66,7 @@ wallet-cli present --wallet-dir ./wallet --request "<openid4vp://... authorizati
 - Never ask the user for identity details that should come from the credential.
 - Never skip verification or invent a successful booking.
 - Never re-initialize an existing wallet unless the user explicitly asks for it.
-- Always share the wallet's public JWK right after wallet initialization, and reuse/share the existing JWK when onboarding an already initialized wallet.
-- Use `wallet-cli import` for this demo's delegation credential. Do not switch to `wallet-cli receive` unless the user explicitly asks for the OID4VCI flow.
+- Use `wallet-cli receive` for delegation onboarding.
 - Always use the returned `authorizeUrl` with `wallet-cli present`.
 - After presentation, wait briefly, then poll booking status and report the outcome.
 - Show events in concise prose or bullets, not raw JSON or markdown tables.

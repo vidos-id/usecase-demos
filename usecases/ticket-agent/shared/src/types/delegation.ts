@@ -18,9 +18,8 @@ export const delegationClaimsSchema = z.object({
 export type DelegationClaims = z.infer<typeof delegationClaimsSchema>;
 
 export const delegationSessionStatusSchema = z.enum([
-	"pending_verification",
-	"verified",
-	"credential_issued",
+	"offer_created",
+	"credential_received",
 	"revoked",
 ]);
 
@@ -28,14 +27,37 @@ export type DelegationSessionStatus = z.infer<
 	typeof delegationSessionStatusSchema
 >;
 
+export const oid4vciOfferSchema = z.object({
+	credential_issuer: z.string().url(),
+	credential_configuration_ids: z.array(z.string()).min(1).max(1),
+	grants: z.object({
+		"urn:ietf:params:oauth:grant-type:pre-authorized_code": z.object({
+			"pre-authorized_code": z.string(),
+		}),
+	}),
+});
+
+export type Oid4vciOffer = z.infer<typeof oid4vciOfferSchema>;
+
 export interface DelegationSession {
 	id: string;
 	userId: string;
 	status: DelegationSessionStatus;
-	authorizationId: string | null;
 	verifiedClaims: DelegationClaims | null;
-	agentPublicKey: Record<string, unknown> | null;
 	scopes: DelegationScope[];
-	issuedCredential: string | null;
+	validUntil: string | null;
+	offer: Oid4vciOffer | null;
+	offerUri: string | null;
+	preAuthorizedCode: string | null;
+	preAuthorizedCodeExpiresAt: string | null;
+	preAuthorizedCodeUsedAt: string | null;
+	accessToken: string | null;
+	accessTokenExpiresAt: string | null;
+	accessTokenUsedAt: string | null;
+	lastNonce: string | null;
+	lastNonceExpiresAt: string | null;
+	lastNonceUsedAt: string | null;
+	holderPublicKey: Record<string, unknown> | null;
+	credentialIssuedAt: string | null;
 	createdAt: string;
 }

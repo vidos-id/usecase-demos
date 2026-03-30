@@ -5,7 +5,6 @@ import { eventSchema } from "../types/events";
 export const createBookingRequestSchema = z.object({
 	eventId: z.string(),
 	quantity: z.number().int().positive(),
-	delegationId: z.string().optional(),
 });
 
 export type CreateBookingRequest = z.infer<typeof createBookingRequestSchema>;

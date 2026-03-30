@@ -18,7 +18,7 @@ export const meRouter = new Hono().get("/", async (c) => {
 		givenName: user.givenName ?? null,
 		familyName: user.familyName ?? null,
 		birthDate: user.birthDate ?? null,
-		hasActiveAgent: !!delegationSession,
+		hasActiveAgent: delegationSession?.status === "credential_received",
 		agentScopes: delegationSession?.scopes ?? null,
 	});
 });

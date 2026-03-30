@@ -1,84 +1,101 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { delegationIssueRequestSchema } from "ticket-agent-shared/api/delegation";
+import { env } from "../env";
 import { issueDelegationCredential } from "../services/issuer";
 import {
 	createDelegationSession,
+	getDelegationSessionById,
 	revokePreviousDelegationSessions,
-	updateDelegationSessionCredentialIssued,
 } from "../stores/delegation-sessions";
-import { getSessionById } from "../stores/sessions";
-import { getUserById } from "../stores/users";
+import { requireAuthenticatedUser } from "./auth";
 
-export const delegationRouter = new Hono().post(
-	"/issue",
-	zValidator("json", delegationIssueRequestSchema),
-	async (c) => {
-		const sessionId = c.req.header("Authorization")?.replace("Bearer ", "");
-		if (!sessionId) {
-			return c.json({ error: "Unauthorized" }, 401);
-		}
+export const delegationRouter = new Hono()
+	.post(
+		"/issue",
+		zValidator("json", delegationIssueRequestSchema),
+		async (c) => {
+			const auth = requireAuthenticatedUser(c);
+			if (!auth.ok) {
+				return auth.response;
+			}
+			const { session, user } = auth;
 
-		const session = getSessionById(sessionId);
-		if (!session) {
-			return c.json({ error: "Invalid or expired session" }, 401);
-		}
+			if (
+				!user.identityVerified ||
+				!user.givenName ||
+				!user.familyName ||
+				!user.birthDate
+			) {
+				return c.json(
+					{
+						error:
+							"Identity must be verified before creating a delegation offer",
+					},
+					400,
+				);
+			}
 
-		const user = getUserById(session.userId);
-		if (!user) {
-			return c.json({ error: "User not found" }, 404);
-		}
+			const { scopes } = c.req.valid("json");
+			const validUntil = new Date(
+				Date.now() + 30 * 24 * 60 * 60 * 1000,
+			).toISOString();
+			const delegationSessionId = crypto.randomUUID();
+			const publicBaseUrl = env.ISSUER_PUBLIC_URL ?? new URL(c.req.url).origin;
+			const credentialOfferUri = new URL(
+				`/api/delegation/offers/${delegationSessionId}`,
+				publicBaseUrl,
+			).toString();
 
-		if (
-			!user.identityVerified ||
-			!user.givenName ||
-			!user.familyName ||
-			!user.birthDate
-		) {
-			return c.json(
-				{
-					error:
-						"Identity must be verified before issuing delegation credential",
+			const offer = await issueDelegationCredential({
+				delegationId: delegationSessionId,
+				givenName: user.givenName,
+				familyName: user.familyName,
+				birthDate: user.birthDate,
+				scopes,
+				validUntil,
+			});
+
+			revokePreviousDelegationSessions(session.userId, delegationSessionId);
+
+			createDelegationSession({
+				id: delegationSessionId,
+				userId: session.userId,
+				scopes,
+				verifiedClaims: {
+					delegation_id: delegationSessionId,
+					given_name: user.givenName,
+					family_name: user.familyName,
+					birth_date: user.birthDate,
+					delegation_scopes: scopes,
+					valid_until: validUntil,
 				},
-				400,
-			);
+				validUntil,
+				offer: offer.offer,
+				offerUri: credentialOfferUri,
+				preAuthorizedCode: offer.preAuthorizedGrant.preAuthorizedCode,
+				preAuthorizedCodeExpiresAt: new Date(
+					offer.preAuthorizedGrant.expiresAt * 1000,
+				).toISOString(),
+			});
+
+			return c.json({
+				delegationId: delegationSessionId,
+				credentialOffer: offer.offer,
+				credentialOfferUri,
+				credentialOfferDeepLink: offer.offerUri,
+				scopes,
+				validUntil,
+			});
+		},
+	)
+	.get("/offers/:delegationId", (c) => {
+		const delegationSession = getDelegationSessionById(
+			c.req.param("delegationId"),
+		);
+		if (!delegationSession?.offer) {
+			return c.json({ error: "Delegation offer not found" }, 404);
 		}
 
-		const { agentPublicKey, scopes } = c.req.valid("json");
-		const validUntil = new Date(
-			Date.now() + 30 * 24 * 60 * 60 * 1000,
-		).toISOString();
-		const delegationSessionId = crypto.randomUUID();
-
-		const credential = await issueDelegationCredential({
-			delegationId: delegationSessionId,
-			givenName: user.givenName,
-			familyName: user.familyName,
-			birthDate: user.birthDate,
-			agentPublicJwk: agentPublicKey,
-			scopes,
-			validUntil,
-		});
-
-		revokePreviousDelegationSessions(session.userId, delegationSessionId);
-
-		createDelegationSession({
-			id: delegationSessionId,
-			userId: session.userId,
-			authorizationId: "direct-issuance",
-		});
-
-		updateDelegationSessionCredentialIssued(delegationSessionId, {
-			agentPublicKey,
-			scopes,
-			issuedCredential: credential,
-		});
-
-		return c.json({
-			credential,
-			delegatorName: `${user.givenName} ${user.familyName}`,
-			scopes,
-			validUntil,
-		});
-	},
-);
+		return c.json(delegationSession.offer);
+	});

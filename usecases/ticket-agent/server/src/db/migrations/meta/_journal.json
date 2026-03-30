@@ -1,13 +1,20 @@
 {
-  "version": "7",
-  "dialect": "sqlite",
-  "entries": [
-    {
-      "idx": 0,
-      "version": "6",
-      "when": 1774632130521,
-      "tag": "0000_slow_the_twelve",
-      "breakpoints": true
-    }
-  ]
+	"version": "7",
+	"dialect": "sqlite",
+	"entries": [
+		{
+			"idx": 0,
+			"version": "6",
+			"when": 1774632130521,
+			"tag": "0000_slow_the_twelve",
+			"breakpoints": true
+		},
+		{
+			"idx": 1,
+			"version": "7",
+			"when": 1774852800000,
+			"tag": "0001_clean_azalea",
+			"breakpoints": true
+		}
+	]
 }

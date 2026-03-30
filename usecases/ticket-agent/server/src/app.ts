@@ -14,6 +14,9 @@ import { signupRouter } from "./routes/signup";
 export const app = new Hono()
 	.use(cors())
 	.use(compress())
+	.get("/.well-known/openid-credential-issuer", (c) =>
+		c.redirect("/api/issuer/.well-known/openid-credential-issuer", 307),
+	)
 	.route("/health", healthRouter)
 	.route("/api/signup", signupRouter)
 	.route("/api/signin", signinRouter)

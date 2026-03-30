@@ -1,18 +1,17 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useRouteContext } from "@tanstack/react-router";
 import {
-	AlertCircle,
 	ArrowRight,
 	Bot,
 	CheckCircle2,
-	ClipboardCheck,
 	Copy,
 	Fingerprint,
-	Key,
 	Loader2,
+	QrCode,
 	RefreshCw,
 	Shield,
 	ShieldCheck,
+	Smartphone,
 } from "lucide-react";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
@@ -26,7 +25,6 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { apiClient } from "@/lib/api-client";
 import type { AuthenticatedUser } from "../_auth";
 
@@ -34,15 +32,13 @@ export const Route = createFileRoute("/_app/_auth/agent")({
 	component: AgentPage,
 });
 
-/* ------------------------------------------------------------------ */
-/*  Types                                                              */
-/* ------------------------------------------------------------------ */
-
 type DelegationScope = "book_tickets";
 
-interface DelegationResult {
-	credential: string;
-	delegatorName: string;
+interface DelegationOfferResult {
+	delegationId: string;
+	credentialOffer: Record<string, unknown>;
+	credentialOfferUri: string;
+	credentialOfferDeepLink: string;
 	scopes: string[];
 	validUntil: string;
 }
@@ -55,19 +51,8 @@ const BOOKING_SCOPE: {
 	id: "book_tickets",
 	label: "Book Tickets",
 	description:
-		"Allow the agent to start ticket bookings on your behalf and complete them via Vidos credential presentation.",
+		"Allow the agent to obtain a holder-bound delegation credential and use it to book event tickets on your behalf.",
 };
-
-const JWK_PLACEHOLDER = `{
-  "kty": "EC",
-  "crv": "P-256",
-  "x": "f83OJ3D2xF1Bg8...",
-  "y": "x_FEzRu9m36HLN..."
-}`;
-
-/* ------------------------------------------------------------------ */
-/*  Page Component                                                     */
-/* ------------------------------------------------------------------ */
 
 function AgentPage() {
 	const { user } = useRouteContext({ from: "/_app/_auth" });
@@ -90,14 +75,9 @@ function AgentPage() {
 	return <AgentOnboardingForm />;
 }
 
-/* ------------------------------------------------------------------ */
-/*  Identity Gate                                                      */
-/* ------------------------------------------------------------------ */
-
 function IdentityGate() {
 	return (
 		<div className="space-y-8 animate-slide-up">
-			{/* Page header */}
 			<div className="space-y-2">
 				<div className="flex items-center gap-2.5">
 					<Bot className="h-5 w-5 text-primary/60" />
@@ -113,7 +93,6 @@ function IdentityGate() {
 				</p>
 			</div>
 
-			{/* Gate card */}
 			<div className="max-w-2xl">
 				<Card className="border-amber-200/60 bg-amber-50/30 shadow-lg shadow-amber-900/[0.03]">
 					<CardContent className="p-8">
@@ -121,18 +100,15 @@ function IdentityGate() {
 							<div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-amber-100 to-amber-50 flex items-center justify-center border border-amber-200/50 shadow-sm">
 								<Fingerprint className="h-8 w-8 text-amber-600" />
 							</div>
-
 							<div className="space-y-2">
 								<h2 className="text-lg font-semibold tracking-tight">
 									Identity Verification Required
 								</h2>
 								<p className="text-sm text-muted-foreground leading-relaxed max-w-md">
-									Before you can delegate permissions to an AI agent, you need
-									to verify your identity with a PID credential. This ensures
-									your agent acts under a verified identity.
+									Verify your identity with a PID credential before creating an
+									OID4VCI delegation offer for your agent.
 								</p>
 							</div>
-
 							<Button
 								asChild
 								className="h-11 px-6 text-sm font-semibold group bg-gradient-to-r from-primary to-violet-700 hover:from-primary/90 hover:to-violet-700/90 shadow-md shadow-primary/15"
@@ -148,80 +124,28 @@ function IdentityGate() {
 				</Card>
 			</div>
 
-			{/* Info strip */}
 			<div className="max-w-2xl flex items-center gap-3 px-5 py-4 rounded-xl bg-primary/[0.03] border border-primary/10">
 				<Shield className="h-5 w-5 text-primary/50 shrink-0" />
 				<p className="text-sm text-muted-foreground leading-relaxed">
-					<span className="font-medium text-foreground/80">Why?</span>{" "}
-					Delegation credentials bind your verified identity to your
-					agent&apos;s public key, creating a trust chain that event organizers
-					can verify.
+					<span className="font-medium text-foreground/80">Why?</span> The agent
+					wallet receives the delegation credential directly from the issuer
+					over OID4VCI after you approve it here.
 				</p>
 			</div>
 		</div>
 	);
 }
 
-/* ------------------------------------------------------------------ */
-/*  Onboarding Form                                                    */
-/* ------------------------------------------------------------------ */
-
 function AgentOnboardingForm() {
-	const [jwkInput, setJwkInput] = useState("");
-	const [jwkValid, setJwkValid] = useState<boolean | null>(null);
-	const [jwkError, setJwkError] = useState<string | null>(null);
-	const [parsedJwk, setParsedJwk] = useState<Record<string, unknown> | null>(
+	const [result, setResult] = useState<DelegationOfferResult | null>(null);
+	const [copiedField, setCopiedField] = useState<"uri" | "deep-link" | null>(
 		null,
 	);
-	const [result, setResult] = useState<DelegationResult | null>(null);
-	const [copied, setCopied] = useState(false);
 
-	/* JWK validation */
-	const validateJwk = useCallback((value: string) => {
-		setJwkInput(value);
-
-		if (!value.trim()) {
-			setJwkValid(null);
-			setJwkError(null);
-			setParsedJwk(null);
-			return;
-		}
-
-		try {
-			const parsed = JSON.parse(value);
-			if (
-				typeof parsed !== "object" ||
-				parsed === null ||
-				Array.isArray(parsed)
-			) {
-				setJwkValid(false);
-				setJwkError("JWK must be a JSON object");
-				setParsedJwk(null);
-				return;
-			}
-			if (!parsed.kty) {
-				setJwkValid(false);
-				setJwkError('Missing required "kty" field');
-				setParsedJwk(null);
-				return;
-			}
-			setJwkValid(true);
-			setJwkError(null);
-			setParsedJwk(parsed);
-		} catch {
-			setJwkValid(false);
-			setJwkError("Invalid JSON syntax");
-			setParsedJwk(null);
-		}
-	}, []);
-
-	/* Issue mutation */
 	const issueMutation = useMutation({
 		mutationFn: async () => {
-			if (!parsedJwk) throw new Error("No valid JWK");
 			const res = await apiClient.api.delegation.issue.$post({
 				json: {
-					agentPublicKey: parsedJwk,
 					scopes: [BOOKING_SCOPE.id],
 				},
 			});
@@ -229,61 +153,54 @@ function AgentOnboardingForm() {
 				const body = await res.json().catch(() => null);
 				throw new Error(
 					(body as { error?: string } | null)?.error ??
-						"Failed to issue credential",
+						"Failed to create delegation offer",
 				);
 			}
-			return res.json() as Promise<DelegationResult>;
+			return res.json() as Promise<DelegationOfferResult>;
 		},
 		onSuccess: (data) => {
 			setResult(data);
-			toast.success("Delegation credential issued successfully!");
+			toast.success("Delegation offer created successfully");
 		},
 		onError: (err) => {
 			toast.error(err.message);
 		},
 	});
 
-	/* Copy to clipboard */
-	const handleCopy = useCallback(async () => {
-		if (!result?.credential) return;
-		try {
-			await navigator.clipboard.writeText(result.credential);
-			setCopied(true);
-			toast.success("Credential copied to clipboard");
-			setTimeout(() => setCopied(false), 2500);
-		} catch {
-			toast.error("Failed to copy — try selecting the text manually");
-		}
-	}, [result]);
+	const copyValue = useCallback(
+		async (label: "uri" | "deep-link", value: string) => {
+			try {
+				await navigator.clipboard.writeText(value);
+				setCopiedField(label);
+				toast.success(
+					label === "uri" ? "Offer URL copied" : "Offer link copied",
+				);
+				setTimeout(() => setCopiedField(null), 2500);
+			} catch {
+				toast.error("Failed to copy to clipboard");
+			}
+		},
+		[],
+	);
 
-	/* Reset form */
 	const handleReset = useCallback(() => {
-		setJwkInput("");
-		setJwkValid(null);
-		setJwkError(null);
-		setParsedJwk(null);
 		setResult(null);
-		setCopied(false);
+		setCopiedField(null);
 	}, []);
 
-	const canSubmit = jwkValid === true;
-
-	/* ---- Result view ---- */
 	if (result) {
 		return (
-			<CredentialResult
+			<OfferResult
 				result={result}
-				copied={copied}
-				onCopy={handleCopy}
+				copiedField={copiedField}
+				onCopy={copyValue}
 				onReset={handleReset}
 			/>
 		);
 	}
 
-	/* ---- Form view ---- */
 	return (
 		<div className="space-y-8 animate-slide-up">
-			{/* Page header */}
 			<div className="space-y-2">
 				<div className="flex items-center gap-2.5">
 					<Bot className="h-5 w-5 text-primary/60" />
@@ -292,66 +209,15 @@ function AgentOnboardingForm() {
 					</p>
 				</div>
 				<h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-					Onboard Your AI Agent
+					Create Agent Delegation Offer
 				</h1>
 				<p className="text-muted-foreground text-sm max-w-lg">
-					Provide your agent&apos;s public key to issue a booking-only
-					delegation credential.
+					Create an OID4VCI offer for your agent wallet. The agent receives the
+					credential directly from the issuer after you share the offer link.
 				</p>
 			</div>
 
 			<div className="max-w-2xl space-y-6">
-				{/* Step 1: JWK Input */}
-				<Card className="border-border/50 bg-white/80 backdrop-blur-sm shadow-lg shadow-violet-900/[0.03]">
-					<CardHeader className="pb-4">
-						<CardTitle className="text-base flex items-center gap-2">
-							<div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
-								<Key className="h-3.5 w-3.5 text-primary" />
-							</div>
-							Agent Public Key
-						</CardTitle>
-						<CardDescription className="leading-relaxed">
-							Your AI agent provides this key when initialized via{" "}
-							<code className="font-mono text-xs bg-muted/80 px-1.5 py-0.5 rounded-md border border-border/40">
-								wallet-cli init
-							</code>
-							. Paste the public key JSON below.
-						</CardDescription>
-					</CardHeader>
-					<CardContent className="space-y-3">
-						<div className="relative">
-							<Textarea
-								value={jwkInput}
-								onChange={(e) => validateJwk(e.target.value)}
-								placeholder={JWK_PLACEHOLDER}
-								className="font-mono text-sm min-h-[160px] resize-y bg-background/60 border-border/60 focus-visible:border-primary/40 transition-colors leading-relaxed"
-								spellCheck={false}
-							/>
-							{/* Validation indicator */}
-							{jwkValid !== null && (
-								<div className="absolute top-3 right-3">
-									{jwkValid ? (
-										<div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-emerald-50 border border-emerald-200/50">
-											<CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-											<span className="text-xs font-medium text-emerald-700">
-												Valid JWK
-											</span>
-										</div>
-									) : (
-										<div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-destructive/5 border border-destructive/15">
-											<AlertCircle className="h-3.5 w-3.5 text-destructive" />
-											<span className="text-xs font-medium text-destructive">
-												{jwkError}
-											</span>
-										</div>
-									)}
-								</div>
-							)}
-						</div>
-					</CardContent>
-				</Card>
-
-				{/* Step 2: Delegated capability */}
 				<Card className="border-border/50 bg-white/80 backdrop-blur-sm shadow-lg shadow-violet-900/[0.03]">
 					<CardHeader className="pb-4">
 						<CardTitle className="text-base flex items-center gap-2">
@@ -361,7 +227,7 @@ function AgentOnboardingForm() {
 							Delegated Capability
 						</CardTitle>
 						<CardDescription className="leading-relaxed">
-							This credential is intentionally limited to one capability.
+							This offer issues a single booking-only delegation credential.
 						</CardDescription>
 					</CardHeader>
 					<CardContent>
@@ -381,35 +247,54 @@ function AgentOnboardingForm() {
 					</CardContent>
 				</Card>
 
-				{/* Submit */}
+				<Card className="border-border/50 bg-white/80 backdrop-blur-sm shadow-lg shadow-violet-900/[0.03]">
+					<CardHeader className="pb-4">
+						<CardTitle className="text-base flex items-center gap-2">
+							<div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
+								<Smartphone className="h-3.5 w-3.5 text-primary" />
+							</div>
+							What Changes
+						</CardTitle>
+						<CardDescription className="leading-relaxed">
+							The user is no longer the credential courier.
+						</CardDescription>
+					</CardHeader>
+					<CardContent className="space-y-3 text-sm text-muted-foreground">
+						<p>The app creates an OID4VCI offer.</p>
+						<p>The agent receives it with `wallet-cli receive`.</p>
+						<p>
+							The issuer talks directly to the agent wallet and returns the
+							credential there.
+						</p>
+					</CardContent>
+				</Card>
+
 				<Button
 					onClick={() => issueMutation.mutate()}
-					disabled={!canSubmit || issueMutation.isPending}
+					disabled={issueMutation.isPending}
 					className="w-full h-12 text-sm font-semibold group bg-gradient-to-r from-primary to-violet-700 hover:from-primary/90 hover:to-violet-700/90 shadow-md shadow-primary/15 disabled:opacity-50 disabled:shadow-none"
 				>
 					{issueMutation.isPending ? (
 						<>
 							<Loader2 className="h-4 w-4 animate-spin" />
-							Issuing Credential…
+							Creating Delegation Offer…
 						</>
 					) : (
 						<>
 							<ShieldCheck className="h-4 w-4" />
-							Issue Delegation Credential
+							Create Delegation Offer
 							<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
 						</>
 					)}
 				</Button>
 
-				{/* Info strip */}
 				<div className="flex items-center gap-3 px-5 py-4 rounded-xl bg-primary/[0.03] border border-primary/10">
 					<Shield className="h-5 w-5 text-primary/50 shrink-0" />
 					<p className="text-sm text-muted-foreground leading-relaxed">
 						<span className="font-medium text-foreground/80">
 							Replaces previous agent:
 						</span>{" "}
-						Issuing a new credential will automatically revoke any previously
-						active agent delegation.
+						creating a new offer revokes any previously active delegation.
 					</p>
 				</div>
 			</div>
@@ -417,19 +302,15 @@ function AgentOnboardingForm() {
 	);
 }
 
-/* ------------------------------------------------------------------ */
-/*  Credential Result                                                  */
-/* ------------------------------------------------------------------ */
-
-function CredentialResult({
+function OfferResult({
 	result,
-	copied,
+	copiedField,
 	onCopy,
 	onReset,
 }: {
-	result: DelegationResult;
-	copied: boolean;
-	onCopy: () => void;
+	result: DelegationOfferResult;
+	copiedField: "uri" | "deep-link" | null;
+	onCopy: (label: "uri" | "deep-link", value: string) => void;
 	onReset: () => void;
 }) {
 	const formattedDate = new Date(result.validUntil).toLocaleDateString(
@@ -441,13 +322,8 @@ function CredentialResult({
 		},
 	);
 
-	const scopeLabels: Record<string, string> = {
-		book_tickets: "Book Tickets",
-	};
-
 	return (
 		<div className="space-y-8 animate-slide-up">
-			{/* Page header */}
 			<div className="space-y-2">
 				<div className="flex items-center gap-2.5">
 					<Bot className="h-5 w-5 text-primary/60" />
@@ -456,91 +332,100 @@ function CredentialResult({
 					</p>
 				</div>
 				<h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-					Credential Issued
+					Delegation Offer Ready
 				</h1>
 				<p className="text-muted-foreground text-sm max-w-lg">
-					Your delegation credential has been created. Hand it off to your
-					agent.
+					Share one of the offer links below with your agent. The wallet should
+					receive the credential using OID4VCI.
 				</p>
 			</div>
 
 			<div className="max-w-2xl space-y-6">
-				{/* Success banner */}
 				<div className="flex items-center gap-3 px-5 py-4 rounded-xl bg-emerald-50/80 border border-emerald-200/50">
 					<CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
 					<p className="text-sm text-emerald-800 font-medium">
-						Delegation credential issued successfully
+						Delegation offer created successfully
 					</p>
 				</div>
 
-				{/* Credential display */}
-				<Card className="border-border/50 bg-white/80 backdrop-blur-sm shadow-lg shadow-violet-900/[0.03] overflow-hidden">
-					<CardHeader className="pb-3">
+				<Card className="border-border/50 bg-white/80 backdrop-blur-sm shadow-lg shadow-violet-900/[0.03]">
+					<CardHeader>
 						<CardTitle className="text-base flex items-center gap-2">
 							<div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
-								<Key className="h-3.5 w-3.5 text-primary" />
+								<QrCode className="h-3.5 w-3.5 text-primary" />
 							</div>
-							Delegation Credential
-							<Badge
-								variant="outline"
-								className="ml-auto border-primary/20 bg-primary/5 text-primary text-[10px] font-mono uppercase tracking-wider"
-							>
-								dc+sd-jwt
-							</Badge>
+							Credential Offer URL
 						</CardTitle>
+						<CardDescription>
+							Share this HTTPS URL with the agent if it can fetch the offer by
+							reference.
+						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-4">
-						<div className="relative group/code">
-							<div className="rounded-xl bg-gray-900 border border-gray-800 p-4 overflow-x-auto">
-								<pre className="font-mono text-xs text-gray-100 leading-relaxed whitespace-pre-wrap break-all select-all">
-									{result.credential}
-								</pre>
-							</div>
-							<Button
-								onClick={onCopy}
-								variant="outline"
-								size="sm"
-								className={`absolute top-3 right-3 gap-1.5 text-xs transition-all duration-200 ${
-									copied
-										? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-700"
-										: "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700 hover:text-gray-100 opacity-0 group-hover/code:opacity-100"
-								}`}
-							>
-								{copied ? (
-									<>
-										<ClipboardCheck className="h-3.5 w-3.5" />
-										Copied
-									</>
-								) : (
-									<>
-										<Copy className="h-3.5 w-3.5" />
-										Copy
-									</>
-								)}
-							</Button>
+						<div className="rounded-xl bg-gray-900 border border-gray-800 p-4 overflow-x-auto">
+							<pre className="font-mono text-xs text-gray-100 leading-relaxed whitespace-pre-wrap break-all select-all">
+								{result.credentialOfferUri}
+							</pre>
 						</div>
+						<Button
+							onClick={() => onCopy("uri", result.credentialOfferUri)}
+							variant="outline"
+							className="w-full gap-2"
+						>
+							<Copy className="h-4 w-4" />
+							{copiedField === "uri" ? "Copied" : "Copy Offer URL"}
+						</Button>
 					</CardContent>
 				</Card>
 
-				{/* Summary card */}
 				<Card className="border-border/50 bg-white/80 backdrop-blur-sm shadow-lg shadow-violet-900/[0.03]">
-					<CardHeader className="pb-3">
+					<CardHeader>
+						<CardTitle className="text-base flex items-center gap-2">
+							<div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
+								<Smartphone className="h-3.5 w-3.5 text-primary" />
+							</div>
+							OpenID Credential Offer Link
+						</CardTitle>
+						<CardDescription>
+							Share this when the wallet expects an `openid-credential-offer://`
+							link directly.
+						</CardDescription>
+					</CardHeader>
+					<CardContent className="space-y-4">
+						<div className="rounded-xl bg-gray-900 border border-gray-800 p-4 overflow-x-auto">
+							<pre className="font-mono text-xs text-gray-100 leading-relaxed whitespace-pre-wrap break-all select-all">
+								{result.credentialOfferDeepLink}
+							</pre>
+						</div>
+						<Button
+							onClick={() =>
+								onCopy("deep-link", result.credentialOfferDeepLink)
+							}
+							variant="outline"
+							className="w-full gap-2"
+						>
+							<Copy className="h-4 w-4" />
+							{copiedField === "deep-link" ? "Copied" : "Copy Offer Link"}
+						</Button>
+					</CardContent>
+				</Card>
+
+				<Card className="border-border/50 bg-white/80 backdrop-blur-sm shadow-lg shadow-violet-900/[0.03]">
+					<CardHeader>
 						<CardTitle className="text-base flex items-center gap-2">
 							<div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
 								<Shield className="h-3.5 w-3.5 text-primary" />
 							</div>
-							Credential Summary
+							Offer Summary
 						</CardTitle>
 					</CardHeader>
 					<CardContent>
 						<div className="divide-y divide-border/50">
-							<div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+							<div className="flex items-center justify-between py-3 first:pt-0">
 								<span className="text-sm text-muted-foreground">
-									Delegator Name
+									Delegation ID
 								</span>
-								<span className="text-sm font-semibold">
-									{result.delegatorName}
-								</span>
+								<span className="text-sm font-mono">{result.delegationId}</span>
 							</div>
 							<div className="flex items-start justify-between py-3">
 								<span className="text-sm text-muted-foreground">Scopes</span>
@@ -551,12 +436,12 @@ function CredentialResult({
 											variant="outline"
 											className="border-primary/15 bg-primary/[0.04] text-foreground/80 text-xs"
 										>
-											{scopeLabels[scope] ?? scope}
+											{scope}
 										</Badge>
 									))}
 								</div>
 							</div>
-							<div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+							<div className="flex items-center justify-between py-3 last:pb-0">
 								<span className="text-sm text-muted-foreground">
 									Valid Until
 								</span>
@@ -568,7 +453,6 @@ function CredentialResult({
 					</CardContent>
 				</Card>
 
-				{/* Handoff instructions */}
 				<div className="rounded-xl bg-primary/[0.04] border border-primary/15 p-6 space-y-3">
 					<div className="flex items-center gap-2">
 						<Bot className="h-5 w-5 text-primary/70" />
@@ -577,24 +461,19 @@ function CredentialResult({
 						</h3>
 					</div>
 					<p className="text-sm text-muted-foreground leading-relaxed">
-						Copy the credential above and paste it into your agent&apos;s chat
-						session. The agent will import it using{" "}
-						<code className="font-mono text-xs bg-primary/[0.06] px-1.5 py-0.5 rounded-md border border-primary/10">
-							wallet-cli import
-						</code>
-						. Agent bookings should then start unauthenticated, receive a Vidos
-						authorization URL, and complete by presenting this credential.
+						Tell the agent to run `wallet-cli receive --wallet-dir ./wallet
+						--offer "&lt;offer&gt;"` using one of the links above. The issuer
+						will deliver the credential directly to the wallet.
 					</p>
 				</div>
 
-				{/* Reset / New Agent */}
 				<Button
 					onClick={onReset}
 					variant="outline"
 					className="w-full h-12 text-sm font-semibold group border-primary/20 text-primary hover:bg-primary/5"
 				>
 					<RefreshCw className="h-4 w-4 transition-transform group-hover:-rotate-45" />
-					Onboard New Agent
+					Create New Offer
 				</Button>
 			</div>
 		</div>

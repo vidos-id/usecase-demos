@@ -35,7 +35,7 @@ function serializeBooking(
 
 export const bookingsRouter = new Hono()
 	.post("/", zValidator("json", createBookingRequestSchema), async (c) => {
-		const { eventId, quantity, delegationId } = c.req.valid("json");
+		const { eventId, quantity } = c.req.valid("json");
 
 		const event = getEventById(eventId);
 		if (!event) {
@@ -87,14 +87,12 @@ export const bookingsRouter = new Hono()
 			status: "pending_verification",
 			authorizationId: authResult.authorizationId,
 			statusToken,
-			delegationSessionId: delegationId,
 		});
 
 		startAuthorizationMonitor({
 			type: "booking_verification",
 			authorizationId: authResult.authorizationId,
 			bookingId: booking.id,
-			delegationSessionId: delegationId,
 		});
 
 		return c.json({
