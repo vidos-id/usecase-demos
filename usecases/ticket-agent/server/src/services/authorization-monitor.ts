@@ -5,11 +5,9 @@ import {
 	getBookingByAuthorizationId,
 	updateBookingStatus,
 } from "../stores/bookings";
-import {
-	getDelegationSessionById,
-	isDelegationSessionRevoked,
-} from "../stores/delegation-sessions";
+import { getDelegationSessionById } from "../stores/delegation-sessions";
 import { updateUserIdentity } from "../stores/users";
+import { getDelegationCredentialStatusValue } from "./issuer";
 import { getExtractedCredentials, pollAuthorizationStatus } from "./vidos";
 
 const MONITOR_INTERVAL_MS = 2000;
@@ -209,11 +207,18 @@ async function handleBookingVerificationSuccess(
 			return;
 		}
 
-		if (
-			isDelegationSessionRevoked(delegationSession.id) ||
-			(context.delegationSessionId &&
-				isDelegationSessionRevoked(context.delegationSessionId))
-		) {
+		if (!delegationSession.credentialStatus) {
+			updateBookingStatus(bookingId, {
+				status: "rejected",
+				errorMessage: "Delegation credential status could not be resolved",
+			});
+			return;
+		}
+
+		const currentStatus = getDelegationCredentialStatusValue(
+			delegationSession.credentialStatus,
+		);
+		if (currentStatus === 2) {
 			updateBookingStatus(bookingId, {
 				status: "rejected",
 				errorMessage: "Delegation has been revoked by the user",
@@ -221,11 +226,21 @@ async function handleBookingVerificationSuccess(
 			return;
 		}
 
+		if (currentStatus === 1) {
+			updateBookingStatus(bookingId, {
+				status: "rejected",
+				errorMessage: "Delegation has been suspended by the user",
+			});
+			return;
+		}
+
 		const delegatorName = `${claims.given_name} ${claims.family_name}`;
+		const agentName = claims.agent_name;
 		assignBookingUser(bookingId, delegationSession.userId);
 		updateBookingStatus(bookingId, {
 			status: "confirmed",
 			delegatorName,
+			agentName,
 			errorMessage: undefined,
 		});
 
@@ -234,6 +249,8 @@ async function handleBookingVerificationSuccess(
 			bookingId,
 			"delegator:",
 			delegatorName,
+			"agent:",
+			agentName,
 		);
 	} catch (error) {
 		console.error("[Monitor] Failed to verify delegation credential:", error);

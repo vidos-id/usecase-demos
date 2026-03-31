@@ -8,6 +8,7 @@ export type DelegationScope = z.infer<typeof delegationScopeSchema>;
 
 export const delegationClaimsSchema = z.object({
 	delegation_id: z.string(),
+	agent_name: z.string().default("Unnamed Agent"),
 	given_name: z.string(),
 	family_name: z.string(),
 	birth_date: z.string(),
@@ -67,6 +68,7 @@ export interface DelegationSession {
 	id: string;
 	userId: string;
 	status: DelegationSessionStatus;
+	agentName: string;
 	verifiedClaims: DelegationClaims | null;
 	scopes: DelegationScope[];
 	validUntil: string | null;
@@ -98,6 +100,7 @@ export interface DelegatedCredentialSummary {
 	delegationId: string;
 	state: DelegationDisplayState;
 	status: DelegatedCredentialStatusValue | null;
+	agentName: string;
 	scopes: DelegationScope[];
 	validUntil: string | null;
 	offerExpiresAt: string | null;

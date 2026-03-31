@@ -10,6 +10,7 @@ import { delegationSessions } from "../db/schema";
 export function createDelegationSession(data: {
 	id: string;
 	userId: string;
+	agentName: string;
 	scopes: DelegationScope[];
 	verifiedClaims: DelegationClaims;
 	validUntil: string;
@@ -25,6 +26,7 @@ export function createDelegationSession(data: {
 			id: data.id,
 			userId: data.userId,
 			status: "offer_created",
+			agentName: data.agentName,
 			verifiedClaims: data.verifiedClaims as unknown as Record<string, unknown>,
 			scopes: data.scopes as unknown as string[],
 			validUntil: data.validUntil,

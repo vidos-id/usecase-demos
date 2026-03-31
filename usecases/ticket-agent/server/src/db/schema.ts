@@ -36,6 +36,7 @@ export const delegationSessions = sqliteTable(
 			.notNull()
 			.references(() => users.id, { onDelete: "cascade" }),
 		status: text("status").notNull().default("offer_created"),
+		agentName: text("agent_name").notNull().default(""),
 		verifiedClaims: text("verified_claims", { mode: "json" }),
 		scopes: text("scopes", { mode: "json" }),
 		validUntil: text("valid_until"),
@@ -74,6 +75,7 @@ export const bookings = sqliteTable(
 		bookedBy: text("booked_by").notNull().default("user"),
 		status: text("status").notNull().default("pending_verification"),
 		delegatorName: text("delegator_name"),
+		agentName: text("agent_name"),
 		authorizationId: text("authorization_id"),
 		statusToken: text("status_token"),
 		delegationSessionId: text("delegation_session_id"),

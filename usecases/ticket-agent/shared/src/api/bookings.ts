@@ -18,6 +18,7 @@ export const createBookingResponseSchema = z.object({
 	authorizeUrl: z.string().optional(),
 	statusToken: z.string().optional(),
 	delegatorName: z.string().optional(),
+	agentName: z.string().optional(),
 });
 
 export type CreateBookingResponse = z.infer<typeof createBookingResponseSchema>;
@@ -29,6 +30,7 @@ export const bookingStatusResponseSchema = z.object({
 	status: bookingStatusSchema,
 	bookedBy: bookingActorSchema,
 	delegatorName: z.string().optional(),
+	agentName: z.string().optional(),
 	createdAt: z.string(),
 	event: eventSchema.optional(),
 	errorMessage: z.string().optional(),

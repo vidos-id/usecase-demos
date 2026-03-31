@@ -10,6 +10,7 @@ export function createBooking(data: {
 	bookedBy?: "user" | "agent";
 	status?: string;
 	delegatorName?: string;
+	agentName?: string;
 	authorizationId?: string;
 	statusToken?: string;
 	delegationSessionId?: string;
@@ -25,6 +26,7 @@ export function createBooking(data: {
 			bookedBy: data.bookedBy ?? "user",
 			status: data.status ?? "pending_verification",
 			delegatorName: data.delegatorName ?? null,
+			agentName: data.agentName ?? null,
 			authorizationId: data.authorizationId ?? null,
 			statusToken: data.statusToken ?? null,
 			delegationSessionId: data.delegationSessionId ?? null,
@@ -68,6 +70,7 @@ export function updateBookingStatus(
 	update: {
 		status: string;
 		delegatorName?: string;
+		agentName?: string;
 		errorMessage?: string;
 	},
 ) {
@@ -76,6 +79,7 @@ export function updateBookingStatus(
 		.set({
 			status: update.status,
 			delegatorName: update.delegatorName,
+			agentName: update.agentName,
 			errorMessage: update.errorMessage,
 		})
 		.where(eq(bookings.id, id))

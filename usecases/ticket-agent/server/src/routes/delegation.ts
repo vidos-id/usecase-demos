@@ -9,6 +9,7 @@ import {
 } from "ticket-agent-shared/api/delegation";
 import { env } from "../env";
 import {
+	getDelegationCredentialStatusValue,
 	issueDelegationCredential,
 	reactivateDelegationCredentialStatus,
 	revokeDelegationCredentialStatus,
@@ -49,7 +50,7 @@ export const delegationRouter = new Hono()
 				);
 			}
 
-			const { scopes } = c.req.valid("json");
+			const { agentName, scopes } = c.req.valid("json");
 			const validUntil = new Date(
 				Date.now() + 30 * 24 * 60 * 60 * 1000,
 			).toISOString();
@@ -62,6 +63,7 @@ export const delegationRouter = new Hono()
 
 			const offer = await issueDelegationCredential({
 				delegationId: delegationSessionId,
+				agentName,
 				givenName: user.givenName,
 				familyName: user.familyName,
 				birthDate: user.birthDate,
@@ -72,9 +74,11 @@ export const delegationRouter = new Hono()
 			createDelegationSession({
 				id: delegationSessionId,
 				userId: session.userId,
+				agentName,
 				scopes,
 				verifiedClaims: {
 					delegation_id: delegationSessionId,
+					agent_name: agentName,
 					given_name: user.givenName,
 					family_name: user.familyName,
 					birth_date: user.birthDate,
@@ -96,6 +100,7 @@ export const delegationRouter = new Hono()
 
 			return c.json({
 				delegationId: delegationSessionId,
+				agentName,
 				credentialOffer: offer.offer,
 				credentialOfferUri,
 				credentialOfferDeepLink: offer.offerUri,
@@ -125,13 +130,16 @@ export const delegationRouter = new Hono()
 			if (!delegationSession.credentialStatus) {
 				return c.json({ error: "Credential has not been issued yet" }, 400);
 			}
-			if (delegationSession.status === "revoked") {
+			const currentStatus = getDelegationCredentialStatusValue(
+				delegationSession.credentialStatus,
+			);
+			if (currentStatus === 2) {
 				return c.json(
 					{ error: "Revoked credentials cannot be suspended" },
 					400,
 				);
 			}
-			if (delegationSession.status === "suspended") {
+			if (currentStatus === 1) {
 				return c.json(
 					delegationSuspendResponseSchema.parse({
 						delegationId,
@@ -176,13 +184,16 @@ export const delegationRouter = new Hono()
 			if (!delegationSession.credentialStatus) {
 				return c.json({ error: "Credential has not been issued yet" }, 400);
 			}
-			if (delegationSession.status === "revoked") {
+			const currentStatus = getDelegationCredentialStatusValue(
+				delegationSession.credentialStatus,
+			);
+			if (currentStatus === 2) {
 				return c.json(
 					{ error: "Revoked credentials cannot be reactivated" },
 					400,
 				);
 			}
-			if (delegationSession.status !== "suspended") {
+			if (currentStatus !== 1) {
 				return c.json(
 					delegationReactivateResponseSchema.parse({
 						delegationId,
@@ -224,7 +235,14 @@ export const delegationRouter = new Hono()
 				return c.json({ error: "Delegation credential not found" }, 404);
 			}
 
-			if (delegationSession.status === "revoked") {
+			if (!delegationSession.credentialStatus) {
+				return c.json({ error: "Credential has not been issued yet" }, 400);
+			}
+
+			const currentStatus = getDelegationCredentialStatusValue(
+				delegationSession.credentialStatus,
+			);
+			if (currentStatus === 2) {
 				return c.json(
 					delegationRevokeResponseSchema.parse({
 						delegationId,
@@ -234,11 +252,20 @@ export const delegationRouter = new Hono()
 				);
 			}
 
-			if (!delegationSession.credentialStatus) {
-				return c.json({ error: "Credential has not been issued yet" }, 400);
+			try {
+				revokeDelegationCredentialStatus(delegationSession.credentialStatus);
+			} catch (error) {
+				console.error("[Delegation] Failed to revoke credential:", error);
+				return c.json(
+					{
+						error:
+							error instanceof Error
+								? error.message
+								: "Failed to revoke credential",
+					},
+					500,
+				);
 			}
-
-			revokeDelegationCredentialStatus(delegationSession.credentialStatus);
 			const revokedAt = new Date().toISOString();
 			revokeDelegationSession(delegationId, revokedAt);
 

@@ -6,6 +6,7 @@ import {
 } from "../types/delegation";
 
 export const delegationIssueRequestSchema = z.object({
+	agentName: z.string().trim().min(1).max(80),
 	scopes: z.array(delegationScopeSchema).min(1),
 });
 
@@ -15,6 +16,7 @@ export type DelegationIssueRequest = z.infer<
 
 export const delegationIssueResponseSchema = z.object({
 	delegationId: z.string(),
+	agentName: z.string(),
 	credentialOffer: oid4vciOfferSchema,
 	credentialOfferUri: z.string().url(),
 	credentialOfferDeepLink: z.string(),

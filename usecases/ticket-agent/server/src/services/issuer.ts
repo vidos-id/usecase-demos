@@ -72,6 +72,10 @@ const storedStatusListSchema = z.object({
 	aggregation_uri: z.string().min(1).optional(),
 });
 
+function isStatusListCompatible(list: StatusListRecord) {
+	return list.bits === STATUS_LIST_BITS;
+}
+
 let trustMaterial: StoredTrustMaterial | null = null;
 let issuer: DemoIssuer | null = null;
 let statusList: StatusListRecord | null = null;
@@ -143,6 +147,26 @@ function persistIssuerState() {
 	});
 }
 
+export function getDelegationCredentialStatusValue(
+	credentialStatusInput: unknown,
+) {
+	const credentialStatus = credentialStatusSchema.parse(credentialStatusInput);
+	const currentStatusList = requireStatusList();
+
+	if (credentialStatus.status_list.uri !== currentStatusList.uri) {
+		throw new Error(
+			"Credential status does not belong to this issuer status list",
+		);
+	}
+
+	const value = currentStatusList.statuses[credentialStatus.status_list.idx];
+	if (typeof value !== "number") {
+		throw new Error("Credential status index is out of bounds");
+	}
+
+	return value;
+}
+
 function toUnixTimestamp(iso8601: string): number {
 	return Math.floor(new Date(iso8601).getTime() / 1000);
 }
@@ -166,13 +190,15 @@ export async function initializeIssuer(): Promise<void> {
 		const persistedStatusList = storedStatusListSchema.safeParse(
 			getIssuerStateRecord()?.statusList,
 		);
-		statusList = persistedStatusList.success
-			? persistedStatusList.data
-			: issuer.createStatusList({
-					uri: buildStatusListUrl(),
-					bits: STATUS_LIST_BITS,
-					ttl: OID4VCI_TTL_SECONDS,
-				});
+		statusList =
+			persistedStatusList.success &&
+			isStatusListCompatible(persistedStatusList.data)
+				? persistedStatusList.data
+				: issuer.createStatusList({
+						uri: buildStatusListUrl(),
+						bits: STATUS_LIST_BITS,
+						ttl: OID4VCI_TTL_SECONDS,
+					});
 		persistIssuerState();
 		console.info("[Issuer] Loaded trust material from DB");
 		return;
@@ -199,6 +225,7 @@ export async function initializeIssuer(): Promise<void> {
 
 export async function issueDelegationCredential(params: {
 	delegationId: string;
+	agentName: string;
 	givenName: string;
 	familyName: string;
 	birthDate: string;
@@ -214,6 +241,7 @@ export async function issueDelegationCredential(params: {
 		credential_configuration_id: CREDENTIAL_CONFIGURATION_ID,
 		claims: {
 			delegation_id: params.delegationId,
+			agent_name: params.agentName,
 			given_name: params.givenName,
 			family_name: params.familyName,
 			birth_date: params.birthDate,

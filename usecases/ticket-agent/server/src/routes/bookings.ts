@@ -27,6 +27,7 @@ function serializeBooking(
 		status: booking.status,
 		bookedBy: booking.bookedBy,
 		delegatorName: booking.delegatorName ?? undefined,
+		agentName: booking.agentName ?? undefined,
 		createdAt: booking.createdAt,
 		event: event ?? undefined,
 		errorMessage: booking.errorMessage ?? undefined,
@@ -73,6 +74,7 @@ export const bookingsRouter = new Hono()
 				status: booking.status,
 				bookedBy: booking.bookedBy,
 				delegatorName: booking.delegatorName ?? undefined,
+				agentName: booking.agentName ?? undefined,
 			});
 		}
 
@@ -85,6 +87,7 @@ export const bookingsRouter = new Hono()
 			quantity,
 			bookedBy: "agent",
 			status: "pending_verification",
+			agentName: undefined,
 			authorizationId: authResult.authorizationId,
 			statusToken,
 		});

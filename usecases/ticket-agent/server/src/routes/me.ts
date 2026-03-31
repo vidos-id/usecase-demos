@@ -5,31 +5,39 @@ import type {
 	DelegationScope,
 } from "ticket-agent-shared/types/delegation";
 import { oid4vciOfferSchema } from "ticket-agent-shared/types/delegation";
+import { getDelegationCredentialStatusValue } from "../services/issuer";
 import { getDelegationSessionsByUserId } from "../stores/delegation-sessions";
 import { requireAuthenticatedUser } from "./auth";
 
 function mapDelegationState(session: {
-	status: string;
 	preAuthorizedCodeExpiresAt: string | null;
 	preAuthorizedCodeUsedAt: string | null;
 	accessToken: string | null;
+	accessTokenUsedAt: string | null;
 	lastNonce: string | null;
+	lastNonceUsedAt: string | null;
+	credentialStatus: unknown;
 	credentialSuspendedAt: string | null;
 	credentialRevokedAt: string | null;
 }): DelegatedCredentialSummary["state"] {
-	if (session.status === "revoked") {
-		return "credential_revoked";
-	}
+	if (session.credentialStatus) {
+		const statusValue = getDelegationCredentialStatusValue(
+			session.credentialStatus,
+		);
+		if (statusValue === 2) {
+			return "credential_revoked";
+		}
 
-	if (session.status === "suspended") {
-		return "credential_suspended";
-	}
+		if (statusValue === 1) {
+			return "credential_suspended";
+		}
 
-	if (session.status === "credential_received") {
 		return "credential_active";
 	}
 
 	if (
+		session.accessTokenUsedAt ||
+		session.lastNonceUsedAt ||
 		session.preAuthorizedCodeUsedAt ||
 		session.accessToken ||
 		session.lastNonce
@@ -59,15 +67,14 @@ function mapDelegationStatusValue(value: number | null | undefined) {
 	return "active" as const;
 }
 
-function getIssuedCredentialStatus(session: {
-	credentialStatus: unknown;
-	credentialStatusValue: number | null | undefined;
-}) {
+function getIssuedCredentialStatus(session: { credentialStatus: unknown }) {
 	if (!session.credentialStatus) {
 		return null;
 	}
 
-	return mapDelegationStatusValue(session.credentialStatusValue);
+	return mapDelegationStatusValue(
+		getDelegationCredentialStatusValue(session.credentialStatus),
+	);
 }
 
 export const meRouter = new Hono().get("/", async (c) => {
@@ -94,7 +101,10 @@ export const meRouter = new Hono().get("/", async (c) => {
 			return {
 				delegationId: delegationSession.id,
 				state,
-				status: getIssuedCredentialStatus(delegationSession),
+				status: getIssuedCredentialStatus({
+					credentialStatus: delegationSession.credentialStatus,
+				}),
+				agentName: delegationSession.agentName || "Unnamed Agent",
 				scopes: (delegationSession.scopes as DelegationScope[] | null) ?? [],
 				validUntil: delegationSession.validUntil,
 				offerExpiresAt: delegationSession.preAuthorizedCodeExpiresAt,
