@@ -166,7 +166,9 @@ function BookingCard({ booking }: { booking: BookingListItem }) {
 	const isPending = status === "pending_verification";
 	const event = booking.event;
 	const bookedByLabel =
-		booking.bookedBy === "agent" ? "Booked by agent" : "Booked by you";
+		booking.bookedBy === "agent"
+			? `Booked by ${booking.agentName ?? "agent"}`
+			: "Booked by you";
 	const bookedByTone =
 		booking.bookedBy === "agent"
 			? "border-sky-200 bg-sky-50 text-sky-700"
@@ -195,7 +197,7 @@ function BookingCard({ booking }: { booking: BookingListItem }) {
 							{booking.bookedBy === "agent" ? (
 								<>
 									<Bot className="h-3 w-3" />
-									Agent
+									{booking.agentName ?? "Agent"}
 								</>
 							) : (
 								<>

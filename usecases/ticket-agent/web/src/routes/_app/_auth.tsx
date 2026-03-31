@@ -38,6 +38,7 @@ export interface AuthenticatedUser {
 			| "credential_suspended"
 			| "credential_revoked";
 		status: "active" | "suspended" | "revoked" | null;
+		agentName: string;
 		scopes: string[];
 		validUntil: string | null;
 		offerExpiresAt: string | null;
@@ -65,6 +66,7 @@ export interface AuthenticatedUser {
 			| "credential_suspended"
 			| "credential_revoked";
 		status: "active" | "suspended" | "revoked" | null;
+		agentName: string;
 		scopes: string[];
 		validUntil: string | null;
 		offerExpiresAt: string | null;

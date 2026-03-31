@@ -117,6 +117,7 @@ interface BookingSuccess {
 	bookedBy: "user" | "agent";
 	authorizeUrl?: string;
 	delegatorName?: string;
+	agentName?: string;
 }
 
 function EventDetailPage() {
@@ -158,6 +159,7 @@ function EventDetailPage() {
 		onSuccess: (data) => {
 			const delegatorName =
 				"delegatorName" in data ? data.delegatorName : undefined;
+			const agentName = "agentName" in data ? data.agentName : undefined;
 			setBookingSuccess({
 				id: data.id,
 				quantity: data.quantity,
@@ -165,6 +167,7 @@ function EventDetailPage() {
 				bookedBy: data.bookedBy as "user" | "agent",
 				authorizeUrl: "authorizeUrl" in data ? data.authorizeUrl : undefined,
 				delegatorName,
+				agentName,
 			});
 			queryClient.invalidateQueries({ queryKey: ["bookings"] });
 			queryClient.invalidateQueries({ queryKey: ["event", eventId] });
@@ -573,7 +576,11 @@ function BookingSuccessView({
 						/>
 						<DetailRow
 							label="Booked By"
-							value={booking.bookedBy === "agent" ? "AI Agent" : "You"}
+							value={
+								booking.bookedBy === "agent"
+									? (booking.agentName ?? "AI Agent")
+									: "You"
+							}
 						/>
 						<DetailRow label="Status" value={booking.status} />
 						{booking.delegatorName && (

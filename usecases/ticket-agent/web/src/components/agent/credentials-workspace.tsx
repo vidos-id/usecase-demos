@@ -27,6 +27,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { apiClient } from "@/lib/api-client";
 import type { AuthenticatedUser } from "@/routes/_app/_auth";
 
@@ -35,6 +36,7 @@ type ManagedCredential = AuthenticatedUser["delegatedCredentials"][number];
 
 interface DelegationOfferResult {
 	delegationId: string;
+	agentName: string;
 	credentialOffer: Record<string, unknown>;
 	credentialOfferUri: string;
 	credentialOfferDeepLink: string;
@@ -90,6 +92,7 @@ export function CredentialsWorkspace({
 }) {
 	const queryClient = useQueryClient();
 	const [copiedField, setCopiedField] = useState<string | null>(null);
+	const [agentName, setAgentName] = useState("");
 	const userQuery = useQuery({
 		queryKey: ["me"],
 		queryFn: async () => {
@@ -119,6 +122,7 @@ export function CredentialsWorkspace({
 		mutationFn: async () => {
 			const res = await apiClient.api.delegation.issue.$post({
 				json: {
+					agentName: agentName.trim(),
 					scopes: [BOOKING_SCOPE.id],
 				},
 			});
@@ -133,6 +137,7 @@ export function CredentialsWorkspace({
 		},
 		onSuccess: () => {
 			setCopiedField(null);
+			setAgentName("");
 			refreshUser();
 			toast.success("Delegation offer created successfully");
 		},
@@ -246,6 +251,8 @@ export function CredentialsWorkspace({
 				<OnboardSection
 					isCreating={issueMutation.isPending}
 					onCreateOffer={() => issueMutation.mutate()}
+					agentName={agentName}
+					onAgentNameChange={setAgentName}
 					hasPendingOffer={latestPendingCredential !== null}
 					latestPendingCredential={latestPendingCredential}
 					copiedField={copiedField}
@@ -258,15 +265,14 @@ export function CredentialsWorkspace({
 	return (
 		<div className="space-y-5 animate-slide-up">
 			<div className="flex items-center justify-between gap-3">
-				<div className="flex items-baseline gap-3">
+				<div>
 					<h2 className="text-base font-semibold tracking-tight">
 						Issued Credentials
 					</h2>
-					{completedCredentials.length > 0 && (
-						<span className="text-xs text-muted-foreground/60 font-mono">
-							{completedCredentials.length}
-						</span>
-					)}
+					<p className="text-sm text-muted-foreground">
+						Active credentials are listed first, followed by suspended and
+						revoked ones.
+					</p>
 				</div>
 				<Button asChild size="sm" className="shrink-0 gap-1.5">
 					<Link to="/agent/onboard">
@@ -318,6 +324,8 @@ export function CredentialsWorkspace({
 function OnboardSection({
 	isCreating,
 	onCreateOffer,
+	agentName,
+	onAgentNameChange,
 	hasPendingOffer,
 	latestPendingCredential,
 	copiedField,
@@ -325,6 +333,8 @@ function OnboardSection({
 }: {
 	isCreating: boolean;
 	onCreateOffer: () => void;
+	agentName: string;
+	onAgentNameChange: (value: string) => void;
 	hasPendingOffer: boolean;
 	latestPendingCredential: ManagedCredential | null;
 	copiedField: string | null;
@@ -354,10 +364,23 @@ function OnboardSection({
 									: "Generate an OID4VCI credential offer for the agent wallet. Share the offer link or deep link after creation."}
 							</CardDescription>
 						</CardHeader>
-						<CardContent>
+						<CardContent className="space-y-4">
+							<div className="space-y-2">
+								<div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+									Delegated Agent Name
+								</div>
+								<Input
+									aria-label="Delegated Agent Name"
+									value={agentName}
+									onChange={(event) => onAgentNameChange(event.target.value)}
+									placeholder="Ticket Booker Alpha"
+									maxLength={80}
+									disabled={isCreating}
+								/>
+							</div>
 							<Button
 								onClick={onCreateOffer}
-								disabled={isCreating}
+								disabled={isCreating || agentName.trim().length === 0}
 								className="w-full sm:w-auto h-10 text-sm font-semibold gap-2 group"
 							>
 								{isCreating ? (
@@ -438,7 +461,7 @@ function PendingOfferCard({
 						<div className="flex flex-wrap items-center justify-between gap-2">
 							<CardTitle className="text-sm flex items-center gap-2">
 								<Clock className="h-3.5 w-3.5 text-muted-foreground" />
-								Pending Offer
+								{credential.agentName}
 								<span className="font-mono text-xs text-muted-foreground/60">
 									{shortId(credential.delegationId)}
 								</span>
@@ -463,6 +486,7 @@ function PendingOfferCard({
 									value={formatDateTime(credential.validUntil)}
 								/>
 							)}
+							<DetailInline label="Agent" value={credential.agentName} />
 							<DetailInline
 								label="Scopes"
 								value={credential.scopes.join(", ")}
@@ -597,7 +621,7 @@ function CredentialCard({
 							<div className="min-w-0">
 								<div className="flex items-center gap-2">
 									<span className="text-sm font-semibold tracking-tight truncate">
-										Delegation
+										{credential.agentName}
 									</span>
 									<span className="font-mono text-[11px] text-muted-foreground/50 truncate">
 										{shortId(credential.delegationId)}
