@@ -7,6 +7,7 @@ import {
 	exchangeDelegationOfferToken,
 	getIssuerJwks,
 	getIssuerMetadata,
+	getStatusListToken,
 	issueDelegationCredentialFromProof,
 } from "../services/issuer";
 
@@ -51,6 +52,12 @@ export const issuerRouter = new Hono()
 	.get("/.well-known/openid-credential-issuer", (c) =>
 		c.json(getIssuerMetadata()),
 	)
+	.get("/status-lists/agent-delegation", async (c) => {
+		const token = await getStatusListToken();
+		c.header("Content-Type", "application/statuslist+jwt");
+		c.header("Cache-Control", "no-store");
+		return c.body(token);
+	})
 	.post("/token", zValidator("form", tokenRequestBodySchema), async (c) => {
 		try {
 			const tokenResponse = exchangeDelegationOfferToken(c.req.valid("form"));

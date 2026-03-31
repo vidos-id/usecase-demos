@@ -5,14 +5,17 @@ import {
 	ArrowRight,
 	CalendarDays,
 	CheckCircle2,
+	Clock,
 	Loader2,
 	MapPin,
 	Minus,
 	Plus,
 	Shield,
+	ShieldCheck,
 	Sparkles,
 	Tag,
 	Ticket,
+	Users,
 } from "lucide-react";
 import { useState } from "react";
 import { EventImage } from "@/components/event-image";
@@ -38,31 +41,47 @@ type CategoryKey = "concert" | "sports" | "festival" | "theatre" | "comedy";
 
 const categoryStyles: Record<
 	CategoryKey,
-	{ gradient: string; badge: string; icon: string }
+	{
+		gradient: string;
+		overlayGradient: string;
+		badge: string;
+		accent: string;
+		icon: string;
+	}
 > = {
 	concert: {
 		gradient: "from-violet-600 via-purple-500 to-fuchsia-500",
-		badge: "border-violet-200 bg-violet-50 text-violet-700",
+		overlayGradient: "from-violet-950/90 via-violet-950/60 to-transparent",
+		badge: "border-violet-300/40 bg-violet-500/20 text-violet-100",
+		accent: "text-violet-400",
 		icon: "🎵",
 	},
 	sports: {
 		gradient: "from-emerald-600 via-green-500 to-teal-400",
-		badge: "border-emerald-200 bg-emerald-50 text-emerald-700",
+		overlayGradient: "from-emerald-950/90 via-emerald-950/60 to-transparent",
+		badge: "border-emerald-300/40 bg-emerald-500/20 text-emerald-100",
+		accent: "text-emerald-400",
 		icon: "⚽",
 	},
 	festival: {
 		gradient: "from-amber-500 via-orange-500 to-red-400",
-		badge: "border-amber-200 bg-amber-50 text-amber-700",
+		overlayGradient: "from-amber-950/90 via-amber-950/60 to-transparent",
+		badge: "border-amber-300/40 bg-amber-500/20 text-amber-100",
+		accent: "text-amber-400",
 		icon: "🎪",
 	},
 	theatre: {
 		gradient: "from-rose-500 via-pink-500 to-fuchsia-400",
-		badge: "border-rose-200 bg-rose-50 text-rose-700",
+		overlayGradient: "from-rose-950/90 via-rose-950/60 to-transparent",
+		badge: "border-rose-300/40 bg-rose-500/20 text-rose-100",
+		accent: "text-rose-400",
 		icon: "🎭",
 	},
 	comedy: {
 		gradient: "from-yellow-500 via-amber-400 to-orange-300",
-		badge: "border-yellow-200 bg-yellow-50 text-yellow-700",
+		overlayGradient: "from-yellow-950/90 via-yellow-950/60 to-transparent",
+		badge: "border-yellow-300/40 bg-yellow-500/20 text-yellow-100",
+		accent: "text-yellow-400",
 		icon: "😂",
 	},
 };
@@ -77,6 +96,13 @@ function formatDate(dateStr: string): string {
 		day: "numeric",
 		month: "long",
 		year: "numeric",
+	});
+}
+
+function formatTime(dateStr: string): string {
+	return new Date(dateStr).toLocaleTimeString("en-GB", {
+		hour: "2-digit",
+		minute: "2-digit",
 	});
 }
 
@@ -169,116 +195,164 @@ function EventDetailPage() {
 		(event as { availableTickets: number }).availableTickets,
 		10,
 	);
+	const venue = (event as { venue: string }).venue;
+	const city = (event as { city: string }).city;
+	const date = (event as { date: string }).date;
+	const description = (event as { description: string }).description;
+	const priceEur = (event as { priceEur: number }).priceEur;
+	const availableTickets = (event as { availableTickets: number })
+		.availableTickets;
+	const identityRequired = (event as { identityVerificationRequired: boolean })
+		.identityVerificationRequired;
 
 	return (
-		<div className="space-y-8 animate-slide-up">
+		<div className="animate-slide-up">
 			{/* Back link */}
 			<Link
 				to="/events"
-				className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group"
+				className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group mb-5"
 			>
 				<ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
-				Back to Events
+				All Events
 			</Link>
 
-			{/* Hero banner */}
-			<div
-				className={`relative overflow-hidden rounded-3xl border border-border/40 bg-gradient-to-br ${style.gradient} shadow-xl shadow-primary/10`}
-			>
-				<div className="absolute inset-0 opacity-15">
-					<div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-white/20" />
-					<div className="absolute bottom-8 left-8 w-32 h-32 rounded-full bg-white/10" />
-					<div className="absolute top-1/3 left-1/3 w-48 h-48 rounded-full bg-white/10" />
-					<div className="absolute bottom-0 right-1/4 w-20 h-20 rounded-full bg-white/15" />
-				</div>
+			{/* -------------------------------------------------------- */}
+			{/*  Cinematic hero                                          */}
+			{/* -------------------------------------------------------- */}
+			<div className="relative overflow-hidden rounded-2xl border border-border/30 shadow-2xl shadow-black/8 -mx-1">
+				{/* Full-bleed event image */}
+				<div className="relative h-[340px] sm:h-[400px] lg:h-[420px]">
+					<EventImage
+						eventId={eventId}
+						eventName={event.name}
+						priority
+						variant="hero"
+						className="absolute inset-0"
+					/>
+					{/* Dark gradient overlay for text readability */}
+					<div
+						className={`absolute inset-0 bg-gradient-to-r ${style.overlayGradient}`}
+					/>
+					<div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
-				<div className="relative grid overflow-hidden lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
-					<div className="px-6 py-8 sm:px-10 sm:py-10 lg:py-12">
+					{/* Hero content */}
+					<div className="relative h-full flex flex-col justify-end p-6 sm:p-8 lg:p-10">
 						<div className="max-w-2xl space-y-4">
-							<span className="text-5xl drop-shadow-lg">{style.icon}</span>
+							{/* Category badge */}
 							<Badge
 								variant="outline"
-								className="border-white/30 bg-white/15 text-white backdrop-blur-sm text-xs"
+								className={`${style.badge} backdrop-blur-md text-xs font-semibold tracking-wide w-fit`}
 							>
-								<Tag className="h-2.5 w-2.5" />
+								<span className="mr-0.5">{style.icon}</span>
 								{(event as { category: string }).category}
 							</Badge>
-							<h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white leading-tight">
+
+							{/* Event title */}
+							<h1 className="font-brand text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-[1.1] drop-shadow-lg">
 								{event.name}
 							</h1>
-							<div className="flex flex-wrap items-center gap-4 text-white/80 text-sm">
+
+							{/* Meta row */}
+							<div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-white/75 text-sm">
 								<div className="flex items-center gap-1.5">
-									<MapPin className="h-4 w-4" />
+									<MapPin className="h-3.5 w-3.5 opacity-70" />
 									<span>
-										{(event as { venue: string }).venue},{" "}
-										{(event as { city: string }).city}
+										{venue}, {city}
 									</span>
 								</div>
+								<span className="hidden sm:inline text-white/30">|</span>
 								<div className="flex items-center gap-1.5">
-									<CalendarDays className="h-4 w-4" />
-									<span>{formatDate((event as { date: string }).date)}</span>
+									<CalendarDays className="h-3.5 w-3.5 opacity-70" />
+									<span>{formatDate(date)}</span>
+								</div>
+								<span className="hidden sm:inline text-white/30">|</span>
+								<div className="flex items-center gap-1.5">
+									<Clock className="h-3.5 w-3.5 opacity-70" />
+									<span>{formatTime(date)}</span>
 								</div>
 							</div>
 						</div>
 					</div>
-					<div className="relative min-h-[300px] border-t border-white/10 bg-white/10 lg:min-h-[380px] lg:border-t-0 lg:border-l lg:border-white/10">
-						<EventImage
-							eventId={eventId}
-							eventName={event.name}
-							priority
-							variant="hero"
-						/>
-					</div>
+				</div>
+
+				{/* Info strip below the hero image */}
+				<div className="grid grid-cols-3 divide-x divide-border/50 bg-card border-t border-border/30">
+					<InfoStripItem
+						label="Price"
+						value={`€${priceEur}`}
+						icon={<Tag className="h-3.5 w-3.5" />}
+					/>
+					<InfoStripItem
+						label="Available"
+						value={`${availableTickets.toLocaleString()} tickets`}
+						icon={<Ticket className="h-3.5 w-3.5" />}
+					/>
+					<InfoStripItem
+						label="Verification"
+						value={identityRequired ? "Required" : "Not Required"}
+						icon={<Shield className="h-3.5 w-3.5" />}
+					/>
 				</div>
 			</div>
 
-			{/* Content grid */}
-			<div className="grid lg:grid-cols-3 gap-8">
-				{/* Left: Event details */}
-				<div className="lg:col-span-2 space-y-6">
-					{/* Description */}
-					<Card className="border-border/50 bg-white/70 backdrop-blur-sm">
-						<CardContent className="p-6 space-y-4">
-							<h2 className="font-semibold tracking-tight flex items-center gap-2">
-								<Sparkles className="h-4 w-4 text-primary/60" />
-								About This Event
-							</h2>
-							<p className="text-sm text-muted-foreground leading-relaxed">
-								{(event as { description: string }).description}
-							</p>
-						</CardContent>
-					</Card>
+			{/* -------------------------------------------------------- */}
+			{/*  Content grid                                            */}
+			{/* -------------------------------------------------------- */}
+			<div className="grid lg:grid-cols-[1fr_380px] gap-8 mt-8">
+				{/* Left: About */}
+				<div className="space-y-6">
+					<div className="space-y-4">
+						<h2 className="font-brand text-xl font-bold tracking-tight flex items-center gap-2">
+							<Sparkles className="h-4 w-4 text-primary/50" />
+							About This Event
+						</h2>
+						<p className="text-[15px] text-muted-foreground leading-relaxed">
+							{description}
+						</p>
+					</div>
 
-					{/* Quick info */}
-					<div className="grid sm:grid-cols-3 gap-4">
-						<InfoTile
-							label="Price"
-							value={`€${(event as { priceEur: number }).priceEur}`}
-							icon={<Tag className="h-4 w-4" />}
+					<Separator className="bg-border/40" />
+
+					{/* Detail chips */}
+					<div className="flex flex-wrap gap-3">
+						<DetailChip
+							icon={<MapPin className="h-3.5 w-3.5" />}
+							label={`${venue}, ${city}`}
 						/>
-						<InfoTile
-							label="Available"
-							value={`${(event as { availableTickets: number }).availableTickets.toLocaleString()} tickets`}
-							icon={<Ticket className="h-4 w-4" />}
+						<DetailChip
+							icon={<CalendarDays className="h-3.5 w-3.5" />}
+							label={formatDate(date)}
 						/>
-						<InfoTile
-							label="Verification"
-							value={
-								(event as { identityVerificationRequired: boolean })
-									.identityVerificationRequired
-									? "Required"
-									: "Not Required"
-							}
-							icon={<Shield className="h-4 w-4" />}
+						<DetailChip
+							icon={<Users className="h-3.5 w-3.5" />}
+							label={`${availableTickets.toLocaleString()} seats left`}
 						/>
+						{identityRequired && (
+							<DetailChip
+								icon={<ShieldCheck className="h-3.5 w-3.5" />}
+								label="ID verification required"
+							/>
+						)}
 					</div>
 				</div>
 
 				{/* Right: Booking card */}
 				<div className="lg:col-span-1">
-					<Card className="border-border/50 bg-white/70 backdrop-blur-sm shadow-lg shadow-violet-900/[0.04] sticky top-40">
+					<Card className="border-border/50 bg-card shadow-xl shadow-primary/[0.04] sticky top-36 overflow-hidden">
+						{/* Accent top bar */}
+						<div className={`h-1 bg-gradient-to-r ${style.gradient}`} />
 						<CardContent className="p-6 space-y-5">
-							<h2 className="font-semibold tracking-tight">Book Tickets</h2>
+							<div className="flex items-center justify-between">
+								<h2 className="font-brand text-lg font-bold tracking-tight">
+									Book Tickets
+								</h2>
+								<span className="text-2xl font-extrabold text-foreground tabular-nums">
+									€{priceEur}
+									<span className="text-xs font-normal text-muted-foreground ml-0.5">
+										/ticket
+									</span>
+								</span>
+							</div>
 
 							{!isVerified ? (
 								<VerificationRequired />
@@ -289,21 +363,23 @@ function EventDetailPage() {
 										<span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
 											Quantity
 										</span>
-										<div className="flex items-center gap-3">
+										<div className="flex items-center gap-3 bg-muted/40 rounded-lg px-3 py-2">
 											<Button
 												variant="outline"
 												size="icon-sm"
+												className="rounded-md border-border/60 bg-card hover:bg-background"
 												onClick={() => setQuantity((q) => Math.max(1, q - 1))}
 												disabled={quantity <= 1}
 											>
 												<Minus className="h-3.5 w-3.5" />
 											</Button>
-											<span className="text-lg font-bold w-8 text-center tabular-nums">
+											<span className="text-lg font-bold w-8 text-center tabular-nums select-none">
 												{quantity}
 											</span>
 											<Button
 												variant="outline"
 												size="icon-sm"
+												className="rounded-md border-border/60 bg-card hover:bg-background"
 												onClick={() =>
 													setQuantity((q) => Math.min(maxTickets, q + 1))
 												}
@@ -311,31 +387,26 @@ function EventDetailPage() {
 											>
 												<Plus className="h-3.5 w-3.5" />
 											</Button>
+											<span className="text-xs text-muted-foreground ml-auto">
+												max {maxTickets}
+											</span>
 										</div>
 									</div>
 
-									<Separator className="bg-border/40" />
+									<Separator className="bg-border/30" />
 
 									{/* Price breakdown */}
-									<div className="space-y-2">
+									<div className="space-y-2.5">
 										<div className="flex items-center justify-between text-sm text-muted-foreground">
 											<span>
-												€{(event as { priceEur: number }).priceEur} × {quantity}
+												{quantity} x €{priceEur}
 											</span>
-											<span>
-												€
-												{(
-													(event as { priceEur: number }).priceEur * quantity
-												).toFixed(2)}
-											</span>
+											<span>€{(priceEur * quantity).toFixed(2)}</span>
 										</div>
-										<div className="flex items-center justify-between font-bold text-lg">
-											<span>Total</span>
-											<span className="text-primary">
-												€
-												{(
-													(event as { priceEur: number }).priceEur * quantity
-												).toFixed(2)}
+										<div className="flex items-center justify-between">
+											<span className="text-sm font-semibold">Total</span>
+											<span className="text-xl font-extrabold tabular-nums text-primary">
+												€{(priceEur * quantity).toFixed(2)}
 											</span>
 										</div>
 									</div>
@@ -344,12 +415,12 @@ function EventDetailPage() {
 									<Button
 										onClick={() => bookingMutation.mutate()}
 										disabled={bookingMutation.isPending}
-										className="w-full h-11 text-sm font-semibold group bg-gradient-to-r from-primary to-violet-700 hover:from-primary/90 hover:to-violet-700/90 shadow-md shadow-primary/15"
+										className={`w-full h-12 text-sm font-bold group bg-gradient-to-r ${style.gradient} hover:opacity-90 shadow-lg shadow-primary/15 transition-all duration-200 active:scale-[0.98]`}
 									>
 										{bookingMutation.isPending ? (
 											<>
 												<Loader2 className="h-4 w-4 animate-spin" />
-												Booking…
+												Booking...
 											</>
 										) : (
 											<>
@@ -362,14 +433,14 @@ function EventDetailPage() {
 									</Button>
 
 									{bookingMutation.isError && (
-										<p className="text-xs text-destructive text-center">
+										<p className="text-xs text-destructive text-center animate-fade-in">
 											{bookingMutation.error.message}
 										</p>
 									)}
 
 									{/* Note */}
-									<div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-primary/[0.03] border border-primary/10">
-										<Shield className="h-3.5 w-3.5 text-primary/50 mt-0.5 shrink-0" />
+									<div className="flex items-start gap-2.5 px-3 py-2.5 rounded-lg bg-muted/50 border border-border/30">
+										<Shield className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
 										<p className="text-[11px] text-muted-foreground leading-relaxed">
 											Your verified identity will be used to confirm this
 											booking.
@@ -386,10 +457,10 @@ function EventDetailPage() {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Info tile                                                          */
+/*  Info strip item (horizontal strip below hero)                      */
 /* ------------------------------------------------------------------ */
 
-function InfoTile({
+function InfoStripItem({
 	label,
 	value,
 	icon,
@@ -399,17 +470,28 @@ function InfoTile({
 	icon: React.ReactNode;
 }) {
 	return (
-		<Card className="border-border/40 bg-white/60">
-			<CardContent className="p-4 space-y-2">
-				<div className="flex items-center gap-2 text-muted-foreground">
-					{icon}
-					<span className="text-xs font-mono uppercase tracking-wider">
-						{label}
-					</span>
-				</div>
-				<p className="font-semibold tracking-tight">{value}</p>
-			</CardContent>
-		</Card>
+		<div className="flex flex-col items-center gap-1 py-4 px-3">
+			<div className="flex items-center gap-1.5 text-muted-foreground">
+				{icon}
+				<span className="text-[10px] sm:text-xs font-mono uppercase tracking-wider">
+					{label}
+				</span>
+			</div>
+			<p className="text-sm font-bold tracking-tight text-center">{value}</p>
+		</div>
+	);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Detail chip                                                        */
+/* ------------------------------------------------------------------ */
+
+function DetailChip({ icon, label }: { icon: React.ReactNode; label: string }) {
+	return (
+		<span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/60 border border-border/40 rounded-full px-3 py-1.5">
+			{icon}
+			{label}
+		</span>
 	);
 }
 
@@ -459,20 +541,20 @@ function BookingSuccessView({
 	eventName: string;
 }) {
 	return (
-		<div className="max-w-lg mx-auto space-y-6 animate-slide-up">
+		<div className="max-w-lg mx-auto space-y-6 animate-slide-up pt-4">
 			{/* Success card */}
-			<Card className="border-emerald-200/60 bg-gradient-to-br from-emerald-50/50 to-white shadow-xl shadow-emerald-900/[0.06] overflow-hidden">
+			<Card className="border-emerald-200/60 bg-gradient-to-br from-emerald-50/60 to-white shadow-2xl shadow-emerald-900/8 overflow-hidden">
 				{/* Decorative top strip */}
-				<div className="h-2 bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400" />
+				<div className="h-1.5 bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400" />
 
 				<CardContent className="p-8 space-y-6">
 					{/* Icon + heading */}
 					<div className="flex flex-col items-center gap-4 pt-2">
-						<div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-emerald-100 to-emerald-50 flex items-center justify-center border border-emerald-200/50 shadow-lg shadow-emerald-100/50">
+						<div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-emerald-100 to-emerald-50 flex items-center justify-center border border-emerald-200/50 shadow-lg shadow-emerald-100/50 animate-scale-in">
 							<CheckCircle2 className="h-10 w-10 text-emerald-600" />
 						</div>
 						<div className="text-center space-y-1.5">
-							<h2 className="text-xl font-bold tracking-tight text-emerald-900">
+							<h2 className="font-brand text-xl font-bold tracking-tight text-emerald-900">
 								Booking Confirmed!
 							</h2>
 							<p className="text-sm text-emerald-700/70">
@@ -509,7 +591,7 @@ function BookingSuccessView({
 						<div className="rounded-xl border border-amber-200/50 bg-amber-50/70 px-4 py-3 text-sm text-amber-900">
 							Your agent booking is pending wallet presentation. Finish the
 							verification flow with the returned authorization request, then
-							check `My Bookings` for the final status.
+							check My Bookings for the final status.
 						</div>
 					)}
 
@@ -517,7 +599,7 @@ function BookingSuccessView({
 					<div className="flex flex-col gap-2.5 pt-2">
 						<Button
 							asChild
-							className="w-full h-11 text-sm font-semibold group bg-gradient-to-r from-primary to-violet-700 hover:from-primary/90 hover:to-violet-700/90 shadow-md shadow-primary/15"
+							className="w-full h-11 text-sm font-semibold group bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-md shadow-emerald-600/15"
 						>
 							<Link to="/bookings">
 								<Ticket className="h-4 w-4" />
@@ -575,22 +657,45 @@ function DetailRow({
 
 function DetailSkeleton() {
 	return (
-		<div className="space-y-8 animate-slide-up">
-			<div className="h-4 w-32 bg-muted/40 rounded animate-pulse" />
-			<div className="h-48 rounded-2xl bg-gradient-to-br from-muted/60 to-muted/30 animate-pulse" />
-			<div className="grid lg:grid-cols-3 gap-8">
-				<div className="lg:col-span-2 space-y-6">
-					<div className="h-40 rounded-xl bg-muted/30 animate-pulse" />
-					<div className="grid sm:grid-cols-3 gap-4">
-						{["price", "available", "verification"].map((key) => (
+		<div className="animate-slide-up">
+			{/* Back link skeleton */}
+			<div className="h-4 w-24 bg-muted/40 rounded mb-5 animate-pulse" />
+
+			{/* Hero skeleton */}
+			<div className="rounded-2xl overflow-hidden border border-border/30">
+				<div className="h-[340px] sm:h-[400px] lg:h-[420px] bg-gradient-to-br from-muted/60 to-muted/30 animate-pulse" />
+				<div className="grid grid-cols-3 divide-x divide-border/50 bg-card border-t border-border/30">
+					{["price", "available", "verification"].map((key) => (
+						<div key={key} className="flex flex-col items-center gap-2 py-4">
+							<div className="h-3 w-12 bg-muted/50 rounded animate-pulse" />
+							<div className="h-4 w-20 bg-muted/40 rounded animate-pulse" />
+						</div>
+					))}
+				</div>
+			</div>
+
+			{/* Content skeleton */}
+			<div className="grid lg:grid-cols-[1fr_380px] gap-8 mt-8">
+				<div className="space-y-6">
+					<div className="space-y-4">
+						<div className="h-6 w-48 bg-muted/40 rounded animate-pulse" />
+						<div className="space-y-2">
+							<div className="h-4 w-full bg-muted/30 rounded animate-pulse" />
+							<div className="h-4 w-5/6 bg-muted/30 rounded animate-pulse" />
+							<div className="h-4 w-4/6 bg-muted/30 rounded animate-pulse" />
+						</div>
+					</div>
+					<div className="h-px bg-border/40" />
+					<div className="flex gap-3">
+						{[1, 2, 3].map((i) => (
 							<div
-								key={key}
-								className="h-24 rounded-xl bg-muted/30 animate-pulse"
+								key={i}
+								className="h-8 w-32 bg-muted/30 rounded-full animate-pulse"
 							/>
 						))}
 					</div>
 				</div>
-				<div className="h-72 rounded-xl bg-muted/30 animate-pulse" />
+				<div className="h-80 rounded-xl bg-muted/30 animate-pulse border border-border/30" />
 			</div>
 		</div>
 	);
@@ -602,12 +707,12 @@ function DetailSkeleton() {
 
 function EventNotFound() {
 	return (
-		<div className="flex flex-col items-center justify-center py-20 space-y-4">
-			<div className="h-16 w-16 rounded-2xl bg-secondary/60 flex items-center justify-center border border-border/40">
-				<CalendarDays className="h-7 w-7 text-muted-foreground/50" />
+		<div className="flex flex-col items-center justify-center py-24 space-y-5 animate-fade-in">
+			<div className="h-16 w-16 rounded-2xl bg-muted/40 flex items-center justify-center border border-border/30">
+				<CalendarDays className="h-7 w-7 text-muted-foreground/40" />
 			</div>
 			<div className="text-center space-y-1.5">
-				<h3 className="font-semibold tracking-tight text-foreground/80">
+				<h3 className="font-brand text-lg font-bold tracking-tight text-foreground/80">
 					Event not found
 				</h3>
 				<p className="text-sm text-muted-foreground max-w-xs">

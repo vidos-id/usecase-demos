@@ -78,10 +78,15 @@ async function getRequestBody(request: Request): Promise<unknown> {
  */
 function withRequiredAccept(request: Request): Request {
 	const accept = request.headers.get("accept") ?? "";
-	if (accept.includes("application/json") && accept.includes("text/event-stream")) {
+	if (
+		accept.includes("application/json") &&
+		accept.includes("text/event-stream")
+	) {
 		return request;
 	}
-	const parts = [accept, "application/json", "text/event-stream"].filter(Boolean);
+	const parts = [accept, "application/json", "text/event-stream"].filter(
+		Boolean,
+	);
 	const headers = new Headers(request.headers);
 	headers.set("accept", [...new Set(parts)].join(", "));
 	return new Request(request, { headers });
@@ -145,7 +150,10 @@ async function handleMcpRequest(request: Request): Promise<Response> {
 				const uri = params?.uri as string | undefined;
 				const requestId = (body as Record<string, unknown>).id ?? null;
 				if (uri === VERIFICATION_WIDGET_URI) {
-					logDebug("http", "serving static resource without session", { uri, requestId });
+					logDebug("http", "serving static resource without session", {
+						uri,
+						requestId,
+					});
 					const widgetHtml = await getBuiltWidgetHtml();
 					const widgetDomain = getWidgetDomain();
 					const widgetCsp = getWidgetCsp();
@@ -176,7 +184,10 @@ async function handleMcpRequest(request: Request): Promise<Response> {
 			return Response.json(
 				{
 					jsonrpc: "2.0",
-					error: { code: -32000, message: "Bad Request: Initialization required" },
+					error: {
+						code: -32000,
+						message: "Bad Request: Initialization required",
+					},
 					id: null,
 				},
 				{ status: 400 },
@@ -250,10 +261,16 @@ async function startServer() {
 				url.pathname === "/.well-known/oauth-protected-resource" ||
 				url.pathname === `/.well-known/oauth-protected-resource${mcpPath}`
 			) {
-				const baseUrl = process.env.PUBLIC_BASE_URL ?? `http://localhost:${port}`;
+				const baseUrl =
+					process.env.PUBLIC_BASE_URL ?? `http://localhost:${port}`;
 				return Response.json(
 					{ resource: baseUrl },
-					{ headers: { "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=3600" } },
+					{
+						headers: {
+							"Access-Control-Allow-Origin": "*",
+							"Cache-Control": "public, max-age=3600",
+						},
+					},
 				);
 			}
 
@@ -262,7 +279,10 @@ async function startServer() {
 					return await handleApiRequest(request);
 				} catch (error) {
 					console.error("Failed to handle API request:", error);
-					return Response.json({ success: false, message: "Internal server error" }, { status: 500 });
+					return Response.json(
+						{ success: false, message: "Internal server error" },
+						{ status: 500 },
+					);
 				}
 			}
 

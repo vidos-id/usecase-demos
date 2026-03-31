@@ -207,7 +207,7 @@
       "name": "ticket-agent-server",
       "dependencies": {
         "@hono/zod-validator": "^0.7.6",
-        "@vidos-id/issuer": "^0.4.0",
+        "@vidos-id/issuer": "^0.5.1",
         "drizzle-orm": "^0.45.1",
         "hono": "^4.11.9",
         "openapi-fetch": "^0.17.0",
@@ -947,7 +947,7 @@
 
     "@types/validate-npm-package-name": ["@types/validate-npm-package-name@4.0.2", "", {}, "sha512-lrpDziQipxCEeK5kWxvljWYhUvOiB2A9izZd9B2AFarYAkqZshb4lPbRs7zKEic6eGtH8V/2qJW+dPp9OtF6bw=="],
 
-    "@vidos-id/issuer": ["@vidos-id/issuer@0.4.0", "https://npm.pkg.github.com/download/@vidos-id/issuer/0.4.0/68874c9c481ab19b72de345c994f6de674f213ed", { "dependencies": { "@sd-jwt/core": "^0.19.0", "@sd-jwt/hash": "^0.19.0", "@sd-jwt/sd-jwt-vc": "^0.19.0", "jose": "^6.2.2", "zod": "^4.3.6" } }, "sha512-22gWwLqkBsQjxC086LdD+j7bx2QrQNkbVL98K11/1jrnKhxFf9qHlTTj/gzq3AZprn0nY2p6OponsC9JKiQQOg=="],
+    "@vidos-id/issuer": ["@vidos-id/issuer@0.5.1", "https://npm.pkg.github.com/download/@vidos-id/issuer/0.5.1/88256d6176316dec0326ee7f7844c24ee32e2f63", { "dependencies": { "@sd-jwt/core": "^0.19.0", "@sd-jwt/hash": "^0.19.0", "@sd-jwt/sd-jwt-vc": "^0.19.0", "jose": "^6.2.2", "zod": "^4.3.6" } }, "sha512-8qogE0Xt1VuK8HEo9JhP6xjbxV4PnZaivrOshlCdIY4ppI3+/Mf7jyr8nD52NxPuBEnQfGD93NTTIRn5A4zgBw=="],
 
     "@vitejs/plugin-react": ["@vitejs/plugin-react@5.1.4", "", { "dependencies": { "@babel/core": "^7.29.0", "@babel/plugin-transform-react-jsx-self": "^7.27.1", "@babel/plugin-transform-react-jsx-source": "^7.27.1", "@rolldown/pluginutils": "1.0.0-rc.3", "@types/babel__core": "^7.20.5", "react-refresh": "^0.18.0" }, "peerDependencies": { "vite": "^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0" } }, "sha512-VIcFLdRi/VYRU8OL/puL7QXMYafHmqOnwTZY50U1JPlCNj30PxCMx65c494b1K9be9hX83KVt0+gTEwTWLqToA=="],
 

@@ -21,7 +21,7 @@
 		"dev:ticket-agent": "turbo dev --filter=ticket-agent-web --filter=ticket-agent-server",
 		"build:demo-bank-client": "turbo build --filter=demo-bank-client",
 		"build:infrastructure": "turbo build --filter=infrastructure",
-		"lint": "biome lint .",
+		"lint": "biome lint --write .",
 		"format": "biome format . --write",
 		"check-types": "turbo check-types",
 		"test": "turbo test"

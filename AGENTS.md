@@ -25,6 +25,11 @@ bun run format       # biome format --write
 bunx shadcn@latest add <component> --cwd <path_to_workspace> --path src/components/ui # add shadcn component to workspace
 ```
 
+For database schema changes, use Drizzle generation commands from the owning workspace.
+- Update `src/db/schema.ts`, then run `bun run db:generate` in that workspace.
+- Commit the generated SQL and Drizzle `meta` snapshot/journal artifacts together.
+- Do not hand-write or manually edit Drizzle migration SQL or `meta` files unless the user explicitly asks for that.
+
 Do not run long-lived dev servers unless explicitly requested.
 
 ## Workspace Rules

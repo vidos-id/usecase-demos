@@ -12,21 +12,26 @@ export function getIssuerStateRecord() {
 		.get();
 }
 
-export function upsertIssuerState(trustMaterial: unknown) {
+export function upsertIssuerState(data: {
+	trustMaterial: unknown;
+	statusList?: unknown;
+}) {
 	const now = new Date().toISOString();
 
 	return db
 		.insert(issuerState)
 		.values({
 			id: DEFAULT_ISSUER_STATE_ID,
-			trustMaterial,
+			trustMaterial: data.trustMaterial,
+			statusList: data.statusList ?? null,
 			createdAt: now,
 			updatedAt: now,
 		})
 		.onConflictDoUpdate({
 			target: issuerState.id,
 			set: {
-				trustMaterial,
+				trustMaterial: data.trustMaterial,
+				statusList: data.statusList ?? null,
 				updatedAt: now,
 			},
 		})

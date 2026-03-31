@@ -1,8 +1,8 @@
 {
 	"version": "6",
 	"dialect": "sqlite",
-	"id": "f2921436-4116-4e6d-92ea-12920e704e98",
-	"prevId": "00000000-0000-0000-0000-000000000000",
+	"id": "95950d75-89a5-4eda-ba2b-8aec58e92dc9",
+	"prevId": "f2921436-4116-4e6d-92ea-12920e704e98",
 	"tables": {
 		"bookings": {
 			"name": "bookings",
@@ -248,6 +248,28 @@
 				},
 				"credential_status": {
 					"name": "credential_status",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"credential_status_value": {
+					"name": "credential_status_value",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false,
+					"default": 0
+				},
+				"credential_activated_at": {
+					"name": "credential_activated_at",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"credential_suspended_at": {
+					"name": "credential_suspended_at",
 					"type": "text",
 					"primaryKey": false,
 					"notNull": false,

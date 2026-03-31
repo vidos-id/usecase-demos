@@ -32,6 +32,11 @@ export function createDelegationSession(data: {
 			offerUri: data.offerUri,
 			preAuthorizedCode: data.preAuthorizedCode,
 			preAuthorizedCodeExpiresAt: data.preAuthorizedCodeExpiresAt,
+			credentialStatus: null,
+			credentialStatusValue: 0,
+			credentialActivatedAt: null,
+			credentialSuspendedAt: null,
+			credentialRevokedAt: null,
 			createdAt: now,
 		})
 		.returning()
@@ -57,6 +62,15 @@ export function getActiveDelegationSessionByUserId(userId: string) {
 			),
 		)
 		.get();
+}
+
+export function getDelegationSessionsByUserId(userId: string) {
+	return db
+		.select()
+		.from(delegationSessions)
+		.where(eq(delegationSessions.userId, userId))
+		.orderBy(delegationSessions.createdAt)
+		.all();
 }
 
 export function getDelegationSessionByPreAuthorizedCode(
@@ -128,6 +142,7 @@ export function markDelegationCredentialReceived(
 	id: string,
 	data: {
 		holderPublicKey: Record<string, unknown>;
+		credentialStatus: Record<string, unknown>;
 		accessTokenUsedAt: string;
 		lastNonceUsedAt: string;
 		credentialIssuedAt: string;
@@ -138,6 +153,11 @@ export function markDelegationCredentialReceived(
 		.set({
 			status: "credential_received",
 			holderPublicKey: data.holderPublicKey,
+			credentialStatus: data.credentialStatus,
+			credentialStatusValue: 0,
+			credentialActivatedAt: data.credentialIssuedAt,
+			credentialSuspendedAt: null,
+			credentialRevokedAt: null,
 			accessTokenUsedAt: data.accessTokenUsedAt,
 			lastNonceUsedAt: data.lastNonceUsedAt,
 			credentialIssuedAt: data.credentialIssuedAt,
@@ -147,26 +167,54 @@ export function markDelegationCredentialReceived(
 		.get();
 }
 
-export function revokePreviousDelegationSessions(
-	userId: string,
-	excludeId: string,
-) {
+export function revokeDelegationSession(id: string, revokedAt: string) {
 	return db
 		.update(delegationSessions)
-		.set({ status: "revoked" })
-		.where(
-			and(
-				eq(delegationSessions.userId, userId),
-				ne(delegationSessions.id, excludeId),
-				ne(delegationSessions.status, "revoked"),
-			),
-		)
-		.run();
+		.set({
+			status: "revoked",
+			credentialStatusValue: 2,
+			credentialRevokedAt: revokedAt,
+		})
+		.where(eq(delegationSessions.id, id))
+		.returning()
+		.get();
+}
+
+export function suspendDelegationSession(id: string, suspendedAt: string) {
+	return db
+		.update(delegationSessions)
+		.set({
+			status: "suspended",
+			credentialStatusValue: 1,
+			credentialSuspendedAt: suspendedAt,
+		})
+		.where(eq(delegationSessions.id, id))
+		.returning()
+		.get();
+}
+
+export function reactivateDelegationSession(id: string, activatedAt: string) {
+	return db
+		.update(delegationSessions)
+		.set({
+			status: "credential_received",
+			credentialStatusValue: 0,
+			credentialActivatedAt: activatedAt,
+			credentialSuspendedAt: null,
+		})
+		.where(eq(delegationSessions.id, id))
+		.returning()
+		.get();
 }
 
 export function isDelegationSessionRevoked(id: string): boolean {
 	const session = getDelegationSessionById(id);
 	return session?.status === "revoked";
+}
+
+export function isDelegationSessionSuspended(id: string): boolean {
+	const session = getDelegationSessionById(id);
+	return session?.status === "suspended";
 }
 
 export function getLatestDelegationSessionAwaitingCredential() {
@@ -186,20 +234,7 @@ export function getLatestDelegationSessionAwaitingCredential() {
 }
 
 export function getLatestDelegationSessionByUserId(userId: string) {
-	const sessions = db
-		.select()
-		.from(delegationSessions)
-		.where(
-			and(
-				eq(delegationSessions.userId, userId),
-				or(
-					eq(delegationSessions.status, "offer_created"),
-					eq(delegationSessions.status, "credential_received"),
-				),
-			),
-		)
-		.orderBy(delegationSessions.createdAt)
-		.all();
+	const sessions = getDelegationSessionsByUserId(userId);
 
 	return sessions[sessions.length - 1];
 }

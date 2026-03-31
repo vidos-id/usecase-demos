@@ -19,12 +19,25 @@ CREATE INDEX `idx_bookings_delegation_session` ON `bookings` (`delegation_sessio
 CREATE TABLE `delegation_sessions` (
 	`id` text PRIMARY KEY NOT NULL,
 	`user_id` text NOT NULL,
-	`status` text DEFAULT 'pending_verification' NOT NULL,
-	`authorization_id` text,
+	`status` text DEFAULT 'offer_created' NOT NULL,
 	`verified_claims` text,
-	`agent_public_key` text,
 	`scopes` text,
-	`issued_credential` text,
+	`valid_until` text,
+	`offer` text,
+	`offer_uri` text,
+	`pre_authorized_code` text,
+	`pre_authorized_code_expires_at` text,
+	`pre_authorized_code_used_at` text,
+	`access_token` text,
+	`access_token_expires_at` text,
+	`access_token_used_at` text,
+	`last_nonce` text,
+	`last_nonce_expires_at` text,
+	`last_nonce_used_at` text,
+	`holder_public_key` text,
+	`credential_status` text,
+	`credential_revoked_at` text,
+	`credential_issued_at` text,
 	`created_at` text NOT NULL,
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
@@ -33,6 +46,7 @@ CREATE INDEX `idx_delegation_sessions_user` ON `delegation_sessions` (`user_id`)
 CREATE TABLE `issuer_state` (
 	`id` text PRIMARY KEY NOT NULL,
 	`trust_material` text NOT NULL,
+	`status_list` text,
 	`created_at` text NOT NULL,
 	`updated_at` text NOT NULL
 );

@@ -1,14 +1,14 @@
 import {
 	type AccessTokenRecord,
 	type CredentialOffer,
-	type CredentialRequest,
-	credentialRequestSchema,
+	type CredentialStatus,
 	DemoIssuer,
 	generateIssuerTrustMaterial,
 	IssuerError,
 	jwkSchema,
 	type NonceRecord,
 	type PreAuthorizedGrantRecord,
+	type StatusListRecord,
 	serializeCredentialOfferUri,
 	signingAlgSchema,
 	tokenRequestSchema,
@@ -35,6 +35,10 @@ const ISSUER_NOT_CONFIGURED_ERROR =
 	"Issuer service not configured: install and wire up @vidos-id/issuer.";
 const CREDENTIAL_CONFIGURATION_ID = "agent_delegation";
 const OID4VCI_TTL_SECONDS = 300;
+const STATUS_LIST_BITS = 2 as const;
+const STATUS_LIST_ACTIVE = 0;
+const STATUS_LIST_SUSPENDED = 1;
+const STATUS_LIST_REVOKED = 2;
 
 const storedTrustMaterialSchema = z
 	.object({
@@ -52,8 +56,25 @@ const storedTrustMaterialSchema = z
 
 type StoredTrustMaterial = z.infer<typeof storedTrustMaterialSchema>;
 
+const credentialStatusSchema = z.object({
+	status_list: z.object({
+		idx: z.number().int().nonnegative(),
+		uri: z.string().url(),
+	}),
+});
+
+const storedStatusListSchema = z.object({
+	uri: z.string().url(),
+	bits: z.union([z.literal(1), z.literal(2), z.literal(4), z.literal(8)]),
+	statuses: z.array(z.number().int().min(0).max(255)).default([]),
+	ttl: z.number().int().positive().optional(),
+	expiresAt: z.number().int().positive().optional(),
+	aggregation_uri: z.string().min(1).optional(),
+});
+
 let trustMaterial: StoredTrustMaterial | null = null;
 let issuer: DemoIssuer | null = null;
+let statusList: StatusListRecord | null = null;
 
 function getIssuerPublicUrl(): string {
 	return env.ISSUER_PUBLIC_URL ?? `http://localhost:${env.PORT}`;
@@ -94,6 +115,34 @@ function requireIssuer(): DemoIssuer {
 	return issuer;
 }
 
+function buildStatusListUrl(): string {
+	return new URL(
+		"/api/issuer/status-lists/agent-delegation",
+		getIssuerPublicUrl(),
+	).toString();
+}
+
+function requireStatusList(): StatusListRecord {
+	if (!statusList) {
+		throw new Error(
+			"Issuer status list not initialized. Call initializeIssuer() first.",
+		);
+	}
+
+	return statusList;
+}
+
+function persistIssuerState() {
+	if (!trustMaterial) {
+		throw new Error("Issuer trust material not initialized");
+	}
+
+	upsertIssuerState({
+		trustMaterial,
+		statusList,
+	});
+}
+
 function toUnixTimestamp(iso8601: string): number {
 	return Math.floor(new Date(iso8601).getTime() / 1000);
 }
@@ -114,6 +163,17 @@ export async function initializeIssuer(): Promise<void> {
 	if (persistedMaterial.success) {
 		trustMaterial = persistedMaterial.data;
 		issuer = createDemoIssuer(persistedMaterial.data);
+		const persistedStatusList = storedStatusListSchema.safeParse(
+			getIssuerStateRecord()?.statusList,
+		);
+		statusList = persistedStatusList.success
+			? persistedStatusList.data
+			: issuer.createStatusList({
+					uri: buildStatusListUrl(),
+					bits: STATUS_LIST_BITS,
+					ttl: OID4VCI_TTL_SECONDS,
+				});
+		persistIssuerState();
 		console.info("[Issuer] Loaded trust material from DB");
 		return;
 	}
@@ -123,7 +183,15 @@ export async function initializeIssuer(): Promise<void> {
 	});
 	trustMaterial = storedTrustMaterialSchema.parse(generatedTrustMaterial);
 	issuer = createDemoIssuer(trustMaterial);
-	upsertIssuerState(generatedTrustMaterial);
+	statusList = issuer.createStatusList({
+		uri: buildStatusListUrl(),
+		bits: STATUS_LIST_BITS,
+		ttl: OID4VCI_TTL_SECONDS,
+	});
+	upsertIssuerState({
+		trustMaterial: generatedTrustMaterial,
+		statusList,
+	});
 	console.info(
 		"[Issuer] Generated trust material with @vidos-id/issuer and stored it in DB",
 	);
@@ -171,6 +239,10 @@ export function getIssuerJwks(): StoredTrustMaterial["jwks"] {
 
 export function getIssuerMetadata() {
 	return requireIssuer().getMetadata();
+}
+
+export async function getStatusListToken() {
+	return requireIssuer().createStatusListToken(requireStatusList());
 }
 
 export function exchangeDelegationOfferToken(
@@ -326,16 +398,19 @@ export async function issueDelegationCredentialFromProof(params: {
 		jwt: proofJwt,
 		nonce: nonceRecord,
 	});
+	const credentialStatus = allocateDelegationCredentialStatus();
 	const issuedCredential = await currentIssuer.issueCredential({
 		accessToken: accessTokenRecord,
 		credential_configuration_id:
 			params.credentialRequestInput.credential_configuration_id,
 		proof,
+		status: credentialStatus,
 	});
 
 	try {
 		markDelegationCredentialReceived(delegationSession.id, {
 			holderPublicKey: jwkSchema.parse(proof.holderPublicJwk),
+			credentialStatus: credentialStatusSchema.parse(credentialStatus),
 			accessTokenUsedAt: new Date().toISOString(),
 			lastNonceUsedAt: new Date().toISOString(),
 			credentialIssuedAt: new Date().toISOString(),
@@ -348,6 +423,68 @@ export async function issueDelegationCredentialFromProof(params: {
 	}
 
 	return issuedCredential;
+}
+
+function allocateDelegationCredentialStatus(): CredentialStatus {
+	const currentIssuer = requireIssuer();
+	const allocated = currentIssuer.allocateCredentialStatus({
+		statusList: requireStatusList(),
+		status: STATUS_LIST_ACTIVE,
+	});
+	statusList = allocated.updatedStatusList;
+	persistIssuerState();
+	return allocated.credentialStatus;
+}
+
+function updateDelegationCredentialStatus(
+	credentialStatusInput: unknown,
+	status: number,
+) {
+	const currentIssuer = requireIssuer();
+	const credentialStatus = credentialStatusSchema.parse(credentialStatusInput);
+	const currentStatusList = requireStatusList();
+
+	if (credentialStatus.status_list.uri !== currentStatusList.uri) {
+		throw new Error(
+			"Credential status does not belong to this issuer status list",
+		);
+	}
+
+	statusList = currentIssuer.updateCredentialStatus({
+		statusList: currentStatusList,
+		idx: credentialStatus.status_list.idx,
+		status,
+	});
+	persistIssuerState();
+
+	return statusList;
+}
+
+export function suspendDelegationCredentialStatus(
+	credentialStatusInput: unknown,
+) {
+	return updateDelegationCredentialStatus(
+		credentialStatusInput,
+		STATUS_LIST_SUSPENDED,
+	);
+}
+
+export function reactivateDelegationCredentialStatus(
+	credentialStatusInput: unknown,
+) {
+	return updateDelegationCredentialStatus(
+		credentialStatusInput,
+		STATUS_LIST_ACTIVE,
+	);
+}
+
+export function revokeDelegationCredentialStatus(
+	credentialStatusInput: unknown,
+) {
+	return updateDelegationCredentialStatus(
+		credentialStatusInput,
+		STATUS_LIST_REVOKED,
+	);
 }
 
 export function getCredentialOfferByDelegationId(delegationId: string) {

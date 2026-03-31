@@ -20,7 +20,9 @@ import { Route as AppAuthEventsRouteImport } from './routes/_app/_auth/events'
 import { Route as AppAuthDashboardRouteImport } from './routes/_app/_auth/dashboard'
 import { Route as AppAuthBookingsRouteImport } from './routes/_app/_auth/bookings'
 import { Route as AppAuthAgentRouteImport } from './routes/_app/_auth/agent'
+import { Route as AppAuthAgentIndexRouteImport } from './routes/_app/_auth/agent/index'
 import { Route as AppAuthEventsEventIdRouteImport } from './routes/_app/_auth/events.$eventId'
+import { Route as AppAuthAgentOnboardRouteImport } from './routes/_app/_auth/agent/onboard'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -75,10 +77,20 @@ const AppAuthAgentRoute = AppAuthAgentRouteImport.update({
   path: '/agent',
   getParentRoute: () => AppAuthRoute,
 } as any)
+const AppAuthAgentIndexRoute = AppAuthAgentIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppAuthAgentRoute,
+} as any)
 const AppAuthEventsEventIdRoute = AppAuthEventsEventIdRouteImport.update({
   id: '/$eventId',
   path: '/$eventId',
   getParentRoute: () => AppAuthEventsRoute,
+} as any)
+const AppAuthAgentOnboardRoute = AppAuthAgentOnboardRouteImport.update({
+  id: '/onboard',
+  path: '/onboard',
+  getParentRoute: () => AppAuthAgentRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -86,24 +98,27 @@ export interface FileRoutesByFullPath {
   '/guide': typeof AppGuideRoute
   '/signin': typeof AppSigninRoute
   '/signup': typeof AppSignupRoute
-  '/agent': typeof AppAuthAgentRoute
+  '/agent': typeof AppAuthAgentRouteWithChildren
   '/bookings': typeof AppAuthBookingsRoute
   '/dashboard': typeof AppAuthDashboardRoute
   '/events': typeof AppAuthEventsRouteWithChildren
   '/identity': typeof AppAuthIdentityRoute
+  '/agent/onboard': typeof AppAuthAgentOnboardRoute
   '/events/$eventId': typeof AppAuthEventsEventIdRoute
+  '/agent/': typeof AppAuthAgentIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
   '/guide': typeof AppGuideRoute
   '/signin': typeof AppSigninRoute
   '/signup': typeof AppSignupRoute
-  '/agent': typeof AppAuthAgentRoute
   '/bookings': typeof AppAuthBookingsRoute
   '/dashboard': typeof AppAuthDashboardRoute
   '/events': typeof AppAuthEventsRouteWithChildren
   '/identity': typeof AppAuthIdentityRoute
+  '/agent/onboard': typeof AppAuthAgentOnboardRoute
   '/events/$eventId': typeof AppAuthEventsEventIdRoute
+  '/agent': typeof AppAuthAgentIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -113,12 +128,14 @@ export interface FileRoutesById {
   '/_app/signin': typeof AppSigninRoute
   '/_app/signup': typeof AppSignupRoute
   '/_app/': typeof AppIndexRoute
-  '/_app/_auth/agent': typeof AppAuthAgentRoute
+  '/_app/_auth/agent': typeof AppAuthAgentRouteWithChildren
   '/_app/_auth/bookings': typeof AppAuthBookingsRoute
   '/_app/_auth/dashboard': typeof AppAuthDashboardRoute
   '/_app/_auth/events': typeof AppAuthEventsRouteWithChildren
   '/_app/_auth/identity': typeof AppAuthIdentityRoute
+  '/_app/_auth/agent/onboard': typeof AppAuthAgentOnboardRoute
   '/_app/_auth/events/$eventId': typeof AppAuthEventsEventIdRoute
+  '/_app/_auth/agent/': typeof AppAuthAgentIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -132,19 +149,22 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/events'
     | '/identity'
+    | '/agent/onboard'
     | '/events/$eventId'
+    | '/agent/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/guide'
     | '/signin'
     | '/signup'
-    | '/agent'
     | '/bookings'
     | '/dashboard'
     | '/events'
     | '/identity'
+    | '/agent/onboard'
     | '/events/$eventId'
+    | '/agent'
   id:
     | '__root__'
     | '/_app'
@@ -158,7 +178,9 @@ export interface FileRouteTypes {
     | '/_app/_auth/dashboard'
     | '/_app/_auth/events'
     | '/_app/_auth/identity'
+    | '/_app/_auth/agent/onboard'
     | '/_app/_auth/events/$eventId'
+    | '/_app/_auth/agent/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -244,6 +266,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAuthAgentRouteImport
       parentRoute: typeof AppAuthRoute
     }
+    '/_app/_auth/agent/': {
+      id: '/_app/_auth/agent/'
+      path: '/'
+      fullPath: '/agent/'
+      preLoaderRoute: typeof AppAuthAgentIndexRouteImport
+      parentRoute: typeof AppAuthAgentRoute
+    }
     '/_app/_auth/events/$eventId': {
       id: '/_app/_auth/events/$eventId'
       path: '/$eventId'
@@ -251,8 +280,29 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAuthEventsEventIdRouteImport
       parentRoute: typeof AppAuthEventsRoute
     }
+    '/_app/_auth/agent/onboard': {
+      id: '/_app/_auth/agent/onboard'
+      path: '/onboard'
+      fullPath: '/agent/onboard'
+      preLoaderRoute: typeof AppAuthAgentOnboardRouteImport
+      parentRoute: typeof AppAuthAgentRoute
+    }
   }
 }
+
+interface AppAuthAgentRouteChildren {
+  AppAuthAgentOnboardRoute: typeof AppAuthAgentOnboardRoute
+  AppAuthAgentIndexRoute: typeof AppAuthAgentIndexRoute
+}
+
+const AppAuthAgentRouteChildren: AppAuthAgentRouteChildren = {
+  AppAuthAgentOnboardRoute: AppAuthAgentOnboardRoute,
+  AppAuthAgentIndexRoute: AppAuthAgentIndexRoute,
+}
+
+const AppAuthAgentRouteWithChildren = AppAuthAgentRoute._addFileChildren(
+  AppAuthAgentRouteChildren,
+)
 
 interface AppAuthEventsRouteChildren {
   AppAuthEventsEventIdRoute: typeof AppAuthEventsEventIdRoute
@@ -267,7 +317,7 @@ const AppAuthEventsRouteWithChildren = AppAuthEventsRoute._addFileChildren(
 )
 
 interface AppAuthRouteChildren {
-  AppAuthAgentRoute: typeof AppAuthAgentRoute
+  AppAuthAgentRoute: typeof AppAuthAgentRouteWithChildren
   AppAuthBookingsRoute: typeof AppAuthBookingsRoute
   AppAuthDashboardRoute: typeof AppAuthDashboardRoute
   AppAuthEventsRoute: typeof AppAuthEventsRouteWithChildren
@@ -275,7 +325,7 @@ interface AppAuthRouteChildren {
 }
 
 const AppAuthRouteChildren: AppAuthRouteChildren = {
-  AppAuthAgentRoute: AppAuthAgentRoute,
+  AppAuthAgentRoute: AppAuthAgentRouteWithChildren,
   AppAuthBookingsRoute: AppAuthBookingsRoute,
   AppAuthDashboardRoute: AppAuthDashboardRoute,
   AppAuthEventsRoute: AppAuthEventsRouteWithChildren,

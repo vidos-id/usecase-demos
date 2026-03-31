@@ -28,19 +28,49 @@ export interface AuthenticatedUser {
 	birthDate: string | null;
 	hasActiveAgent: boolean;
 	agentScopes: string[] | null;
+	delegatedCredentials: Array<{
+		delegationId: string;
+		state:
+			| "offer_ready"
+			| "offer_redeeming"
+			| "offer_expired"
+			| "credential_active"
+			| "credential_suspended"
+			| "credential_revoked";
+		status: "active" | "suspended" | "revoked" | null;
+		scopes: string[];
+		validUntil: string | null;
+		offerExpiresAt: string | null;
+		offerRedeemedAt: string | null;
+		credentialIssuedAt: string | null;
+		credentialSuspendedAt: string | null;
+		credentialRevokedAt: string | null;
+		credentialOfferUri: string | null;
+		credentialOfferDeepLink: string | null;
+		credentialStatus: {
+			status_list: {
+				idx: number;
+				uri: string;
+			};
+		} | null;
+		holderPublicKey: Record<string, unknown> | null;
+	}>;
 	delegation: {
 		delegationId: string;
 		state:
 			| "offer_ready"
 			| "offer_redeeming"
 			| "offer_expired"
-			| "credential_received"
+			| "credential_active"
+			| "credential_suspended"
 			| "credential_revoked";
+		status: "active" | "suspended" | "revoked" | null;
 		scopes: string[];
 		validUntil: string | null;
 		offerExpiresAt: string | null;
 		offerRedeemedAt: string | null;
 		credentialIssuedAt: string | null;
+		credentialSuspendedAt: string | null;
 		credentialRevokedAt: string | null;
 		credentialOfferUri: string | null;
 		credentialOfferDeepLink: string | null;
@@ -90,7 +120,7 @@ const navItems = [
 		icon: CalendarDays,
 	},
 	{
-		label: "My Agent",
+		label: "Agent",
 		to: "/agent",
 		icon: Bot,
 	},

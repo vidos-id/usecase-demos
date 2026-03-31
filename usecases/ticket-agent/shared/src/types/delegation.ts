@@ -20,11 +20,35 @@ export type DelegationClaims = z.infer<typeof delegationClaimsSchema>;
 export const delegationSessionStatusSchema = z.enum([
 	"offer_created",
 	"credential_received",
+	"suspended",
+	"revoked",
+]);
+
+export const delegationDisplayStateSchema = z.enum([
+	"offer_ready",
+	"offer_redeeming",
+	"offer_expired",
+	"credential_active",
+	"credential_suspended",
+	"credential_revoked",
+]);
+
+export const delegatedCredentialStatusValueSchema = z.enum([
+	"active",
+	"suspended",
 	"revoked",
 ]);
 
 export type DelegationSessionStatus = z.infer<
 	typeof delegationSessionStatusSchema
+>;
+
+export type DelegationDisplayState = z.infer<
+	typeof delegationDisplayStateSchema
+>;
+
+export type DelegatedCredentialStatusValue = z.infer<
+	typeof delegatedCredentialStatusValueSchema
 >;
 
 export const oid4vciOfferSchema = z.object({
@@ -58,6 +82,36 @@ export interface DelegationSession {
 	lastNonceExpiresAt: string | null;
 	lastNonceUsedAt: string | null;
 	holderPublicKey: Record<string, unknown> | null;
+	credentialStatus: {
+		status_list: {
+			idx: number;
+			uri: string;
+		};
+	} | null;
+	credentialRevokedAt: string | null;
+	credentialSuspendedAt: string | null;
 	credentialIssuedAt: string | null;
 	createdAt: string;
+}
+
+export interface DelegatedCredentialSummary {
+	delegationId: string;
+	state: DelegationDisplayState;
+	status: DelegatedCredentialStatusValue | null;
+	scopes: DelegationScope[];
+	validUntil: string | null;
+	offerExpiresAt: string | null;
+	offerRedeemedAt: string | null;
+	credentialIssuedAt: string | null;
+	credentialSuspendedAt: string | null;
+	credentialRevokedAt: string | null;
+	credentialOfferUri: string | null;
+	credentialOfferDeepLink: string | null;
+	credentialStatus: {
+		status_list: {
+			idx: number;
+			uri: string;
+		};
+	} | null;
+	holderPublicKey: Record<string, unknown> | null;
 }

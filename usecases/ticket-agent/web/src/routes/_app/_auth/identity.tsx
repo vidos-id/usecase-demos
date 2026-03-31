@@ -76,15 +76,62 @@ function IdentityPage() {
 /*  Already-verified state (Task 11.2)                                 */
 /* ------------------------------------------------------------------ */
 
-function VerifiedState({
-	user,
-}: {
-	user: {
-		givenName: string | null;
-		familyName: string | null;
-		hasActiveAgent: boolean;
-	};
-}) {
+function VerifiedState({ user }: { user: AuthenticatedUser }) {
+	const delegationState = user.delegation?.state ?? null;
+	const nextStep = (() => {
+		switch (delegationState) {
+			case "credential_active":
+				return {
+					title: "Agent Already Onboarded",
+					description:
+						"Your agent delegation credential is already active. You can review it from the agent page.",
+					buttonLabel: "View Agent",
+				};
+			case "credential_suspended":
+				return {
+					title: "Agent Credential Suspended",
+					description:
+						"A delegated credential is currently suspended. Open the agent page to reactivate it or issue another credential.",
+					buttonLabel: "Manage Credentials",
+				};
+			case "credential_revoked":
+				return {
+					title: "Previous Credential Revoked",
+					description:
+						"A delegated credential was revoked. You can issue a new one from the agent page whenever needed.",
+					buttonLabel: "Issue Another",
+				};
+			case "offer_redeeming":
+				return {
+					title: "Agent Onboarding In Progress",
+					description:
+						"Your agent wallet has started redeeming the delegation credential. Check the agent page for live status.",
+					buttonLabel: "View Agent Status",
+				};
+			case "offer_expired":
+				return {
+					title: "Agent Offer Expired",
+					description:
+						"The last delegation offer expired before completion. Create a replacement offer to finish onboarding.",
+					buttonLabel: "Create New Offer",
+				};
+			case "offer_ready":
+				return {
+					title: "Next: Share Your Agent Offer",
+					description:
+						"Your delegation offer is ready. Open the agent page to share the wallet link and complete onboarding.",
+					buttonLabel: "Open Offer",
+				};
+			default:
+				return {
+					title: "Next: Onboard Your Agent",
+					description:
+						"Now that your identity is verified, you can delegate permissions to your AI agent.",
+					buttonLabel: "Continue",
+				};
+		}
+	})();
+
 	return (
 		<div className="max-w-xl mx-auto space-y-6 animate-slide-up">
 			{/* Header */}
@@ -152,37 +199,33 @@ function VerifiedState({
 				</CardContent>
 			</Card>
 
-			{/* Next step CTA */}
-			{!user.hasActiveAgent && (
-				<Card className="border-border/50 bg-white/70 backdrop-blur-sm shadow-sm">
-					<CardContent className="p-6">
-						<div className="flex items-center gap-4">
-							<div className="h-11 w-11 rounded-xl bg-gradient-to-br from-indigo-100 to-indigo-50 flex items-center justify-center border border-indigo-200/40 shrink-0">
-								<Bot className="h-5 w-5 text-indigo-600" />
-							</div>
-							<div className="flex-1 space-y-1">
-								<h3 className="font-semibold tracking-tight text-sm">
-									Next: Onboard Your Agent
-								</h3>
-								<p className="text-xs text-muted-foreground leading-relaxed">
-									Now that your identity is verified, you can delegate
-									permissions to your AI agent.
-								</p>
-							</div>
-							<Button
-								asChild
-								size="sm"
-								className="shrink-0 bg-gradient-to-r from-primary to-violet-700 hover:from-primary/90 hover:to-violet-700/90 shadow-md shadow-primary/15 group"
-							>
-								<Link to="/agent">
-									Continue
-									<ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-								</Link>
-							</Button>
+			<Card className="border-border/50 bg-white/70 backdrop-blur-sm shadow-sm">
+				<CardContent className="p-6">
+					<div className="flex items-center gap-4">
+						<div className="h-11 w-11 rounded-xl bg-gradient-to-br from-indigo-100 to-indigo-50 flex items-center justify-center border border-indigo-200/40 shrink-0">
+							<Bot className="h-5 w-5 text-indigo-600" />
 						</div>
-					</CardContent>
-				</Card>
-			)}
+						<div className="flex-1 space-y-1">
+							<h3 className="font-semibold tracking-tight text-sm">
+								{nextStep.title}
+							</h3>
+							<p className="text-xs text-muted-foreground leading-relaxed">
+								{nextStep.description}
+							</p>
+						</div>
+						<Button
+							asChild
+							size="sm"
+							className="shrink-0 bg-gradient-to-r from-primary to-violet-700 hover:from-primary/90 hover:to-violet-700/90 shadow-md shadow-primary/15 group"
+						>
+							<Link to="/agent">
+								{nextStep.buttonLabel}
+								<ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+							</Link>
+						</Button>
+					</div>
+				</CardContent>
+			</Card>
 		</div>
 	);
 }
