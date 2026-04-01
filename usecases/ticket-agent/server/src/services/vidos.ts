@@ -18,10 +18,10 @@ export interface PollStatusResult {
 	error?: string;
 }
 
-type PolicyResponseEntry =
+export type PolicyResponseEntry =
 	paths["/openid4/vp/v1_0/authorizations/{authorizationId}/policy-response"]["get"]["responses"][200]["content"]["application/json"]["data"][number];
 
-type ExtractedCredential =
+export type ExtractedCredential =
 	paths["/openid4/vp/v1_0/authorizations/{authorizationId}/credentials"]["get"]["responses"][200]["content"]["application/json"]["credentials"][number];
 
 let authorizerClient: ReturnType<typeof createClient<paths>> | null = null;
@@ -108,9 +108,9 @@ function logCredentialsOverview(
 	});
 }
 
-async function getPolicyResponse(
+export async function fetchAuthorizationPolicyResponse(
 	authorizationId: string,
-): Promise<PolicyResponseEntry[] | undefined> {
+): Promise<PolicyResponseEntry[]> {
 	const client = getAuthorizerClient();
 
 	const { data, error } = await client.GET(
@@ -122,7 +122,7 @@ async function getPolicyResponse(
 
 	if (error) {
 		console.error("[Vidos] getPolicyResponse error:", authorizationId, error);
-		return undefined;
+		throw new Error(`Vidos API error: ${error.message}`);
 	}
 
 	if (!data?.data) {
@@ -130,7 +130,7 @@ async function getPolicyResponse(
 			"[Vidos] getPolicyResponse returned no policy data:",
 			authorizationId,
 		);
-		return undefined;
+		return [];
 	}
 
 	logPolicyResponseOverview(authorizationId, data.data);
@@ -138,7 +138,7 @@ async function getPolicyResponse(
 	return data.data;
 }
 
-async function fetchAuthorizationCredentials(
+export async function fetchAuthorizationCredentials(
 	authorizationId: string,
 ): Promise<ExtractedCredential[]> {
 	const client = getAuthorizerClient();
@@ -163,6 +163,23 @@ async function fetchAuthorizationCredentials(
 	logCredentialsOverview(authorizationId, credentials);
 
 	return credentials;
+}
+
+export async function getAuthorizationInspectionDetails(
+	authorizationId: string,
+): Promise<{
+	policyResults: PolicyResponseEntry[];
+	credentials: ExtractedCredential[];
+}> {
+	const [policyResults, credentials] = await Promise.all([
+		fetchAuthorizationPolicyResponse(authorizationId),
+		fetchAuthorizationCredentials(authorizationId),
+	]);
+
+	return {
+		policyResults,
+		credentials,
+	};
 }
 
 export async function createPIDAuthorizationRequest(): Promise<{
@@ -297,7 +314,7 @@ export async function pollAuthorizationStatus(
 
 	if (mappedStatus === "rejected" || mappedStatus === "error") {
 		const [policyResults, credentialsResult] = await Promise.allSettled([
-			getPolicyResponse(authorizationId),
+			fetchAuthorizationPolicyResponse(authorizationId),
 			fetchAuthorizationCredentials(authorizationId),
 		]);
 

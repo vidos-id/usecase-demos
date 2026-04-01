@@ -1,9 +1,15 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { createBookingRequestSchema } from "ticket-agent-shared/api/bookings";
+import {
+	bookingInspectionResponseSchema,
+	createBookingRequestSchema,
+} from "ticket-agent-shared/api/bookings";
 import { getEventById } from "ticket-agent-shared/lib/events";
 import { startAuthorizationMonitor } from "../services/authorization-monitor";
-import { createDelegationAuthorizationRequest } from "../services/vidos";
+import {
+	createDelegationAuthorizationRequest,
+	getAuthorizationInspectionDetails,
+} from "../services/vidos";
 import {
 	createBooking,
 	getBookingById,
@@ -138,6 +144,44 @@ export const bookingsRouter = new Hono()
 		}
 
 		return c.json(serializeBooking(booking));
+	})
+	.get("/:id/inspection", async (c) => {
+		const auth = requireAuthenticatedUser(c);
+		if (!auth.ok) {
+			return auth.response;
+		}
+
+		const id = c.req.param("id");
+		const booking = getBookingById(id);
+
+		if (!booking || booking.userId !== auth.user.id) {
+			return c.json({ error: "Booking not found" }, 404);
+		}
+
+		if (booking.bookedBy !== "agent" || !booking.authorizationId) {
+			return c.json(
+				{ error: "Inspection is only available for agent bookings" },
+				400,
+			);
+		}
+
+		try {
+			const inspection = await getAuthorizationInspectionDetails(
+				booking.authorizationId,
+			);
+
+			return c.json(
+				bookingInspectionResponseSchema.parse({
+					id: booking.id,
+					authorizationId: booking.authorizationId,
+					policyResults: inspection.policyResults,
+					credentials: inspection.credentials,
+				}),
+			);
+		} catch (error) {
+			console.error("[Bookings] Failed to inspect authorization:", error);
+			return c.json({ error: "Failed to load booking inspection" }, 502);
+		}
 	})
 	.get("/status/:token", (c) => {
 		const token = c.req.param("token");

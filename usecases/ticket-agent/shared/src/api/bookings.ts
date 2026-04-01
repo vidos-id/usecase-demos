@@ -2,6 +2,45 @@ import { z } from "zod";
 import { bookingActorSchema, bookingStatusSchema } from "../types/bookings";
 import { eventSchema } from "../types/events";
 
+const jsonValueSchema: z.ZodType<
+	string | number | boolean | null | { [key: string]: unknown } | unknown[]
+> = z.lazy(() =>
+	z.union([
+		z.string(),
+		z.number(),
+		z.boolean(),
+		z.null(),
+		z.array(jsonValueSchema),
+		z.record(z.string(), jsonValueSchema),
+	]),
+);
+
+const policyResponseEntrySchema = z.object({
+	path: z.array(z.union([z.string(), z.number()])),
+	policy: z.string(),
+	service: z.enum([
+		"authorizer",
+		"gateway",
+		"library",
+		"logs",
+		"resolver",
+		"validator",
+		"verifier",
+		"accounts",
+		"iam",
+		"trail",
+	]),
+	data: z.unknown().optional(),
+	error: z.unknown().optional(),
+});
+
+const extractedCredentialSchema = z.object({
+	path: z.array(z.union([z.string(), z.number()])),
+	format: z.string(),
+	credentialType: z.string(),
+	claims: z.record(z.string(), jsonValueSchema),
+});
+
 export const createBookingRequestSchema = z.object({
 	eventId: z.string(),
 	quantity: z.number().int().positive(),
@@ -45,3 +84,14 @@ export type BookingListItem = z.infer<typeof bookingListItemSchema>;
 export const bookingListResponseSchema = z.array(bookingListItemSchema);
 
 export type BookingListResponse = z.infer<typeof bookingListResponseSchema>;
+
+export const bookingInspectionResponseSchema = z.object({
+	id: z.string(),
+	authorizationId: z.string(),
+	policyResults: z.array(policyResponseEntrySchema),
+	credentials: z.array(extractedCredentialSchema),
+});
+
+export type BookingInspectionResponse = z.infer<
+	typeof bookingInspectionResponseSchema
+>;
