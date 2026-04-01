@@ -226,6 +226,7 @@ export async function createDelegationAuthorizationRequest(): Promise<{
 				meta: { vct_values: [DELEGATION_VCT] },
 				claims: [
 					{ path: ["delegation_id"] },
+					{ path: ["agent_name"] },
 					{ path: ["given_name"] },
 					{ path: ["family_name"] },
 					{ path: ["birth_date"] },

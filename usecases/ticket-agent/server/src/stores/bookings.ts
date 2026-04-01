@@ -71,6 +71,7 @@ export function updateBookingStatus(
 		status: string;
 		delegatorName?: string;
 		agentName?: string;
+		delegationSessionId?: string;
 		errorMessage?: string;
 	},
 ) {
@@ -80,6 +81,7 @@ export function updateBookingStatus(
 			status: update.status,
 			delegatorName: update.delegatorName,
 			agentName: update.agentName,
+			delegationSessionId: update.delegationSessionId,
 			errorMessage: update.errorMessage,
 		})
 		.where(eq(bookings.id, id))

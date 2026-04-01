@@ -235,12 +235,16 @@ async function handleBookingVerificationSuccess(
 		}
 
 		const delegatorName = `${claims.given_name} ${claims.family_name}`;
-		const agentName = claims.agent_name;
+		const agentName =
+			delegationSession.agentName.trim() ||
+			claims.agent_name.trim() ||
+			"Unnamed Agent";
 		assignBookingUser(bookingId, delegationSession.userId);
 		updateBookingStatus(bookingId, {
 			status: "confirmed",
 			delegatorName,
 			agentName,
+			delegationSessionId: delegationSession.id,
 			errorMessage: undefined,
 		});
 
