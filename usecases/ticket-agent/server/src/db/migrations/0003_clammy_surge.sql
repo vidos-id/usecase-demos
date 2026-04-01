@@ -1,0 +1,1 @@
+ALTER TABLE `delegation_sessions` DROP COLUMN `credential_status_value`;

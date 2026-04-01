@@ -35,7 +35,6 @@ export function createDelegationSession(data: {
 			preAuthorizedCode: data.preAuthorizedCode,
 			preAuthorizedCodeExpiresAt: data.preAuthorizedCodeExpiresAt,
 			credentialStatus: null,
-			credentialStatusValue: 0,
 			credentialActivatedAt: null,
 			credentialSuspendedAt: null,
 			credentialRevokedAt: null,
@@ -156,7 +155,6 @@ export function markDelegationCredentialReceived(
 			status: "credential_received",
 			holderPublicKey: data.holderPublicKey,
 			credentialStatus: data.credentialStatus,
-			credentialStatusValue: 0,
 			credentialActivatedAt: data.credentialIssuedAt,
 			credentialSuspendedAt: null,
 			credentialRevokedAt: null,
@@ -174,7 +172,6 @@ export function revokeDelegationSession(id: string, revokedAt: string) {
 		.update(delegationSessions)
 		.set({
 			status: "revoked",
-			credentialStatusValue: 2,
 			credentialRevokedAt: revokedAt,
 		})
 		.where(eq(delegationSessions.id, id))
@@ -187,7 +184,6 @@ export function suspendDelegationSession(id: string, suspendedAt: string) {
 		.update(delegationSessions)
 		.set({
 			status: "suspended",
-			credentialStatusValue: 1,
 			credentialSuspendedAt: suspendedAt,
 		})
 		.where(eq(delegationSessions.id, id))
@@ -200,7 +196,6 @@ export function reactivateDelegationSession(id: string, activatedAt: string) {
 		.update(delegationSessions)
 		.set({
 			status: "credential_received",
-			credentialStatusValue: 0,
 			credentialActivatedAt: activatedAt,
 			credentialSuspendedAt: null,
 		})

@@ -53,9 +53,6 @@ export const delegationSessions = sqliteTable(
 		lastNonceUsedAt: text("last_nonce_used_at"),
 		holderPublicKey: text("holder_public_key", { mode: "json" }),
 		credentialStatus: text("credential_status", { mode: "json" }),
-		credentialStatusValue: integer("credential_status_value")
-			.notNull()
-			.default(0),
 		credentialActivatedAt: text("credential_activated_at"),
 		credentialSuspendedAt: text("credential_suspended_at"),
 		credentialRevokedAt: text("credential_revoked_at"),
