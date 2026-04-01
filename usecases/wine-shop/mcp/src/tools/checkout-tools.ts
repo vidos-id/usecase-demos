@@ -9,7 +9,6 @@ import {
 	initiateCheckout,
 } from "@/services/checkout";
 import {
-	generateQrSvg,
 	VERIFICATION_WIDGET_MIME_TYPE,
 	VERIFICATION_WIDGET_URI,
 } from "@/ui/verification-widget";
@@ -44,13 +43,10 @@ function successResult(
 	};
 }
 
-function buildVerificationContent(
-	message: string,
-	qrSvg?: string,
-): CallToolResult["content"] {
+function buildVerificationContent(message: string): CallToolResult["content"] {
 	return [
 		{ type: "text", text: message },
-		...(qrSvg
+		...(message
 			? [
 					{
 						type: "resource" as const,
@@ -95,11 +91,9 @@ export async function initiateCheckoutTool(
 
 		if (requiresVerification) {
 			const authUrl = session.verification?.authorizationUrl;
-			const qrSvg = authUrl ? await generateQrSvg(authUrl) : undefined;
 			logDebug("tool:initiate_checkout", "verification widget prepared", {
 				checkoutSessionId: session.sessionId,
 				hasAuthorizationUrl: Boolean(authUrl),
-				hasQrSvg: Boolean(qrSvg),
 			});
 
 			const messageParts = [
@@ -130,7 +124,6 @@ export async function initiateCheckoutTool(
 					status: session.status,
 					requiresVerification: true,
 					widgetUri: VERIFICATION_WIDGET_URI,
-					qrSvg,
 					authorizeUrl: authUrl,
 					authorization: session.verification
 						? {
@@ -140,7 +133,7 @@ export async function initiateCheckoutTool(
 							}
 						: null,
 				},
-				buildVerificationContent(message, qrSvg),
+				buildVerificationContent(message),
 			);
 		}
 

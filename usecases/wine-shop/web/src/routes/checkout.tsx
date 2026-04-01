@@ -7,7 +7,8 @@ import {
 	ShoppingCart,
 	XCircle,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { QrCode as SharedQrCode } from "vidos-web/qr-code";
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -378,22 +379,12 @@ function QrPanel({
 	authorizationUrl: string | null;
 	lifecycle: string;
 }) {
-	const [qrLoaded, setQrLoaded] = useState(false);
-
 	const showQr =
 		lifecycle === "pending_wallet" ||
 		lifecycle === "processing" ||
 		lifecycle === "created";
 
-	useEffect(() => {
-		if (authorizationUrl) {
-			setQrLoaded(false);
-		}
-	}, [authorizationUrl]);
-
 	if (!showQr || !authorizationUrl) return null;
-
-	const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(authorizationUrl)}`;
 
 	return (
 		<Card className="mb-5 border-border/60">
@@ -407,15 +398,13 @@ function QrPanel({
 									"linear-gradient(140deg, oklch(0.95 0.01 60) 0%, transparent 50%, oklch(0.92 0.02 25) 100%)",
 							}}
 						/>
-						<img
-							src={qrUrl}
-							alt="Wallet authorization QR code"
-							width={240}
-							height={240}
-							onLoad={() => setQrLoaded(true)}
+						<SharedQrCode
+							value={authorizationUrl}
+							size={240}
 							className="relative border border-border/60 bg-white"
+							color="#722F37"
 						/>
-						{(!qrLoaded || lifecycle === "processing") && (
+						{lifecycle === "processing" && (
 							<div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-background/80 backdrop-blur-[2px]">
 								<div className="flex flex-col items-center gap-2 rounded-xl border border-border/60 bg-card/90 px-4 py-3 shadow-sm">
 									<svg
@@ -440,9 +429,7 @@ function QrPanel({
 										/>
 									</svg>
 									<p className="text-xs font-medium text-muted-foreground">
-										{qrLoaded
-											? "Waiting for wallet response..."
-											: "Loading QR code..."}
+										Waiting for wallet response...
 									</p>
 								</div>
 							</div>

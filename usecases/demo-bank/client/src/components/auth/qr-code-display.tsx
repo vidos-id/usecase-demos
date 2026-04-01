@@ -1,6 +1,6 @@
 import { ExternalLink, QrCode, Smartphone } from "lucide-react";
-import { QRCodeSVG } from "qrcode.react";
 import { useMemo, useState } from "react";
+import { QrCode as SharedQrCode } from "vidos-web/qr-code";
 import { Button } from "@/components/ui/button";
 
 interface QRCodeDisplayProps {
@@ -81,12 +81,11 @@ export function QRCodeDisplay({ url }: QRCodeDisplayProps) {
 									<div className="relative mx-auto w-fit">
 										<div className="absolute inset-0 bg-primary/10 blur-2xl rounded-full scale-75 opacity-50" />
 										<div className="relative bg-white p-3 rounded-xl shadow-inner border border-border/40">
-											<QRCodeSVG
+											<SharedQrCode
 												value={url}
 												size={240}
-												level="M"
-												bgColor="transparent"
-												fgColor="#1a1a2e"
+												backgroundColor="transparent"
+												color="#1a1a2e"
 											/>
 										</div>
 									</div>
@@ -133,12 +132,11 @@ export function QRCodeDisplay({ url }: QRCodeDisplayProps) {
 							<div className="relative mx-auto w-fit">
 								<div className="absolute inset-0 bg-primary/10 blur-2xl rounded-full scale-75 opacity-50" />
 								<div className="relative bg-white p-3 rounded-xl shadow-inner border border-border/40">
-									<QRCodeSVG
+									<SharedQrCode
 										value={url}
 										size={240}
-										level="M"
-										bgColor="transparent"
-										fgColor="#1a1a2e"
+										backgroundColor="transparent"
+										color="#1a1a2e"
 									/>
 								</div>
 							</div>

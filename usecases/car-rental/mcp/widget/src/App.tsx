@@ -12,39 +12,25 @@ import {
 	LoaderCircle,
 	Shield,
 } from "lucide-react";
-import QRCode from "qrcode";
 import { useEffect, useMemo, useState } from "react";
+import { QrCode } from "vidos-web/qr-code";
 import type { WidgetToolPayload } from "../lib/types";
 import { useWidgetState } from "./useWidgetState";
-
-const PRIMARY = "#0b5f63";
 
 function QrCodePanel({
 	authorizationUrl,
 }: {
 	authorizationUrl?: string | null;
 }) {
-	const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>("");
-
-	useEffect(() => {
-		if (!authorizationUrl) {
-			return;
-		}
-
-		void QRCode.toDataURL(authorizationUrl, {
-			margin: 2,
-			width: 220,
-			color: {
-				dark: PRIMARY,
-				light: "#FFFFFF",
-			},
-		}).then(setQrCodeDataUrl);
-	}, [authorizationUrl]);
+	if (!authorizationUrl) {
+		return null;
+	}
 
 	return (
-		<img
-			src={qrCodeDataUrl}
-			alt="Scan this QR code with your wallet"
+		<QrCode
+			value={authorizationUrl}
+			size={220}
+			color="#0b5f63"
 			className="h-56 w-56 rounded-2xl border border-[var(--border)] bg-white p-3 shadow-sm"
 		/>
 	);

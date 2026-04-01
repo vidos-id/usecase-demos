@@ -27,6 +27,7 @@
 		"sonner": "^2.0.7",
 		"tailwind-merge": "^3.4.1",
 		"tailwindcss": "^4.1.18",
+		"vidos-web": "workspace:*",
 		"zod": "^4.3.6"
 	},
 	"devDependencies": {

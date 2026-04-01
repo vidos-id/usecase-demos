@@ -12,8 +12,8 @@ import {
 	Terminal,
 	Ticket,
 } from "lucide-react";
-import { useState } from "react";
 import { toast } from "sonner";
+import { useClipboard } from "vidos-web/clipboard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useIsAuthenticated } from "@/lib/auth";
@@ -111,25 +111,16 @@ const appPages = [
 
 function GuidePage() {
 	const isAuthenticated = useIsAuthenticated();
-	const [copiedValue, setCopiedValue] = useState<string | null>(null);
+	const { copiedValue, copy } = useClipboard({
+		onError: () => toast.error("Failed to copy to clipboard"),
+	});
 
-	const copyText = async (
-		key: string,
-		value: string,
-		successMessage: string,
-	) => {
-		try {
-			await navigator.clipboard.writeText(value);
-			setCopiedValue(key);
-			toast.success(successMessage);
-			window.setTimeout(
-				() => setCopiedValue((cur) => (cur === key ? null : cur)),
-				2500,
-			);
-		} catch {
-			toast.error("Failed to copy to clipboard");
-		}
-	};
+	const copyText = (key: string, value: string, successMessage: string) =>
+		copy(value, key).then((didCopy: boolean) => {
+			if (didCopy) {
+				toast.success(successMessage);
+			}
+		});
 
 	return (
 		<div className="flex flex-col">

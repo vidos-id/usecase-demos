@@ -37,6 +37,7 @@ Do not run long-lived dev servers unless explicitly requested.
 - Keep use case-specific code under `usecases/<name>/`.
 - Keep shared homepage/navigation content under `usecases-home/`.
 - Prefer relative imports, except for Shadcn components that have TS Path aliases imports.
+- QR codes are a client concern: transfer the underlying content (for example `authorizeUrl`) and render the QR code on the client or widget side. Do not transfer QR code images or SVG markup in API or MCP responses.
 
 ## Style
 

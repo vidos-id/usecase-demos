@@ -1,0 +1,27 @@
+{
+	"name": "vidos-web",
+	"version": "0.0.1",
+	"private": true,
+	"type": "module",
+	"exports": {
+		"./api-client": "./src/api-client.ts",
+		"./clipboard": "./src/clipboard.ts",
+		"./github-pages": "./src/github-pages.ts",
+		"./qr-code": "./src/qr-code.tsx",
+		"./session-store": "./src/session-store.ts",
+		"./toaster": "./src/toaster.tsx"
+	},
+	"scripts": {
+		"check-types": "tsc --noEmit"
+	},
+	"dependencies": {
+		"lucide-react": "^0.564.0",
+		"qrcode.react": "^4.2.0",
+		"react": "^19.2.3",
+		"sonner": "^2.0.7"
+	},
+	"devDependencies": {
+		"@types/react": "^19.2.7",
+		"typescript": "^5.9.3"
+	}
+}

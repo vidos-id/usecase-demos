@@ -28,7 +28,7 @@ function CheckoutVerificationScreen({
 	rawToolOutput,
 }: ScreenProps) {
 	const view = useWidgetState(app, rawToolOutput);
-	const { data, qrSvg, authorizeUrl, sessionId } = view;
+	const { data, authorizeUrl, sessionId } = view;
 	const [paymentCompleted, setPaymentCompleted] = useState(false);
 	const notifiedRef = useRef(false);
 	const previousSessionRef = useRef<string | null>(sessionId);
@@ -94,7 +94,10 @@ function CheckoutVerificationScreen({
 				</div>
 
 				{showQrSection && (
-					<QrSection qrSvg={qrSvg} statusText={buildStatusText(data)} />
+					<QrSection
+						authorizeUrl={authorizeUrl}
+						statusText={buildStatusText(data)}
+					/>
 				)}
 
 				{showResult && <VerificationResult data={data} />}

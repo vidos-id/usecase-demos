@@ -1,5 +1,5 @@
 import { ShieldCheck, Wallet } from "lucide-react";
-import { useState } from "react";
+import { QrCode as SharedQrCode } from "vidos-web/qr-code";
 import { Card, CardContent } from "@/components/ui/card";
 import type { VerificationLifecycleState } from "@/domain/verification/verification-schemas";
 
@@ -40,18 +40,12 @@ export function VerificationQrPanel({
 	requestId,
 	authorizationUrl,
 }: Props) {
-	const [qrLoaded, setQrLoaded] = useState(false);
-
 	const isActive =
 		lifecycle === "created" ||
 		lifecycle === "pending_wallet" ||
 		lifecycle === "processing";
 
 	if (!isActive) return null;
-
-	const qrCodeUrl = authorizationUrl
-		? `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(authorizationUrl)}`
-		: null;
 	const statusLabel =
 		lifecycle === "pending_wallet"
 			? "Scan this QR code with your EU Digital Identity Wallet and approve the mDL disclosure to share your driving privileges and licence details."
@@ -72,23 +66,13 @@ export function VerificationQrPanel({
 				<p className="mb-5 text-sm text-muted-foreground">{statusLabel}</p>
 
 				<div className="mx-auto flex size-60 items-center justify-center rounded-2xl border-2 border-dashed border-border/50 bg-muted/30">
-					{qrCodeUrl ? (
+					{authorizationUrl ? (
 						<div className="relative flex size-56 items-center justify-center">
-							{/* Spinner shown while QR image is loading */}
-							{!qrLoaded && (
-								<div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-									<QrSpinner />
-									<p className="text-xs text-muted-foreground/60">
-										Loading QR code...
-									</p>
-								</div>
-							)}
-							<img
-								src={qrCodeUrl}
-								alt="Wallet authorization QR code"
+							<SharedQrCode
+								value={authorizationUrl}
+								size={224}
 								className="size-56 rounded-lg bg-white p-2"
-								style={{ opacity: qrLoaded ? 1 : 0 }}
-								onLoad={() => setQrLoaded(true)}
+								color="#0b5f63"
 							/>
 						</div>
 					) : (

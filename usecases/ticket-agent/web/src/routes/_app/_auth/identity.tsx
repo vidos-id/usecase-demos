@@ -12,8 +12,9 @@ import {
 	Shield,
 	XCircle,
 } from "lucide-react";
-import { QRCodeSVG } from "qrcode.react";
 import { useCallback, useEffect, useState } from "react";
+import { useClipboard } from "vidos-web/clipboard";
+import { QrCode as SharedQrCode } from "vidos-web/qr-code";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -465,14 +466,12 @@ function PendingState({
 	authorizeUrl: string;
 	authorizationId: string;
 }) {
-	const [copied, setCopied] = useState(false);
+	const { copy, isCopied } = useClipboard({ resetAfterMs: 2_000 });
+	const copied = isCopied(authorizeUrl);
 
 	const copyUrl = useCallback(() => {
-		navigator.clipboard.writeText(authorizeUrl).then(() => {
-			setCopied(true);
-			setTimeout(() => setCopied(false), 2_000);
-		});
-	}, [authorizeUrl]);
+		void copy(authorizeUrl);
+	}, [authorizeUrl, copy]);
 
 	return (
 		<div className="space-y-4 animate-slide-up">
@@ -499,10 +498,9 @@ function PendingState({
 					{/* QR code */}
 					<div className="flex justify-center">
 						<div className="p-5 rounded-xl border border-border/60 bg-white shadow-sm">
-							<QRCodeSVG
+							<SharedQrCode
 								value={authorizeUrl}
 								size={256}
-								level="M"
 								className="h-auto w-full max-w-[256px]"
 							/>
 						</div>

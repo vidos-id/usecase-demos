@@ -16,8 +16,9 @@ import {
 	ShieldCheck,
 	Smartphone,
 } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useClipboard } from "vidos-web/clipboard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -208,17 +209,12 @@ export function CredentialsWorkspace({
 		},
 		onError: (err) => toast.error(err.message),
 	});
+	const { copy } = useClipboard({
+		onSuccess: () => toast.success("Copied to clipboard"),
+		onError: () => toast.error("Failed to copy to clipboard"),
+	});
 
-	const copyValue = useCallback(async (key: string, value: string) => {
-		try {
-			await navigator.clipboard.writeText(value);
-			setCopiedField(key);
-			toast.success("Copied to clipboard");
-			setTimeout(() => setCopiedField(null), 2500);
-		} catch {
-			toast.error("Failed to copy to clipboard");
-		}
-	}, []);
+	const copyValue = (key: string, value: string) => copy(value, key);
 
 	const latestPendingCredential = useMemo(
 		() =>

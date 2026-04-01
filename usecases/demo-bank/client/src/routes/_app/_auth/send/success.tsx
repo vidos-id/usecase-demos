@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, CheckCircle2, Copy, ExternalLink } from "lucide-react";
-import { useState } from "react";
+import { useClipboard } from "vidos-web/clipboard";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -20,15 +20,11 @@ export const Route = createFileRoute("/_app/_auth/send/success")({
 
 function PaymentSuccessPage() {
 	const search = Route.useSearch();
-	const [copied, setCopied] = useState(false);
+	const { copy, isCopied } = useClipboard({ resetAfterMs: 2_000 });
 
 	const confirmedDate = new Date(search.confirmedAt);
-
-	const copyTransactionId = () => {
-		navigator.clipboard.writeText(search.transactionId);
-		setCopied(true);
-		setTimeout(() => setCopied(false), 2000);
-	};
+	const copied = isCopied(search.transactionId);
+	const copyTransactionId = () => copy(search.transactionId);
 
 	return (
 		<div className="min-h-[calc(100vh-4rem)] py-8 px-4 sm:px-6 lg:px-8">

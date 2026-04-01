@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useRouteContext } from "@tanstack/react-router";
 import { Check, Copy, ExternalLink, Terminal } from "lucide-react";
-import { useState } from "react";
 import { toast } from "sonner";
+import { useClipboard } from "vidos-web/clipboard";
 import { CredentialsWorkspace } from "@/components/agent/credentials-workspace";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,18 +20,12 @@ function AgentOnboardPage() {
 	const { user } = useRouteContext({ from: "/_app/_auth" }) as {
 		user: AuthenticatedUser;
 	};
-	const [copied, setCopied] = useState(false);
-
-	const copyBootstrapPrompt = async () => {
-		try {
-			await navigator.clipboard.writeText(openClawBootstrapPrompt);
-			setCopied(true);
-			toast.success("Bootstrap prompt copied");
-			window.setTimeout(() => setCopied(false), 2500);
-		} catch {
-			toast.error("Failed to copy to clipboard");
-		}
-	};
+	const { copy, isCopied } = useClipboard({
+		onSuccess: () => toast.success("Bootstrap prompt copied"),
+		onError: () => toast.error("Failed to copy to clipboard"),
+	});
+	const copied = isCopied(openClawBootstrapPrompt);
+	const copyBootstrapPrompt = () => copy(openClawBootstrapPrompt);
 
 	return (
 		<div className="space-y-6">

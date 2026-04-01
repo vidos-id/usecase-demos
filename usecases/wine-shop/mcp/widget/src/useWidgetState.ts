@@ -11,7 +11,6 @@ import type {
 
 export type WidgetViewState = {
 	data: VerificationViewData;
-	qrSvg: string;
 	authorizeUrl: string;
 	sessionId: string | null;
 	status: VerificationStatus | undefined;
@@ -22,7 +21,6 @@ function extractViewState(raw: WidgetToolPayload): WidgetViewState {
 
 	return {
 		data: normalized,
-		qrSvg: normalized.qrSvg ?? "",
 		authorizeUrl:
 			normalized.authorization?.authorizeUrl ?? normalized.authorizeUrl ?? "",
 		sessionId: normalized.checkoutSessionId ?? null,

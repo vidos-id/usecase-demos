@@ -1,5 +1,9 @@
-import { hc } from "hono/client";
 import type { AppType } from "demo-bank-server/client";
+import { hc } from "hono/client";
+import {
+	buildApiUrl as buildSharedApiUrl,
+	createAuthFetch,
+} from "vidos-web/api-client";
 import { z } from "zod";
 import { getSessionId } from "./auth";
 
@@ -18,30 +22,10 @@ export function buildApiUrl(
 	pathname: string,
 	query?: Record<string, string | undefined>,
 ): string {
-	const url = new URL(pathname, apiBaseUrl);
-	if (query) {
-		for (const [key, value] of Object.entries(query)) {
-			if (value) {
-				url.searchParams.set(key, value);
-			}
-		}
-	}
-	return url.toString();
+	return buildSharedApiUrl(apiBaseUrl, pathname, query);
 }
 
-// Custom fetch that injects Authorization header when session exists
-const authFetch: typeof fetch = ((input, init) => {
-	const sessionId = getSessionId();
-	if (sessionId) {
-		const headers = new Headers(init?.headers);
-		// Only set if not already present (allow per-request override)
-		if (!headers.has("Authorization")) {
-			headers.set("Authorization", `Bearer ${sessionId}`);
-		}
-		return fetch(input, { ...init, headers });
-	}
-	return fetch(input, init);
-}) as typeof fetch;
+const authFetch = createAuthFetch({ getToken: getSessionId });
 
 export const apiClient = hc<AppType>(apiBaseUrl, {
 	fetch: authFetch,

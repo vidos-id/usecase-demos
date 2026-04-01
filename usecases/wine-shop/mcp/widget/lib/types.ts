@@ -10,7 +10,6 @@ export type VerificationViewVerification = VerificationState | null;
 export type VerificationViewData = {
 	checkoutSessionId?: string;
 	status?: VerificationStatus;
-	qrSvg?: string;
 	authorizeUrl?: string;
 	authorization?: {
 		authorizationId?: string | null;
