@@ -112,7 +112,7 @@ const showcaseDemos: ShowcaseDemo[] = [
 		title: "VidoShow",
 		tagline: "AI ticket booking with delegated credentials",
 		description:
-			"Use VidoShow to delegate your AI agent to purchase event tickets on your behalf. Issue a delegation credential from your verified identity, then let the agent autonomously book tickets by presenting the credential.",
+			"Use VidoShow to verify with PID, issue a booking-only delegation credential to your agent over OID4VCI, then let the agent autonomously purchase tickets by presenting that credential at checkout.",
 		category: "Consumer",
 		illustration: vidoShowIllustration,
 		status: "live",

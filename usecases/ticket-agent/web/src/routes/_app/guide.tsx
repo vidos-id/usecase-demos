@@ -1,15 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
 	ArrowRight,
-	Bot,
 	Check,
 	ChevronRight,
 	Copy,
-	ExternalLink,
-	FileText,
 	Fingerprint,
 	KeyRound,
-	Search,
 	Shield,
 	ShieldCheck,
 	Sparkles,
@@ -85,41 +81,6 @@ const setupSteps = [
 	},
 ] as const;
 
-const skillCapabilities = [
-	{
-		title: "Wallet bootstrap",
-		description:
-			"Initializes or reuses the agent wallet so the key pair persists across sessions.",
-		icon: Bot,
-		color: "text-violet-600",
-		bg: "bg-violet-100/60",
-	},
-	{
-		title: "OID4VCI redemption",
-		description:
-			"Resolves the offer, fetches issuer metadata, builds the proof JWT, and receives the holder-bound credential.",
-		icon: KeyRound,
-		color: "text-indigo-600",
-		bg: "bg-indigo-100/60",
-	},
-	{
-		title: "Event search",
-		description:
-			"Browses the event catalog and summarizes suitable options before acting on your behalf.",
-		icon: Search,
-		color: "text-amber-600",
-		bg: "bg-amber-100/60",
-	},
-	{
-		title: "Delegated booking",
-		description:
-			"Presents the credential at booking time, waits for authorization, and reports the final booking status.",
-		icon: Ticket,
-		color: "text-emerald-600",
-		bg: "bg-emerald-100/60",
-	},
-] as const;
-
 const appPages = [
 	{
 		label: "Identity",
@@ -133,7 +94,7 @@ const appPages = [
 		to: "/agent",
 		description:
 			"Generate the OID4VCI credential offer, copy the URI or deep link, and watch onboarding status.",
-		icon: Bot,
+		icon: KeyRound,
 	},
 	{
 		label: "Events",
@@ -232,14 +193,9 @@ function GuidePage() {
 								size="lg"
 								className="h-12 px-6 border-primary/20 hover:bg-primary/5"
 							>
-								<a
-									href={openClawSkillUrl}
-									target="_blank"
-									rel="noopener noreferrer"
-								>
-									<FileText className="h-4 w-4" />
-									Open skill file
-									<ExternalLink className="h-4 w-4 opacity-60" />
+								<a href="#bootstrap-openclaw">
+									<Terminal className="h-4 w-4" />
+									Go to bootstrap steps
 								</a>
 							</Button>
 						</div>
@@ -330,7 +286,7 @@ function GuidePage() {
 			</section>
 
 			{/* ── OpenClaw Setup — Terminal-Style ───────────────────────── */}
-			<section className="py-20 lg:py-24 relative">
+			<section id="bootstrap-openclaw" className="py-20 lg:py-24 relative">
 				<div className="absolute inset-0 -z-10">
 					<div className="absolute inset-0 bg-gradient-to-t from-violet-50/30 to-transparent" />
 				</div>
@@ -344,126 +300,101 @@ function GuidePage() {
 							Bootstrap the OpenClaw 🦞 skill
 						</h2>
 						<p className="text-muted-foreground max-w-2xl leading-relaxed">
-							Send the bootstrap prompt to OpenClaw first, then follow the
-							VidoShow app for the user-side steps. The agent handles the rest.
+							Start the OpenClaw session first, let it initialize its wallet,
+							then complete identity verification and delegation issuance in
+							VidoShow before sharing the OID4VCI offer back to the agent.
 						</p>
 					</div>
 
-					<div className="grid gap-6 lg:grid-cols-[1.3fr_0.9fr]">
-						{/* Prompt cards */}
-						<div className="space-y-5">
-							<PromptCard
-								label="1. Bootstrap prompt"
-								hint="Send this first so OpenClaw loads the ticket-agent skill for the current session."
-								value={openClawBootstrapPrompt}
-								copyKey="bootstrap"
-								copiedValue={copiedValue}
-								onCopy={() =>
-									copyText(
-										"bootstrap",
-										openClawBootstrapPrompt,
-										"Bootstrap prompt copied",
-									)
-								}
-							/>
+					<div className="space-y-5">
+						<PromptCard
+							label="1. Bootstrap prompt"
+							hint="Send this first so OpenClaw loads the ticket-agent skill for the current session."
+							value={openClawBootstrapPrompt}
+							copyKey="bootstrap"
+							copiedValue={copiedValue}
+							onCopy={() =>
+								copyText(
+									"bootstrap",
+									openClawBootstrapPrompt,
+									"Bootstrap prompt copied",
+								)
+							}
+						/>
 
-							<PromptCard
-								label="2. First booking prompt"
-								hint="Use this after the wallet is ready and the delegation offer has been redeemed."
-								value={openClawFirstMessage}
-								copyKey="first-message"
-								copiedValue={copiedValue}
-								onCopy={() =>
-									copyText(
-										"first-message",
-										openClawFirstMessage,
-										"First message copied",
-									)
-								}
-							/>
-
-							{/* Quick steps */}
-							<div className="rounded-2xl border border-border/50 bg-white/60 backdrop-blur-sm p-5 space-y-3">
-								<p className="text-xs font-mono uppercase tracking-widest text-muted-foreground/60">
-									Summary
-								</p>
-								<ol className="space-y-2.5 text-sm text-muted-foreground leading-relaxed">
-									<li className="flex gap-3">
-										<span className="shrink-0 h-5 w-5 rounded-md bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold mt-0.5">
-											1
-										</span>
-										<span>
-											In VidoShow, complete identity verification and create the
-											delegation offer on{" "}
-											<Link
-												to="/agent"
-												className="font-medium text-primary hover:underline"
-											>
-												My Agent
-											</Link>
-											.
-										</span>
-									</li>
-									<li className="flex gap-3">
-										<span className="shrink-0 h-5 w-5 rounded-md bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold mt-0.5">
-											2
-										</span>
-										<span>
-											Share the offer URL or deep link from the app with
-											OpenClaw.
-										</span>
-									</li>
-									<li className="flex gap-3">
-										<span className="shrink-0 h-5 w-5 rounded-md bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold mt-0.5">
-											3
-										</span>
-										<span>
-											After the agent redeems the offer, ask it to search events
-											and book one for you.
-										</span>
-									</li>
-								</ol>
-							</div>
+						<div className="rounded-2xl border border-border/50 bg-white/60 backdrop-blur-sm p-5 space-y-4">
+							<p className="text-sm font-semibold tracking-tight">
+								2. Let the agent initialize its wallet
+							</p>
+							<p className="text-sm text-muted-foreground leading-relaxed">
+								After the bootstrap message, OpenClaw runs `wallet-cli init` to
+								create or reuse the demo wallet it will keep using for this
+								agent session.
+							</p>
 						</div>
 
-						{/* Skill capabilities */}
-						<div className="space-y-4">
-							<div className="rounded-2xl border border-border/50 bg-white/60 backdrop-blur-sm p-5">
-								<div className="flex items-center gap-2.5 mb-5">
-									<div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-										<Bot className="h-4 w-4 text-primary" />
-									</div>
-									<div>
-										<p className="font-semibold text-sm tracking-tight">
-											What the skill handles
-										</p>
-										<p className="text-xs text-muted-foreground">
-											User steps in VidoShow, agent steps in OpenClaw
-										</p>
-									</div>
-								</div>
-
-								<div className="space-y-3">
-									{skillCapabilities.map((cap) => (
-										<div key={cap.title} className="flex gap-3 group/cap">
-											<div
-												className={`h-9 w-9 shrink-0 rounded-xl ${cap.bg} flex items-center justify-center transition-transform duration-300 group-hover/cap:scale-110`}
-											>
-												<cap.icon className={`h-4 w-4 ${cap.color}`} />
-											</div>
-											<div className="min-w-0">
-												<p className="font-semibold text-sm leading-tight mb-0.5">
-													{cap.title}
-												</p>
-												<p className="text-xs text-muted-foreground leading-relaxed">
-													{cap.description}
-												</p>
-											</div>
-										</div>
-									))}
-								</div>
-							</div>
+						<div className="rounded-2xl border border-border/50 bg-white/60 backdrop-blur-sm p-5 space-y-4">
+							<p className="text-sm font-semibold tracking-tight">
+								3. Verify your identity in VidoShow
+							</p>
+							<p className="text-sm text-muted-foreground leading-relaxed">
+								Go to the Identity page and present your PID credential.
+								VidoShow must verify you successfully before it can issue any
+								booking delegation to the agent.
+							</p>
+							<Link
+								to="/identity"
+								className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+							>
+								Open Identity
+								<ChevronRight className="h-3.5 w-3.5" />
+							</Link>
 						</div>
+
+						<div className="rounded-2xl border border-border/50 bg-white/60 backdrop-blur-sm p-5 space-y-4">
+							<p className="text-sm font-semibold tracking-tight">
+								4. Create the delegated credential
+							</p>
+							<p className="text-sm text-muted-foreground leading-relaxed">
+								Open My Agent and generate a booking-only OID4VCI delegation
+								offer for the agent wallet. This demo issues that credential
+								with `@vidos-id/issuer`.
+							</p>
+							<Link
+								to="/agent"
+								className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+							>
+								Open My Agent
+								<ChevronRight className="h-3.5 w-3.5" />
+							</Link>
+						</div>
+
+						<div className="rounded-2xl border border-border/50 bg-white/60 backdrop-blur-sm p-5 space-y-4">
+							<p className="text-sm font-semibold tracking-tight">
+								5. Share the offer with OpenClaw
+							</p>
+							<p className="text-sm text-muted-foreground leading-relaxed">
+								Copy the credential offer URI or deep link from My Agent and
+								paste it into the same OpenClaw conversation. The agent will
+								resolve the issuer metadata and redeem the delegated credential
+								directly into its wallet.
+							</p>
+						</div>
+
+						<PromptCard
+							label="6. First booking prompt"
+							hint="Use this after the wallet is ready and the delegation offer has been redeemed."
+							value={openClawFirstMessage}
+							copyKey="first-message"
+							copiedValue={copiedValue}
+							onCopy={() =>
+								copyText(
+									"first-message",
+									openClawFirstMessage,
+									"First message copied",
+								)
+							}
+						/>
 					</div>
 				</div>
 			</section>
