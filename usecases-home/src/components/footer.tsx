@@ -61,7 +61,7 @@ export function Footer() {
 								</li>
 								<li>
 									<a
-										href="https://github.com/nickreyntjens"
+										href="https://github.com/vidos-id/usecase-demos"
 										target="_blank"
 										rel="noopener noreferrer"
 										className="transition-colors hover:text-eu-blue"
