@@ -12,7 +12,7 @@ metadata:
 
 Use this skill to operate delegated ticket booking.
 
-**Base URL:** `https://api-ticket-agent.demo.vidos.id`
+**Base URL:** `https://barely-certain-mammoth.ngrok-free.app`
 
 If the user provides another API URL, use that instead.
 
