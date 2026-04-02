@@ -11,7 +11,6 @@ import {
 	Loader2,
 	PauseCircle,
 	PlayCircle,
-	QrCode,
 	Shield,
 	ShieldCheck,
 	Smartphone,
@@ -490,36 +489,22 @@ function PendingOfferCard({
 						</div>
 
 						{/* Offer URLs */}
-						{credential.credentialOfferUri ? (
+						{credential.credentialOfferDeepLink ? (
 							<div className="space-y-3">
 								<OfferPanel
-									icon={<QrCode className="h-3.5 w-3.5 text-primary" />}
-									title="Credential Offer URL"
-									value={credential.credentialOfferUri}
-									copied={copiedField === `${credential.delegationId}:uri`}
+									icon={<Smartphone className="h-3.5 w-3.5 text-primary" />}
+									title="OpenID Credential Offer Link"
+									value={credential.credentialOfferDeepLink}
+									copied={
+										copiedField === `${credential.delegationId}:deep-link`
+									}
 									onCopy={() =>
 										onCopy(
-											`${credential.delegationId}:uri`,
-											credential.credentialOfferUri ?? "",
+											`${credential.delegationId}:deep-link`,
+											credential.credentialOfferDeepLink ?? "",
 										)
 									}
 								/>
-								{credential.credentialOfferDeepLink ? (
-									<OfferPanel
-										icon={<Smartphone className="h-3.5 w-3.5 text-primary" />}
-										title="OpenID Credential Offer Link"
-										value={credential.credentialOfferDeepLink}
-										copied={
-											copiedField === `${credential.delegationId}:deep-link`
-										}
-										onCopy={() =>
-											onCopy(
-												`${credential.delegationId}:deep-link`,
-												credential.credentialOfferDeepLink ?? "",
-											)
-										}
-									/>
-								) : null}
 							</div>
 						) : null}
 
