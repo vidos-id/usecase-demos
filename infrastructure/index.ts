@@ -99,6 +99,17 @@ function createPublicDomainNames(
 	} as aws.types.input.lightsail.ContainerServicePublicDomainNames;
 }
 
+function createPublicBaseUrl(
+	publicDomainName: string,
+	serviceUrl: pulumi.Output<string>,
+) {
+	if (publicDomainName) {
+		return pulumi.output(`https://${publicDomainName}`);
+	}
+
+	return serviceUrl;
+}
+
 const mcpWinePublicDomainNames = createPublicDomainNames(
 	mcpWinePublicDomainName,
 	mcpWineCertificateName,
@@ -155,6 +166,11 @@ const ticketAgentService = new aws.lightsail.ContainerService("ticketAgent", {
 	publicDomainNames: ticketAgentPublicDomainNames,
 	tags,
 });
+
+const ticketAgentPublicBaseUrl = createPublicBaseUrl(
+	ticketAgentPublicDomainName,
+	ticketAgentService.url,
+);
 
 const ecrPullerPrincipalArn = service.privateRegistryAccess.apply(
 	(registryAccess) => {
@@ -359,7 +375,7 @@ if (deployEnabled) {
 						VIDOS_AUTHORIZER_URL: vidosAuthorizerUrl,
 						VIDOS_API_KEY: vidosApiKey,
 						DATABASE_PATH: ticketAgentDatabasePath,
-						ISSUER_PUBLIC_URL: ticketAgentService.url,
+						ISSUER_PUBLIC_URL: ticketAgentPublicBaseUrl,
 					},
 				},
 			],
@@ -389,4 +405,5 @@ export const mcpCarRentalLightsailServiceName = mcpCarRentalService.name;
 export const mcpCarRentalEndpoint = mcpCarRentalService.url;
 export const ticketAgentLightsailServiceName = ticketAgentService.name;
 export const ticketAgentEndpoint = ticketAgentService.url;
+export const ticketAgentPublicUrl = ticketAgentPublicBaseUrl;
 export const region = aws.config.region ?? "eu-west-1";

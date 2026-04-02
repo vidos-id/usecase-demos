@@ -120,6 +120,13 @@ const main = () => {
 	const mcpWineEndpoint = getStackOutput("mcpWineEndpoint");
 	const mcpCarRentalEndpoint = getStackOutput("mcpCarRentalEndpoint");
 	const ticketAgentEndpoint = getStackOutput("ticketAgentEndpoint");
+	const ticketAgentPublicUrl = (() => {
+		try {
+			return getStackOutput("ticketAgentPublicUrl");
+		} catch {
+			return ticketAgentEndpoint;
+		}
+	})();
 
 	const tag = getGitSha() ?? getTimestamp();
 	const imageTag = `${repositoryUrl}:${tag}`;
@@ -227,7 +234,7 @@ const main = () => {
 					VIDOS_API_KEY: process.env.VIDOS_API_KEY ?? "",
 					DATABASE_PATH: "/app/data/ticket-agent.db",
 					ISSUER_PUBLIC_URL:
-						process.env.TICKET_AGENT_ISSUER_PUBLIC_URL ?? ticketAgentEndpoint,
+						process.env.TICKET_AGENT_ISSUER_PUBLIC_URL ?? ticketAgentPublicUrl,
 				},
 			},
 		},
@@ -287,6 +294,7 @@ const main = () => {
 	log(`Wine MCP Endpoint: ${mcpWineEndpoint}`);
 	log(`Car Rental MCP Endpoint: ${mcpCarRentalEndpoint}`);
 	log(`Ticket Agent Endpoint: ${ticketAgentEndpoint}`);
+	log(`Ticket Agent Public URL: ${ticketAgentPublicUrl}`);
 };
 
 try {

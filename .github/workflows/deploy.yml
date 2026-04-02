@@ -53,6 +53,8 @@ jobs:
       PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
       VIDOS_AUTHORIZER_URL: ${{ secrets.VIDOS_AUTHORIZER_URL }}
       VIDOS_API_KEY: ${{ secrets.VIDOS_API_KEY }}
+      TICKET_AGENT_PUBLIC_DOMAIN_NAME: ${{ vars.TICKET_AGENT_PUBLIC_DOMAIN_NAME }}
+      TICKET_AGENT_CERTIFICATE_NAME: ${{ vars.TICKET_AGENT_CERTIFICATE_NAME }}
       MCP_WINE_PUBLIC_DOMAIN_NAME: ${{ vars.MCP_WINE_PUBLIC_DOMAIN_NAME }}
       MCP_WINE_CERTIFICATE_NAME: ${{ vars.MCP_WINE_CERTIFICATE_NAME }}
       MCP_CAR_RENTAL_PUBLIC_DOMAIN_NAME: ${{ vars.MCP_CAR_RENTAL_PUBLIC_DOMAIN_NAME }}
@@ -82,6 +84,8 @@ jobs:
         env:
           VIDOS_AUTHORIZER_URL: ${{ secrets.VIDOS_AUTHORIZER_URL }}
           VIDOS_API_KEY: ${{ secrets.VIDOS_API_KEY }}
+          TICKET_AGENT_PUBLIC_DOMAIN_NAME: ${{ vars.TICKET_AGENT_PUBLIC_DOMAIN_NAME }}
+          TICKET_AGENT_CERTIFICATE_NAME: ${{ vars.TICKET_AGENT_CERTIFICATE_NAME }}
           MCP_WINE_PUBLIC_DOMAIN_NAME: ${{ vars.MCP_WINE_PUBLIC_DOMAIN_NAME }}
           MCP_WINE_CERTIFICATE_NAME: ${{ vars.MCP_WINE_CERTIFICATE_NAME }}
           MCP_CAR_RENTAL_PUBLIC_DOMAIN_NAME: ${{ vars.MCP_CAR_RENTAL_PUBLIC_DOMAIN_NAME }}
@@ -101,6 +105,8 @@ jobs:
           VIDOS_API_KEY: ${{ secrets.VIDOS_API_KEY }}
           VITE_MCP_WINE_AGENT_URL: ${{ env.VITE_MCP_WINE_AGENT_URL }}
           VITE_MCP_CAR_RENTAL_AGENT_URL: ${{ env.VITE_MCP_CAR_RENTAL_AGENT_URL }}
+          TICKET_AGENT_PUBLIC_DOMAIN_NAME: ${{ vars.TICKET_AGENT_PUBLIC_DOMAIN_NAME }}
+          TICKET_AGENT_CERTIFICATE_NAME: ${{ vars.TICKET_AGENT_CERTIFICATE_NAME }}
           MCP_WINE_PUBLIC_DOMAIN_NAME: ${{ vars.MCP_WINE_PUBLIC_DOMAIN_NAME }}
           MCP_WINE_CERTIFICATE_NAME: ${{ vars.MCP_WINE_CERTIFICATE_NAME }}
           MCP_CAR_RENTAL_PUBLIC_DOMAIN_NAME: ${{ vars.MCP_CAR_RENTAL_PUBLIC_DOMAIN_NAME }}
@@ -120,6 +126,12 @@ jobs:
           pulumi config set lightsail:mcpWineImageTag "mcp-$GITHUB_SHA"
           pulumi config set lightsail:mcpCarRentalImageTag "mcp-car-rental-$GITHUB_SHA"
           pulumi config set lightsail:ticketAgentImageTag "ticket-agent-$GITHUB_SHA"
+          if [ -n "$TICKET_AGENT_PUBLIC_DOMAIN_NAME" ]; then
+            pulumi config set lightsail:ticketAgentPublicDomainName "$TICKET_AGENT_PUBLIC_DOMAIN_NAME"
+          fi
+          if [ -n "$TICKET_AGENT_CERTIFICATE_NAME" ]; then
+            pulumi config set lightsail:ticketAgentCertificateName "$TICKET_AGENT_CERTIFICATE_NAME"
+          fi
           if [ -n "$MCP_WINE_PUBLIC_DOMAIN_NAME" ]; then
             pulumi config set lightsail:mcpWinePublicDomainName "$MCP_WINE_PUBLIC_DOMAIN_NAME"
           fi
@@ -142,7 +154,7 @@ jobs:
           echo "server_url=$(pulumi stack output endpoint)" >> "$GITHUB_OUTPUT"
           echo "mcp_wine_url=$(pulumi stack output mcpWineEndpoint)" >> "$GITHUB_OUTPUT"
           echo "mcp_car_rental_url=$(pulumi stack output mcpCarRentalEndpoint)" >> "$GITHUB_OUTPUT"
-          echo "ticket_agent_url=$(pulumi stack output ticketAgentEndpoint)" >> "$GITHUB_OUTPUT"
+          echo "ticket_agent_url=$(pulumi stack output ticketAgentPublicUrl)" >> "$GITHUB_OUTPUT"
         working-directory: infrastructure
   deploy:
     needs: deploy-infra
