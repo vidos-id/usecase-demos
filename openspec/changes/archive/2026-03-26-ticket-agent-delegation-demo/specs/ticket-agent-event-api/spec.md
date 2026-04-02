@@ -29,7 +29,7 @@ The server SHALL expose `GET /api/events` to return the full event catalog and `
 The server SHALL expose `POST /api/bookings` to create a new booking. The request body SHALL include `eventId` and `quantity`. The server SHALL validate that the event exists and has sufficient available tickets. The booking behavior SHALL depend on authentication:
 
 - **Session-authenticated user (web app)**: The booking uses the user's stored identity (from PID verification). No delegation credential verification is needed. The booking transitions directly to `confirmed` with the user's identity as the booker.
-- **No session (agent)**: The server SHALL create a Vidos authorization request with a DCQL query targeting VCT `urn:vidos:agent-delegation:1` and requesting the delegation credential claims. The response SHALL include the booking ID, status `pending_verification`, and the `openid4vp://` authorization URL (`authorizeUrl`) for the agent to present via `wallet-cli present`.
+- **No session (agent)**: The server SHALL create a Vidos authorization request with a DCQL query targeting VCT `urn:vidos:agent-delegation:1` and requesting the delegation credential claims. The response SHALL include the booking ID, status `pending_verification`, and the `openid4vp://` authorization URL (`authorizeUrl`) for the agent to present via `openid4vc-wallet present`.
 
 #### Scenario: Session-authenticated booking confirmed immediately
 - **WHEN** a valid booking request is submitted by an authenticated user with verified identity
@@ -77,7 +77,7 @@ The server SHALL monitor Vidos authorization status for pending bookings using a
 
 ### Requirement: Booking status endpoint
 
-The server SHALL expose `GET /api/bookings/:id` to return the current booking status. The response SHALL include: `id`, `eventId`, `quantity`, `status`, `delegatorName` (if verified), `createdAt`, and event details. The endpoint SHALL be used by both the web app (polling after QR display) and the agent (polling after `wallet-cli present`).
+The server SHALL expose `GET /api/bookings/:id` to return the current booking status. The response SHALL include: `id`, `eventId`, `quantity`, `status`, `delegatorName` (if verified), `createdAt`, and event details. The endpoint SHALL be used by both the web app (polling after QR display) and the agent (polling after `openid4vc-wallet present`).
 
 #### Scenario: Pending booking status returned
 - **WHEN** `GET /api/bookings/:id` is called for a booking in `pending_verification` status

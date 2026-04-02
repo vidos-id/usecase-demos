@@ -87,7 +87,7 @@ The use case grid SHALL include the ticket agent demo as a showcase entry. The e
 
 ### Requirement: Ticket agent guide page with chat mockup
 
-The home navigator SHALL include an agent guide page for the ticket agent demo at a dedicated route. The guide page SHALL include an animated chat mockup component (following the pattern of `chatgpt-wine-mockup.tsx` and `chatgpt-car-rental-mockup.tsx`) that demonstrates the agent delegation flow. The mockup SHALL show: (1) agent initializing wallet and providing public key, (2) user providing delegation credential, (3) agent importing credential, (4) agent browsing events, (5) agent creating a booking, (6) agent autonomously presenting credential via wallet-cli (no QR code — this is different from the wine and car rental mockups), (7) booking confirmation. The mockup SHALL use the `animated-chat-mockup` component with appropriate state transitions and step timings.
+The home navigator SHALL include an agent guide page for the ticket agent demo at a dedicated route. The guide page SHALL include an animated chat mockup component (following the pattern of `chatgpt-wine-mockup.tsx` and `chatgpt-car-rental-mockup.tsx`) that demonstrates the agent delegation flow. The mockup SHALL show: (1) agent initializing wallet and providing public key, (2) user providing delegation offer, (3) agent redeeming the offer, (4) agent browsing events, (5) agent creating a booking, (6) agent autonomously presenting credential via `openid4vc-wallet` (no QR code — this is different from the wine and car rental mockups), (7) booking confirmation. The mockup SHALL use the `animated-chat-mockup` component with appropriate state transitions and step timings.
 
 #### Scenario: Chat mockup renders delegation flow
 - **WHEN** the agent guide page is viewed
@@ -95,4 +95,4 @@ The home navigator SHALL include an agent guide page for the ticket agent demo a
 
 #### Scenario: Mockup shows autonomous credential presentation
 - **WHEN** the mockup reaches the verification step
-- **THEN** it SHALL show a tool-call style step for `wallet-cli present` instead of a QR code widget (unlike wine and car rental mockups)
+- **THEN** it SHALL show a tool-call style step for `openid4vc-wallet present` instead of a QR code widget (unlike wine and car rental mockups)

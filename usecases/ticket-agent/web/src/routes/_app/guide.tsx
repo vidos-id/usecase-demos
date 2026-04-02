@@ -318,9 +318,9 @@ function GuidePage() {
 								2. Let the agent initialize its wallet
 							</p>
 							<p className="text-sm text-muted-foreground leading-relaxed">
-								After the bootstrap message, OpenClaw runs `wallet-cli init` to
-								create or reuse the demo wallet it will keep using for this
-								agent session.
+								After the bootstrap message, OpenClaw runs `openid4vc-wallet
+								init` to create or reuse the demo wallet it will keep using for
+								this agent session.
 							</p>
 						</div>
 
@@ -349,7 +349,7 @@ function GuidePage() {
 							<p className="text-sm text-muted-foreground leading-relaxed">
 								Open My Agent and generate a booking-only OID4VCI delegation
 								offer for the agent wallet. This demo issues that credential
-								with `@vidos-id/issuer`.
+								with `@vidos-id/openid4vc-issuer`.
 							</p>
 							<Link
 								to="/agent"

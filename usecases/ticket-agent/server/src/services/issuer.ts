@@ -12,7 +12,7 @@ import {
 	serializeCredentialOfferUri,
 	signingAlgSchema,
 	tokenRequestSchema,
-} from "@vidos-id/issuer";
+} from "@vidos-id/openid4vc-issuer";
 import { DELEGATION_VCT } from "ticket-agent-shared/types/delegation";
 import { z } from "zod";
 import { env } from "../env";
@@ -32,7 +32,7 @@ import {
 } from "../stores/issuer-state";
 
 const ISSUER_NOT_CONFIGURED_ERROR =
-	"Issuer service not configured: install and wire up @vidos-id/issuer.";
+	"Issuer service not configured: install and wire up @vidos-id/openid4vc-issuer.";
 const CREDENTIAL_CONFIGURATION_ID = "agent_delegation";
 const OID4VCI_TTL_SECONDS = 300;
 const STATUS_LIST_BITS = 2 as const;
@@ -219,7 +219,7 @@ export async function initializeIssuer(): Promise<void> {
 		statusList,
 	});
 	console.info(
-		"[Issuer] Generated trust material with @vidos-id/issuer and stored it in DB",
+		"[Issuer] Generated trust material with @vidos-id/openid4vc-issuer and stored it in DB",
 	);
 }
 

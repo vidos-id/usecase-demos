@@ -1,5 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
-import { IssuerError } from "@vidos-id/issuer";
+import { IssuerError } from "@vidos-id/openid4vc-issuer";
 import { type Context, Hono } from "hono";
 import { z } from "zod";
 import {

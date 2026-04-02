@@ -54,7 +54,7 @@ Once identity is verified, the user SHALL be able to onboard their AI agent. The
 
 ### Requirement: Agent public key input
 
-The agent onboarding flow SHALL provide a text input for the user to paste the agent's wallet public key in JWK JSON format. The input SHALL validate that the pasted value is well-formed JSON and conforms to a JWK structure (has at minimum `kty` and key-type-specific fields). The input SHALL provide clear instructions explaining that the agent provides this key via `wallet-cli init`.
+The agent onboarding flow SHALL provide a text input for the user to paste the agent's wallet public key in JWK JSON format. The input SHALL validate that the pasted value is well-formed JSON and conforms to a JWK structure (has at minimum `kty` and key-type-specific fields). The input SHALL provide clear instructions explaining that the agent provides this key via `openid4vc-wallet init`.
 
 #### Scenario: Valid JWK accepted
 - **WHEN** the user pastes a valid JWK JSON object
@@ -82,7 +82,7 @@ The agent onboarding flow SHALL provide checkboxes for selecting delegation scop
 
 ### Requirement: Credential display and handoff
 
-After successful credential issuance, the app SHALL display the compact `dc+sd-jwt` credential string in a copyable format. The display SHALL include: a copy-to-clipboard button, a summary of the credential contents (delegator name, scopes, expiry), and instructions explaining how to paste the credential into the agent's chat session for import via `wallet-cli import`.
+After successful credential issuance, the app SHALL display the resulting OID4VCI delegation offer in a copyable format. The display SHALL include: a copy-to-clipboard button, a summary of the delegated credential contents (delegator name, scopes, expiry), and instructions explaining how to paste the offer into the agent's chat session for redemption via `openid4vc-wallet receive`.
 
 #### Scenario: Credential displayed with copy button
 - **WHEN** the credential is issued

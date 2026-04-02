@@ -1,4 +1,4 @@
-import { serializeCredentialOfferUri } from "@vidos-id/issuer";
+import { serializeCredentialOfferUri } from "@vidos-id/openid4vc-issuer";
 import { Hono } from "hono";
 import type {
 	DelegatedCredentialSummary,

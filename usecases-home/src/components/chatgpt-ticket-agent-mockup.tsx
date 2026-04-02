@@ -162,7 +162,7 @@ const ticketAgentMockupConfig: ChatMockupConfig<TicketAgentState> = {
 		{
 			icon: <KeyRound className="h-3.5 w-3.5" />,
 			id: "tool-wallet-init",
-			label: "wallet-cli init",
+			label: "openid4vc-wallet init",
 			showAt: 3,
 			status: ({ state }) => state.walletInitStatus,
 			type: "tool-call",
@@ -176,7 +176,7 @@ const ticketAgentMockupConfig: ChatMockupConfig<TicketAgentState> = {
 		{
 			icon: <Link className="h-3.5 w-3.5" />,
 			id: "tool-redeem",
-			label: "wallet-cli oid4vci redeem",
+			label: "openid4vc-wallet receive",
 			showAt: 5,
 			status: ({ state }) => state.redeemStatus,
 			type: "tool-call",
@@ -233,7 +233,7 @@ const ticketAgentMockupConfig: ChatMockupConfig<TicketAgentState> = {
 			doneLabel: "Presenting delegated credential...",
 			icon: <ShieldCheck className="h-3.5 w-3.5" />,
 			id: "tool-present",
-			label: "wallet-cli present",
+			label: "openid4vc-wallet present",
 			showAt: 13,
 			status: ({ state }) => state.presentStatus,
 			type: "tool-call",

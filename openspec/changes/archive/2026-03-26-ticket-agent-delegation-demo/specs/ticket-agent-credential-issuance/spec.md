@@ -1,12 +1,12 @@
 ## Purpose
 
-Server-side credential issuance service using `@vidos-id/issuer` to produce holder-bound `dc+sd-jwt` delegation credentials.
+Server-side credential issuance service using `@vidos-id/openid4vc-issuer` to produce holder-bound `dc+sd-jwt` delegation credentials.
 
 ## ADDED Requirements
 
 ### Requirement: Issuer trust material generation at startup
 
-The server SHALL generate issuer trust material at startup using `generateIssuerTrustMaterial()` from `@vidos-id/issuer`. The generated material SHALL include a signing key pair and JWKS. The server SHALL create a `DemoIssuer` instance configured with VCT `urn:vidos:agent-delegation:1` and the generated signing key. Trust material SHALL persist across requests for the lifetime of the server process.
+The server SHALL generate issuer trust material at startup using `generateIssuerTrustMaterial()` from `@vidos-id/openid4vc-issuer`. The generated material SHALL include a signing key pair and JWKS. The server SHALL create a `DemoIssuer` instance configured with VCT `urn:vidos:agent-delegation:1` and the generated signing key. Trust material SHALL persist across requests for the lifetime of the server process.
 
 #### Scenario: Issuer initialized on server start
 - **WHEN** the server starts
@@ -18,7 +18,7 @@ The server SHALL generate issuer trust material at startup using `generateIssuer
 
 ### Requirement: Delegation credential issuance with direct holder binding
 
-The server SHALL issue `dc+sd-jwt` delegation credentials using the `@vidos-id/issuer` library's `issueCredential()` method with `holderPublicJwk` set to the agent's public key. The issuance flow SHALL: (1) create a pre-authorized grant with delegation claims derived from the verified PID and selected scopes, (2) exchange the pre-authorized code for an access token, (3) issue the credential with `holderPublicJwk` and without a proof JWT. The issued credential SHALL contain a `cnf` claim binding it to the agent's public key.
+The server SHALL issue `dc+sd-jwt` delegation credentials using the `@vidos-id/openid4vc-issuer` library's `issueCredential()` method with `holderPublicJwk` set to the agent's public key. The issuance flow SHALL: (1) create a pre-authorized grant with delegation claims derived from the verified PID and selected scopes, (2) exchange the pre-authorized code for an access token, (3) issue the credential with `holderPublicJwk` and without a proof JWT. The issued credential SHALL contain a `cnf` claim binding it to the agent's public key.
 
 #### Scenario: Credential issued with agent's public key
 - **WHEN** the delegation portal submits verified PID claims, an agent public JWK, and selected scopes

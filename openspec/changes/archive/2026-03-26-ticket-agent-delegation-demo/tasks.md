@@ -1,8 +1,8 @@
 ## 1. Monorepo Setup
 
-- [x] 1.1 Add `@vidos-id` scope registry configuration to `bunfig.toml` for GitHub Packages
+- [x] 1.1 Add `@vidos-id` dependency configuration to the monorepo for the issuer package
 - [x] 1.2 Scaffold `usecases/ticket-agent/shared/` workspace package with `package.json`, `tsconfig.json`, and subpath exports for `./types/*` and `./lib/*`
-- [x] 1.3 Scaffold `usecases/ticket-agent/server/` workspace package with `package.json`, `tsconfig.json`, and dependencies on shared package, `vidos-api`, `hono`, `openapi-fetch`, `@vidos-id/issuer`, `drizzle-orm`, `better-sqlite3`
+- [x] 1.3 Scaffold `usecases/ticket-agent/server/` workspace package with `package.json`, `tsconfig.json`, and dependencies on shared package, `vidos-api`, `hono`, `openapi-fetch`, `@vidos-id/openid4vc-issuer`, `drizzle-orm`, `better-sqlite3`
 - [x] 1.4 Scaffold `usecases/ticket-agent/web/` workspace package with `package.json`, `tsconfig.json`, Vite config (base: `/ticket-agent/`), TanStack Router, Tailwind CSS, and shadcn/ui setup
 - [x] 1.5 Run `bun install` and verify all workspace dependencies resolve
 
@@ -32,7 +32,7 @@
 
 ## 5. Server — Issuer Service
 
-- [x] 5.1 Create `server/src/services/issuer.ts` with trust material persistence: load existing key material from disk if present, otherwise generate via `generateIssuerTrustMaterial()` and persist to disk. Create `DemoIssuer` instance from `@vidos-id/issuer`.
+- [x] 5.1 Create `server/src/services/issuer.ts` with trust material persistence: load existing key material from disk if present, otherwise generate via `generateIssuerTrustMaterial()` and persist to disk. Create `DemoIssuer` instance from `@vidos-id/openid4vc-issuer`.
 - [x] 5.2 Implement `issueDelegationCredential()` that takes verified PID claims, agent public JWK, and scopes, and returns a compact `dc+sd-jwt` credential string via the pre-authorized grant → token exchange → issue credential flow with `holderPublicJwk`
 - [x] 5.3 Implement `getIssuerJwks()` to return the issuer's public JWKS for the `/api/issuer/jwks` endpoint
 
@@ -93,12 +93,12 @@
 
 ## 14. Agent Skill File
 
-- [x] 14.1 Write `skill.md` documenting: intro message, fixed flow sequence, all API endpoints with example requests/responses, `wallet-cli` commands for init/import/present, autonomous credential presentation (no QR code generation), booking status polling behavior, and terminal status handling
+- [x] 14.1 Write `skill.md` documenting: intro message, fixed flow sequence, all API endpoints with example requests/responses, `openid4vc-wallet` commands for init/receive/present, autonomous credential presentation (no QR code generation), booking status polling behavior, and terminal status handling
 
 ## 15. Home Navigator Integration
 
 - [x] 15.1 Add ticket agent demo entry to `usecases-home` use case grid with title "Event Tickets with Agent Delegation", category "Consumer", credential pills ["PID", "Delegation Credential"], app URL at `/ticket-agent/`, and AI guide link
-- [x] 15.2 Create ticket agent chat mockup component (`chatgpt-ticket-agent-mockup.tsx`) using `animated-chat-mockup` with delegation-specific flow: wallet init → credential handoff → import → browse events → book → autonomous `wallet-cli present` (no QR widget) → confirmation
+- [x] 15.2 Create ticket agent chat mockup component (`chatgpt-ticket-agent-mockup.tsx`) using `animated-chat-mockup` with delegation-specific flow: wallet init → offer handoff → receive → browse events → book → autonomous `openid4vc-wallet present` (no QR widget) → confirmation
 - [x] 15.3 Create ticket agent agent guide page route with the chat mockup, setup instructions, and skill file link
 
 ## 16. Infrastructure

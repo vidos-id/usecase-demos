@@ -32,22 +32,22 @@ function TicketAgentDemoOverview() {
 				<p className="text-sm text-muted-foreground leading-relaxed">
 					The detailed setup now lives inside the VidoShow demo itself: identity
 					verification, OID4VCI delegation-offer creation, OpenClaw skill
-					bootstrap, `wallet-cli` wallet initialization, credential redemption,
-					and the final booking flow.
+					bootstrap, `openid4vc-wallet` wallet initialization, credential
+					redemption, and the final booking flow.
 				</p>
 				<p className="text-sm text-muted-foreground leading-relaxed">
-					`wallet-cli` is a Vidos demo CLI for wallet bootstrap and
-					OID4VCI/OID4VP interactions, available at{" "}
+					`openid4vc-wallet` is the CLI from the Vidos OpenID4VC tools repo for
+					wallet bootstrap and OID4VCI/OID4VP interactions, available at{" "}
 					<a
-						href="https://github.com/vidos-id/oid4vp-cli-utils"
+						href="https://github.com/vidos-id/openid4vc-tools"
 						target="_blank"
 						rel="noopener noreferrer"
 						className="text-primary underline-offset-4 hover:underline"
 					>
-						github.com/vidos-id/oid4vp-cli-utils
+						github.com/vidos-id/openid4vc-tools
 					</a>
 					. This ticket-agent demo itself issues the delegated credential with
-					the `@vidos-id/issuer` package from the same repository.
+					the `@vidos-id/openid4vc-issuer` package from the same repository.
 				</p>
 				<a
 					href={ticketAgentGuideUrl}
@@ -98,8 +98,9 @@ export function TicketAgentGuidePage() {
 						<p className="mono-label mb-1">Sample interaction</p>
 						<p className="text-sm text-muted-foreground">
 							A replay of the current flow: load the skill, initialize the agent
-							wallet with `wallet-cli`, share the OID4VCI offer, let the agent
-							redeem the delegated credential, then search, book, and confirm.
+							wallet with `openid4vc-wallet`, share the OID4VCI offer, let the
+							agent redeem the delegated credential, then search, book, and
+							confirm.
 						</p>
 					</div>
 					<ChatGptTicketAgentMockup variant="openclaw" />
