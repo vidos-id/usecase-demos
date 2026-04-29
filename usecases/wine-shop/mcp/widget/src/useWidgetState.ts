@@ -86,7 +86,11 @@ export function useWidgetState(
 				name: "get_checkout_status",
 				arguments: { checkoutSessionId: sessionId },
 			});
-			setView(extractViewState(raw));
+			// Merge with prev.data so authorizeUrl/authorization survive — get_checkout_status
+			// responses don't include them, mirroring the HTTP poll path above.
+			setView((prev) =>
+				extractViewState({ ...prev.data, ...normalizeToolOutput(raw) }),
+			);
 			return null;
 		},
 		enabled: !!sessionId && !isTerminal,
