@@ -45,12 +45,13 @@ export function useWidgetState(
 
 		setView((prev) => ({
 			...hostView,
-			// Preserve authorizeUrl and statusPollUrl across updates — get_checkout_status
-			// ontoolresult payloads omit these, but the widget still needs them for polling.
+			// Preserve top-level authorizeUrl and merge data so fields the host omits
+			// (authorization, authorizeUrl, statusPollUrl) survive across get_checkout_status
+			// ontoolresult pushes. Without this, polling responses wipe the QR source.
 			authorizeUrl: hostView.authorizeUrl || prev.authorizeUrl,
 			data: {
+				...prev.data,
 				...hostView.data,
-				statusPollUrl: hostView.data.statusPollUrl ?? prev.data.statusPollUrl,
 			},
 		}));
 	}, [hostView]);
