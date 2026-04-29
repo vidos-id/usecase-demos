@@ -186,11 +186,17 @@ async function startServer() {
 			}
 
 			if (url.pathname.startsWith("/api/")) {
+				if (request.method === "OPTIONS") {
+					return new Response(null, { status: 204, headers: MCP_CORS_HEADERS });
+				}
 				try {
-					return await handleApiRequest(request);
+					const apiResponse = await handleApiRequest(request);
+					return withMcpCors(apiResponse);
 				} catch (error) {
 					console.error("Failed to handle API request:", error);
-					return Response.json({ success: false, message: "Internal server error" }, { status: 500 });
+					return withMcpCors(
+						Response.json({ success: false, message: "Internal server error" }, { status: 500 }),
+					);
 				}
 			}
 

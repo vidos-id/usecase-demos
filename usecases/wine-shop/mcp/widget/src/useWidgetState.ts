@@ -43,7 +43,16 @@ export function useWidgetState(
 			return;
 		}
 
-		setView(hostView);
+		setView((prev) => ({
+			...hostView,
+			// Preserve authorizeUrl and statusPollUrl across updates — get_checkout_status
+			// ontoolresult payloads omit these, but the widget still needs them for polling.
+			authorizeUrl: hostView.authorizeUrl || prev.authorizeUrl,
+			data: {
+				...hostView.data,
+				statusPollUrl: hostView.data.statusPollUrl ?? prev.data.statusPollUrl,
+			},
+		}));
 	}, [hostView]);
 
 	const sessionId = view.sessionId;

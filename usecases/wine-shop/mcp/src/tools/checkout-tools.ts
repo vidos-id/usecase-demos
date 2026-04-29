@@ -202,12 +202,16 @@ export function getCheckoutStatusTool(args: unknown): CallToolResult {
 function buildCheckoutStatusData(
 	session: CheckoutSession,
 ): Record<string, unknown> {
+	const baseUrl =
+		process.env.PUBLIC_BASE_URL ??
+		`http://localhost:${process.env.PORT ?? 44182}`;
 	const base = {
 		checkoutSessionId: session.sessionId,
 		cartSessionId: session.cartSessionId,
 		status: session.status,
 		createdAt: session.createdAt,
 		updatedAt: session.updatedAt,
+		statusPollUrl: `${baseUrl}/api/checkout/${session.sessionId}`,
 	};
 
 	if (!session.verification) {
